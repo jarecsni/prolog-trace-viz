@@ -1,0 +1,184 @@
+# Implementation Plan
+
+- [-] 1. Project setup and CLI foundation
+  - [-] 1.1 Initialize TypeScript project with npm
+    - Create package.json with bin entry for `prolog-trace-viz`
+    - Configure TypeScript with strict mode
+    - Set up Vitest for testing with fast-check
+    - _Requirements: 1.1_
+  - [ ] 1.2 Implement CLI argument parser
+    - Parse positional args: prolog file path and query string
+    - Parse flags: --output/-o, --depth, --verbose, --quiet, --help/-h, --version/-v
+    - Return structured CLIOptions or error
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10_
+  - [ ] 1.3 Write property test for argument validation
+    - **Property 1: Argument validation rejects invalid inputs**
+    - **Validates: Requirements 1.2, 1.10**
+  - [ ] 1.4 Implement error handler module
+    - Define ErrorCode enum and ToolError interface
+    - Implement createError and formatError functions
+    - Consistent error format with code, message, details, suggestion
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+
+- [ ] 2. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 3. sldnfdraw wrapper and execution
+  - [ ] 3.1 Implement wrapper generator
+    - Generate sldnfdraw-compatible Prolog file structure
+    - Include user's Prolog content in begin_program section
+    - Include query in begin_query section
+    - Support optional depth parameter
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [ ] 3.2 Write property test for wrapper file structure
+    - **Property 2: Wrapper file contains all input content**
+    - **Validates: Requirements 2.2, 2.3**
+  - [ ] 3.3 Implement Prolog executor
+    - Check for SWI-Prolog installation
+    - Check for sldnfdraw pack
+    - Execute swipl with wrapper file
+    - Capture LaTeX output from generated .tex file
+    - Clean up temporary files
+    - _Requirements: 2.4, 2.5, 2.6, 7.2, 7.3_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 5. LaTeX parsing
+  - [ ] 5.1 Implement LaTeX parser core
+    - Parse \begin{bundle} and \end{bundle} blocks
+    - Extract goal text from bundle declarations
+    - Extract variable bindings from \chunk parameters
+    - Handle \begin{tabular} blocks for sequential subgoals
+    - Maintain hierarchical structure for nested bundles
+    - Produce ExecutionNode tree structure
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+  - [ ] 5.2 Write property test for LaTeX parsing round-trip
+    - **Property 3: LaTeX parsing round-trip preserves structure**
+    - **Validates: Requirements 3.1**
+    - Implement serializeToLatex helper for testing
+    - Generate arbitrary execution trees and verify round-trip
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Tree analysis
+  - [ ] 7.1 Implement pending goal identification
+    - Traverse tree to find goals queued but not immediately solved
+    - Track first occurrence of each pending goal
+    - _Requirements: 4.1, 4.2_
+  - [ ] 7.2 Write property test for pending goal identification
+    - **Property 4: Pending goal identification is complete**
+    - **Validates: Requirements 4.1**
+  - [ ] 7.3 Write property test for pending goal deduplication
+    - **Property 5: Pending goal deduplication preserves first occurrence**
+    - **Validates: Requirements 4.2**
+  - [ ] 7.4 Implement clause tracking and variable naming
+    - Track which clause matched each goal
+    - Assign level-based variable names (X_L1, X_L2, etc.)
+    - _Requirements: 4.3, 4.4_
+  - [ ] 7.5 Write property test for clause tracking
+    - **Property 6: Clause tracking preserves clause information**
+    - **Validates: Requirements 4.3**
+  - [ ] 7.6 Write property test for level-based variable naming
+    - **Property 7: Level-based variable naming produces unique names**
+    - **Validates: Requirements 4.4**
+  - [ ] 7.7 Implement execution order and activation tracking
+    - Determine sequential order of goal solving (left-to-right, depth-first)
+    - Record activation relationships for pending goals
+    - _Requirements: 4.5, 4.6_
+  - [ ] 7.8 Write property test for execution order
+    - **Property 8: Execution order is deterministic and sequential**
+    - **Validates: Requirements 4.5**
+  - [ ] 7.9 Write property test for activation relationships
+    - **Property 9: Activation relationships are recorded**
+    - **Validates: Requirements 4.6**
+
+- [ ] 8. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 9. Mermaid diagram generation
+  - [ ] 9.1 Implement Mermaid node generation
+    - Create nodes for query, solving, pending, solved, success types
+    - Apply correct emoji prefixes (🎯, 🔄, ⏸️, ✅, 🎉)
+    - Generate unique node IDs
+    - _Requirements: 5.1_
+  - [ ] 9.2 Write property test for diagram node completeness
+    - **Property 10: Diagram contains all required node types**
+    - **Validates: Requirements 5.1**
+  - [ ] 9.3 Implement Mermaid styling
+    - Apply color scheme: blue (query), yellow (solving), gray (pending), green (solved/success)
+    - Generate style directives for all nodes
+    - _Requirements: 5.2, 5.7_
+  - [ ] 9.4 Write property test for diagram styling
+    - **Property 11: Diagram styling matches node semantics**
+    - **Validates: Requirements 5.2, 5.3, 5.7**
+  - [ ] 9.5 Implement Mermaid edge generation
+    - Create solid arrows for active execution
+    - Create dashed arrows for queueing
+    - Create double arrows for activation
+    - Generate circled step numbers (①②③)
+    - Include clause info and bindings in labels
+    - _Requirements: 5.3, 5.4, 5.5, 5.6_
+  - [ ] 9.6 Write property test for step numbering
+    - **Property 12: Step numbers are sequential and use circled format**
+    - **Validates: Requirements 5.4**
+  - [ ] 9.7 Write property test for arrow labels
+    - **Property 13: Arrow labels contain clause and binding information**
+    - **Validates: Requirements 5.6**
+
+- [ ] 10. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 11. Markdown rendering and output
+  - [ ] 11.1 Implement markdown renderer
+    - Generate title with query
+    - Include original query in code block
+    - Include Mermaid diagram with proper fencing
+    - Generate legend section
+    - Generate step-by-step execution breakdown
+    - Include final answer section
+    - Include clauses used summary
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+  - [ ] 11.2 Write property test for markdown output completeness
+    - **Property 14: Markdown output contains all required sections**
+    - **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7**
+  - [ ] 11.3 Implement output writer
+    - Write to specified file with --output flag
+    - Write to stdout when no output specified
+    - Handle verbose and quiet modes
+    - _Requirements: 1.5, 1.6, 1.7, 1.8_
+
+- [ ] 12. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 13. Error handling integration
+  - [ ] 13.1 Implement file validation errors
+    - Check Prolog file exists before processing
+    - Report file not found with attempted path
+    - _Requirements: 7.1_
+  - [ ] 13.2 Implement dependency check errors
+    - Detect missing SWI-Prolog
+    - Detect missing sldnfdraw pack with installation instructions
+    - _Requirements: 7.2, 7.3_
+  - [ ] 13.3 Implement processing errors
+    - Report query syntax errors from Prolog
+    - Report LaTeX parsing errors with context
+    - Report I/O errors with details
+    - _Requirements: 7.4, 7.5, 7.6_
+
+- [ ] 14. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 15. Documentation and examples
+  - [ ] 15.1 Create README with installation and usage
+    - Installation instructions (npm install, SWI-Prolog, sldnfdraw)
+    - Usage examples with sample commands
+    - Example output showing generated visualization
+    - _Requirements: 8.1, 8.2, 8.3, 8.4_
+  - [ ] 15.2 Create example Prolog files
+    - Include at least one complete example with input and expected output
+    - _Requirements: 8.5_
+
+- [ ] 16. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

@@ -1,0 +1,31 @@
+{
+  "name": "prolog-trace-viz",
+  "version": "1.0.0",
+  "description": "Generate enhanced visual trace diagrams for Prolog query execution",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "prolog-trace-viz": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "prolog",
+    "trace",
+    "visualization",
+    "mermaid",
+    "sldnfdraw"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "fast-check": "^3.14.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}
