@@ -265,8 +265,8 @@ function processTreeNode(
           // This is not the first active edge to a solving node, so it's a backtrack
           edgeLabel = 'backtrack';
         } else {
-          // First edge - recurse (with clause number if available)
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'recurse';
+          // First edge - show clause number if available, otherwise empty
+          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
         }
       } else if (parentNode.type === 'solved' && vizNode.type === 'success') {
         // Solved to success: use "all done"

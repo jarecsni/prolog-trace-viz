@@ -48,7 +48,7 @@ Y["🔄 Solve: false"]
 A -->|"① clause 2"| B
 B -.->|"② queue"| B2
 B -.->|"③ queue"| B3
-B -->|"④ recurse"| C
+B -->|"④"| C
 C -->|"⑤ N1₀ = 2"| D
 D -->|"⑥ clause 2"| E
 B2 ==>|"⑦ activate"| E
@@ -56,7 +56,7 @@ E -->|"⑧ N1₀ = 2"| F
 F -->|"⑨ clause 2"| G
 G -.->|"⑩ queue"| G2
 G -.->|"⑪ queue"| G3
-G -->|"⑫ recurse"| H
+G -->|"⑫"| H
 H -->|"⑬ N1₁ = 1"| I
 I -->|"⑭ clause 2"| J
 G2 ==>|"⑮ activate"| J
@@ -64,7 +64,7 @@ J -->|"⑯ N1₁ = 1"| K
 K -->|"⑰ clause 2"| L
 L -.->|"⑱ queue"| L2
 L -.->|"⑲ queue"| L3
-L -->|"⑳ recurse"| M
+L -->|"⑳"| M
 M -->|"(21) N1₂ = 0"| N
 N -->|"(22) clause 1"| O
 L2 ==>|"(23) activate"| O
