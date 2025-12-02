@@ -13,35 +13,35 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>factorial(3, X₀)"]]
-B["🔄 Solve: 3>0, N1₀ is 3-1"]
+B["🔄 Solve: 3>0, N1₀ is 3-1 [clause 2]"]
 B2["⏸️ Pending: factorial(N1₀, R1₀)"]
 B3["⏸️ Pending: X₀ is 3*R1₀"]
 C["🔄 Solve: N1₀ is 3-1"]
 D("✅ Solved: N1₀ = 2")
-E["🔄 Solve: factorial(2, R1₀)"]
+E["🔄 Solve: factorial(2, R1₀) [clause 2]"]
 F("✅ Solved: N1₀ = 2")
-G["🔄 Solve: 2>0, N1₁ is 2-1"]
+G["🔄 Solve: 2>0, N1₁ is 2-1 [clause 2]"]
 G2["⏸️ Pending: factorial(N1₁, R1₁)"]
 G3["⏸️ Pending: R1₀ is 2*R1₁"]
 H["🔄 Solve: N1₁ is 2-1"]
 I("✅ Solved: N1₁ = 1")
-J["🔄 Solve: factorial(1, R1₁)"]
+J["🔄 Solve: factorial(1, R1₁) [clause 2]"]
 K("✅ Solved: N1₁ = 1")
-L["🔄 Solve: 1>0, N1₂ is 1-1"]
+L["🔄 Solve: 1>0, N1₂ is 1-1 [clause 2]"]
 L2["⏸️ Pending: factorial(N1₂, R1₂)"]
 L3["⏸️ Pending: R1₁ is 1*R1₂"]
 M["🔄 Solve: N1₂ is 1-1"]
 N("✅ Solved: N1₂ = 0")
-O["🔄 Solve: factorial(0, R1₂)"]
+O["🔄 Solve: factorial(0, R1₂) [clause 1]"]
 P("✅ Solved: R1₂ = 1")
-Q["🔄 Solve: R1₁ is 1*1"]
+Q["🔄 Solve: R1₁ is 1*1 [clause 1]"]
 R("✅ Solved: R1₁ = 1")
 S["🔄 Solve: R1₀ is 2*1"]
 T("✅ Solved: R1₀ = 2")
 U["🔄 Solve: X₀ is 3*2"]
 V("✅ Solved: X₀ = 6")
 W(("🎉 SUCCESS"))
-X["🔄 Solve: 0>0, N1₃ is 0-1"]
+X["🔄 Solve: 0>0, N1₃ is 0-1 [clause 2]"]
 Y["🔄 Solve: false"]
 
 %% Edges
@@ -50,7 +50,7 @@ B -.->|"② queue"| B2
 B -.->|"③ queue"| B3
 B -->|"④ recurse"| C
 C -->|"⑤ N1₀ = 2"| D
-D -->|"⑥ done"| E
+D -->|"⑥ clause 2"| E
 B2 ==>|"⑦ activate"| E
 E -->|"⑧ N1₀ = 2"| F
 F -->|"⑨ clause 2"| G
@@ -58,7 +58,7 @@ G -.->|"⑩ queue"| G2
 G -.->|"⑪ queue"| G3
 G -->|"⑫ recurse"| H
 H -->|"⑬ N1₁ = 1"| I
-I -->|"⑭ done"| J
+I -->|"⑭ clause 2"| J
 G2 ==>|"⑮ activate"| J
 J -->|"⑯ N1₁ = 1"| K
 K -->|"⑰ clause 2"| L
@@ -66,7 +66,7 @@ L -.->|"⑱ queue"| L2
 L -.->|"⑲ queue"| L3
 L -->|"⑳ recurse"| M
 M -->|"(21) N1₂ = 0"| N
-N -->|"(22) done"| O
+N -->|"(22) clause 1"| O
 L2 ==>|"(23) activate"| O
 O -->|"(24) R1₂ = 1"| P
 P -->|"(25) clause 1"| Q

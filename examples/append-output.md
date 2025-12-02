@@ -13,9 +13,9 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>append([1, 2], [3, 4], X₀)"]]
-B["🔄 Solve: append([2], [3, 4], R₀)"]
+B["🔄 Solve: append([2], [3, 4], R₀) [clause 2]"]
 C("✅ Solved: R₀ = [2|R₁]")
-D["🔄 Solve: append([], [3, 4], R₁)"]
+D["🔄 Solve: append([], [3, 4], R₁) [clause 2]"]
 E("✅ Solved: R₁ = [3,4]")
 F(("🎉 SUCCESS"))
 

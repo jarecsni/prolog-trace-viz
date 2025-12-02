@@ -195,6 +195,9 @@ function processTreeNode(
   parentId: string | null,
   ctx: ProcessContext
 ): string {
+  // Get clause number from node FIRST (set by parser)
+  const clauseNumber = node.clauseNumber;
+  
   // Create node for this goal
   const nodeId = ctx.nextNodeId();
   
@@ -214,11 +217,10 @@ function processTreeNode(
     nodeType = 'solving';
     // Add space after commas in goal
     const formattedGoal = node.goal.replace(/,(?!\s)/g, ', ');
-    label = `Solve: ${formattedGoal}`;
+    // Add clause number to label if available
+    const clauseLabel = clauseNumber ? ` [clause ${clauseNumber}]` : '';
+    label = `Solve: ${formattedGoal}${clauseLabel}`;
   }
-  
-  // Get clause number from node if available (set by parser)
-  const clauseNumber = node.clauseNumber;
   
   const vizNode: VisualizationNode = {
     id: nodeId,
@@ -414,12 +416,17 @@ function processTreeNode(
         altLabel = `Solve: ${altChild.goal.replace(/,(?!\s)/g, ', ')}`;
       }
       
+      // Get clause number from alternative child
+      const altClauseNumber = altChild.clauseNumber;
+      const clauseLabel = altClauseNumber ? ` [clause ${altClauseNumber}]` : '';
+      
       const altVizNode: VisualizationNode = {
         id: altNodeId,
         type: altType,
-        label: altLabel,
+        label: altLabel + clauseLabel,
         emoji: EMOJIS[altType],
         level: altChild.level,
+        clauseNumber: altClauseNumber,
       };
       ctx.nodes.push(altVizNode);
       
@@ -471,6 +478,9 @@ function processAlternativeBranch(
   for (const child of node.children) {
     const childId = ctx.nextNodeId();
     
+    // Get clause number from child
+    const childClauseNumber = child.clauseNumber;
+    
     let childLabel: string;
     let childType: VisualizationNode['type'];
     
@@ -482,7 +492,8 @@ function processAlternativeBranch(
       childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}`;
     } else {
       childType = 'solving';
-      childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}`;
+      const clauseLabel = childClauseNumber ? ` [clause ${childClauseNumber}]` : '';
+      childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}${clauseLabel}`;
     }
     
     const childVizNode: VisualizationNode = {
@@ -491,6 +502,7 @@ function processAlternativeBranch(
       label: childLabel,
       emoji: EMOJIS[childType],
       level: child.level,
+      clauseNumber: childClauseNumber,
     };
     ctx.nodes.push(childVizNode);
     

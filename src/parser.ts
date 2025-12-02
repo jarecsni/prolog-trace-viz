@@ -83,13 +83,15 @@ export function parseLatex(latex: string): ExecutionNode {
 /**
  * Recursively filters out clause_marker nodes from the tree.
  * When a clause_marker node is found, it's replaced by its child,
- * and the clause number is stored in the child node.
+ * and the clause number is stored in the child node and propagated to predicate calls.
  */
 function filterClauseMarkers(node: ExecutionNode): ExecutionNode {
   // Check if this node is a clause_marker
   const markerMatch = node.goal.match(/clause_marker\(([^,]+),\s*(\d+)\)/);
   if (markerMatch) {
     const clauseNumber = parseInt(markerMatch[2], 10);
+    const predicateName = markerMatch[1];
+    
     // This is a clause_marker node - skip it and return its child with the clause number
     if (node.children.length > 0) {
       const child = filterClauseMarkers(node.children[0]);
@@ -102,6 +104,16 @@ function filterClauseMarkers(node: ExecutionNode): ExecutionNode {
   
   // Not a clause_marker - filter its children
   node.children = node.children.map(child => filterClauseMarkers(child));
+  
+  // If this is a predicate call (not the root query) and its first child has a clause number, inherit it
+  // This handles the case where factorial(2, R1₀) has a child "2>0, ... [clause 2]"
+  if (node.level > 0 && node.goal.match(/^[a-z_][a-zA-Z0-9_]*\(/) && !node.clauseNumber && node.children.length > 0) {
+    const firstChild = node.children[0];
+    if (firstChild.clauseNumber) {
+      node.clauseNumber = firstChild.clauseNumber;
+    }
+  }
+  
   return node;
 }
 
