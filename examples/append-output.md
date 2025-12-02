@@ -6,6 +6,11 @@
 append([1,2], [3,4], X)
 ```
 
+## Clauses Defined
+
+1. `append([], L, L)`
+2. `append([H|T], L, [H|R]) :- append(T, L, R)`
+
 ## Search Tree Visualization
 
 ```mermaid
@@ -13,11 +18,11 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>append([1, 2], [3, 4], X₀)"]]
-B["🔄 Solve: append([2], [3, 4], R₀) [clause 2]"]
+B["🔄 🔁 Recurse: append([2], [3, 4], R₀) [clause 2]"]
 C("✅ Solved: R₀ = [2|R₁]")
-D["🔄 Solve: append([], [3, 4], R₁) [clause 2]"]
+D["🔄 🔁 Recurse: append([], [3, 4], R₁) [clause 2]"]
 E("✅ Solved: R₁ = [3,4]")
-F(("🎉 SUCCESS"))
+F(("🎉 SUCCESS<br/>Result = true"))
 
 %% Edges
 A -->|"① clause 2"| B
@@ -76,8 +81,3 @@ style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```prolog
 X = [1|R₀]
 ```
-
-## Clauses Defined
-
-1. `append([], L, L)`
-2. `append([H|T], L, [H|R]) :- append(T, L, R)`

@@ -19,11 +19,11 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>member(X₀, [1, 2, 3])"]]
 B(("🎉 SUCCESS<br/>Result = true"))
-C["🔄 Solve: member(X₀, [2, 3]) [clause 2]"]
+C["🔄 🔁 Recurse: member(X₀, [2, 3]) [clause 2]"]
 D(("🎉 SUCCESS<br/>Result = true"))
-E["🔄 Solve: member(X₀, [3]) [clause 2]"]
+E["🔄 🔁 Recurse: member(X₀, [3]) [clause 2]"]
 F(("🎉 SUCCESS<br/>Result = true"))
-G["🔄 Solve: member(X₀, []) [clause 2]"]
+G["🔄 🔁 Recurse: member(X₀, []) [clause 2]"]
 H["🔄 Solve: false"]
 
 %% Edges

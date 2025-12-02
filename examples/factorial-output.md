@@ -19,25 +19,19 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>factorial(3, X₀)"]]
 B["🔄 Solve: 3>0, N1₀ is 3-1"]
-B2["⏸️ Pending: factorial(N1₀, R1₀)"]
-B3["⏸️ Pending: X₀ is 3*R1₀"]
 C["🔄 Solve: N1₀ is 3-1"]
 D("✅ Solved: N1₀ = 2")
-E["🔄 Solve: factorial(2, R1₀) [clause 2]"]
+E["🔄 🔁 Recurse: factorial(2, R1₀) [clause 2]"]
 F("✅ Solved: N1₀ = 2")
 G["🔄 Solve: 2>0, N1₁ is 2-1"]
-G2["⏸️ Pending: factorial(N1₁, R1₁)"]
-G3["⏸️ Pending: R1₀ is 2*R1₁"]
 H["🔄 Solve: N1₁ is 2-1"]
 I("✅ Solved: N1₁ = 1")
-J["🔄 Solve: factorial(1, R1₁) [clause 2]"]
+J["🔄 🔁 Recurse: factorial(1, R1₁) [clause 2]"]
 K("✅ Solved: N1₁ = 1")
 L["🔄 Solve: 1>0, N1₂ is 1-1"]
-L2["⏸️ Pending: factorial(N1₂, R1₂)"]
-L3["⏸️ Pending: R1₁ is 1*R1₂"]
 M["🔄 Solve: N1₂ is 1-1"]
 N("✅ Solved: N1₂ = 0")
-O["🔄 Solve: factorial(0, R1₂) [clause 1]"]
+O["🔄 🔁 Recurse: factorial(0, R1₂) [clause 1]"]
 P("✅ Solved: R1₂ = 1")
 Q["🔄 Solve: R1₁ is 1*1"]
 R("✅ Solved: R1₁ = 1")
@@ -51,58 +45,43 @@ Y["🔄 Solve: false"]
 
 %% Edges
 A -->|"① clause 2"| B
-B -.->|"② queue"| B2
-B -.->|"③ queue"| B3
-B -->|"④"| C
-C -->|"⑤ N1₀ = 2"| D
-D -->|"⑥ clause 2"| E
-B2 ==>|"⑦ activate"| E
-E -->|"⑧ N1₀ = 2"| F
-F -->|"⑨ clause 2"| G
-G -.->|"⑩ queue"| G2
-G -.->|"⑪ queue"| G3
-G -->|"⑫"| H
-H -->|"⑬ N1₁ = 1"| I
-I -->|"⑭ clause 2"| J
-G2 ==>|"⑮ activate"| J
-J -->|"⑯ N1₁ = 1"| K
-K -->|"⑰ clause 2"| L
-L -.->|"⑱ queue"| L2
-L -.->|"⑲ queue"| L3
-L -->|"⑳"| M
-M -->|"(21) N1₂ = 0"| N
-N -->|"(22) clause 1"| O
-L2 ==>|"(23) activate"| O
-O -->|"(24) R1₂ = 1"| P
-P -->|"(25) clause 1"| Q
-Q -->|"(26) R1₁ = 1"| R
-R -->|"(27) done"| S
-S -->|"(28) R1₀ = 2"| T
-T -->|"(29) done"| U
-U -->|"(30) X₀ = 6"| V
-V -->|"(31) all done"| W
-P -->|"(32) backtrack (clause 2)"| X
-X -->|"(33)"| Y
+B -->|"②"| C
+C -->|"③ N1₀ = 2"| D
+D -->|"④ clause 2"| E
+E -->|"⑤ N1₀ = 2"| F
+F -->|"⑥ clause 2"| G
+G -->|"⑦"| H
+H -->|"⑧ N1₁ = 1"| I
+I -->|"⑨ clause 2"| J
+J -->|"⑩ N1₁ = 1"| K
+K -->|"⑪ clause 2"| L
+L -->|"⑫"| M
+M -->|"⑬ N1₂ = 0"| N
+N -->|"⑭ clause 1"| O
+O -->|"⑮ R1₂ = 1"| P
+P -->|"⑯ clause 1"| Q
+Q -->|"⑰ R1₁ = 1"| R
+R -->|"⑱ done"| S
+S -->|"⑲ R1₀ = 2"| T
+T -->|"⑳ done"| U
+U -->|"(21) X₀ = 6"| V
+V -->|"(22) all done"| W
+P -->|"(23) backtrack (clause 2)"| X
+X -->|"(24)"| Y
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#fff9c4,stroke:#f57f17
-style B2 fill:#e0e0e0,stroke:#616161
-style B3 fill:#e0e0e0,stroke:#616161
 style C fill:#fff9c4,stroke:#f57f17
 style D fill:#c8e6c9,stroke:#388e3c
 style E fill:#fff9c4,stroke:#f57f17
 style F fill:#c8e6c9,stroke:#388e3c
 style G fill:#fff9c4,stroke:#f57f17
-style G2 fill:#e0e0e0,stroke:#616161
-style G3 fill:#e0e0e0,stroke:#616161
 style H fill:#fff9c4,stroke:#f57f17
 style I fill:#c8e6c9,stroke:#388e3c
 style J fill:#fff9c4,stroke:#f57f17
 style K fill:#c8e6c9,stroke:#388e3c
 style L fill:#fff9c4,stroke:#f57f17
-style L2 fill:#e0e0e0,stroke:#616161
-style L3 fill:#e0e0e0,stroke:#616161
 style M fill:#fff9c4,stroke:#f57f17
 style N fill:#c8e6c9,stroke:#388e3c
 style O fill:#fff9c4,stroke:#f57f17
@@ -116,8 +95,6 @@ style V fill:#c8e6c9,stroke:#388e3c
 style W fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style X fill:#fff9c4,stroke:#f57f17
 style Y fill:#fff9c4,stroke:#f57f17
-linkStyle 1,2,9,10,17,18 stroke:#999,stroke-width:2px,stroke-dasharray:5
-linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 ```
 
 ### Legend
@@ -139,7 +116,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Action:** Solving 3>0,N1₀ is 3-1
 
-### Step 4
+### Step 2
 
 **Goal:** `N1₀ is 3-1`
 
@@ -147,7 +124,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `N1₀/2`
 
-### Step 6
+### Step 4
 
 **Goal:** `factorial(2,R1₀)`
 
@@ -155,13 +132,13 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `N1₀/2`
 
-### Step 9
+### Step 6
 
 **Goal:** `2>0,N1₁ is 2-1`
 
 **Action:** Solving 2>0,N1₁ is 2-1
 
-### Step 12
+### Step 7
 
 **Goal:** `N1₁ is 2-1`
 
@@ -169,7 +146,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `N1₁/1`
 
-### Step 14
+### Step 9
 
 **Goal:** `factorial(1,R1₁)`
 
@@ -177,13 +154,13 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `N1₁/1`
 
-### Step 17
+### Step 11
 
 **Goal:** `1>0,N1₂ is 1-1`
 
 **Action:** Solving 1>0,N1₂ is 1-1
 
-### Step 20
+### Step 12
 
 **Goal:** `N1₂ is 1-1`
 
@@ -191,7 +168,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `N1₂/0`
 
-### Step 22
+### Step 14
 
 **Goal:** `factorial(0,R1₂)`
 
@@ -199,7 +176,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `R1₂/1`
 
-### Step 25
+### Step 16
 
 **Goal:** `R1₁ is 1*1`
 
@@ -207,7 +184,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `R1₁/1`
 
-### Step 27
+### Step 18
 
 **Goal:** `R1₀ is 2*1`
 
@@ -215,7 +192,7 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `R1₀/2`
 
-### Step 29
+### Step 20
 
 **Goal:** `X₀ is 3*2`
 
@@ -223,19 +200,19 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 
 **Clause matched:** `X₀/6`
 
-### Step 31
+### Step 22
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 32
+### Step 23
 
 **Goal:** `0>0,N1₃ is 0-1`
 
 **Action:** Backtracking: 0>0,N1₃ is 0-1
 
-### Step 33
+### Step 24
 
 **Goal:** `false`
 

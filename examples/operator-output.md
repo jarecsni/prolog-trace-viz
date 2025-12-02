@@ -19,7 +19,7 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(1+0+1, X₀)"]]
-B(("🎉 SUCCESS"))
+B(("🎉 SUCCESS<br/>Result = true"))
 
 %% Edges
 A -->|"① clause 2"| B

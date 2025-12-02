@@ -2,7 +2,7 @@ import { ExecutionNode } from './parser.js';
 
 export interface VisualizationNode {
   id: string;
-  type: 'query' | 'solving' | 'pending' | 'solved' | 'success';
+  type: 'query' | 'solving' | 'pending' | 'solved' | 'success' | 'clause-body';
   label: string;
   emoji: string;
   level: number;
@@ -41,6 +41,12 @@ export interface ExecutionStep {
   newGoals?: string[];
 }
 
+export type DetailLevel = 'minimal' | 'standard' | 'detailed' | 'full';
+
+export interface AnalysisOptions {
+  detailLevel?: DetailLevel;
+}
+
 export interface AnalysisResult {
   nodes: VisualizationNode[];
   edges: VisualizationEdge[];
@@ -57,6 +63,7 @@ const EMOJIS = {
   pending: '⏸️',
   solved: '✅',
   success: '🎉',
+  'clause-body': '📋',
 };
 
 import { Clause, inferClauseFromGoal } from './clauses.js';
@@ -64,7 +71,12 @@ import { Clause, inferClauseFromGoal } from './clauses.js';
 /**
  * Analyzes an execution tree and produces visualization data.
  */
-export function analyzeTree(root: ExecutionNode, clauses: Clause[] = []): AnalysisResult {
+export function analyzeTree(
+  root: ExecutionNode,
+  clauses: Clause[] = [],
+  options: AnalysisOptions = {}
+): AnalysisResult {
+  const detailLevel = options.detailLevel || 'standard';
   const nodes: VisualizationNode[] = [];
   const edges: VisualizationEdge[] = [];
   const pendingGoalMap = new Map<string, string>(); // goal text -> node id
@@ -73,23 +85,32 @@ export function analyzeTree(root: ExecutionNode, clauses: Clause[] = []): Analys
   let stepCounter = 1;
   let nodeIdCounter = 0;
   
-  // Generate letter-based node IDs (A, B, B2, C, C2, etc.)
-  const letterIds = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-  let currentLetter = 0;
-  let lastNonPendingLetter = -1;
-  const pendingCounters = new Map<number, number>(); // Track pending node count per parent letter
+  // Generate letter-based node IDs (A, B, ..., Z, AA, AB, ...)
+  let currentNodeIndex = 0;
+  let lastNonPendingIndex = -1;
+  const pendingCounters = new Map<number, number>(); // Track pending node count per parent
+  
+  const indexToId = (index: number): string => {
+    if (index < 26) {
+      return String.fromCharCode(65 + index); // A-Z
+    }
+    // For index >= 26, use AA, AB, AC, ..., AZ, BA, BB, ...
+    const firstLetter = String.fromCharCode(65 + Math.floor(index / 26) - 1);
+    const secondLetter = String.fromCharCode(65 + (index % 26));
+    return firstLetter + secondLetter;
+  };
   
   const nextNodeId = (isPending: boolean = false) => {
     if (isPending) {
-      // Pending nodes use the last non-pending letter with incrementing suffixes
-      const count = pendingCounters.get(lastNonPendingLetter) || 0;
-      pendingCounters.set(lastNonPendingLetter, count + 1);
-      return `${letterIds[lastNonPendingLetter]}${count + 2}`; // Start at 2 (B2, B3, B4...)
+      // Pending nodes use the last non-pending index with incrementing suffixes
+      const count = pendingCounters.get(lastNonPendingIndex) || 0;
+      pendingCounters.set(lastNonPendingIndex, count + 1);
+      return `${indexToId(lastNonPendingIndex)}${count + 2}`; // Start at 2 (B2, B3, B4...)
     } else {
-      // Regular nodes advance the letter
-      const id = letterIds[currentLetter];
-      lastNonPendingLetter = currentLetter;
-      currentLetter++;
+      // Regular nodes advance the index
+      const id = indexToId(currentNodeIndex);
+      lastNonPendingIndex = currentNodeIndex;
+      currentNodeIndex++;
       return id;
     }
   };
@@ -103,6 +124,7 @@ export function analyzeTree(root: ExecutionNode, clauses: Clause[] = []): Analys
     stepCounter: () => stepCounter++,
     nextNodeId,
     clauses,
+    detailLevel,
   });
   
   // Clause usage tracking - since we can't reliably determine which clauses were used,
@@ -133,6 +155,8 @@ interface ProcessContext {
   stepCounter: () => number;
   nextNodeId: (isPending?: boolean) => string;
   clauses: Clause[];
+  ancestorGoal?: string; // Track parent goal for recursion detection
+  detailLevel: DetailLevel;
 }
 
 /**
@@ -141,6 +165,16 @@ interface ProcessContext {
 function getGoalFunctor(goal: string): string {
   const match = goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
   return match ? match[1] : goal;
+}
+
+/**
+ * Check if a goal is recursive by comparing its functor with an ancestor.
+ */
+function isRecursiveCall(goal: string, ancestorGoal: string | null): boolean {
+  if (!ancestorGoal) return false;
+  const goalFunctor = getGoalFunctor(goal);
+  const ancestorFunctor = getGoalFunctor(ancestorGoal);
+  return goalFunctor === ancestorFunctor && goalFunctor !== '';
 }
 
 /**
@@ -218,7 +252,7 @@ function processTreeNode(
     nodeType = 'solving';
     // Add space after commas in goal
     const formattedGoal = node.goal.replace(/,(?!\s)/g, ', ');
-    // Add clause number to label only for user-defined predicates (not built-ins or compound goals)
+    
     // Check if it's a compound goal (has commas outside parentheses)
     let depth = 0;
     let hasTopLevelComma = false;
@@ -230,10 +264,16 @@ function processTreeNode(
         break;
       }
     }
+    
     // User predicates: start with lowercase letter followed by (, and no top-level commas
     const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(node.goal) && !hasTopLevelComma;
+    
+    // Check if this is a recursive call (only show if detail level >= standard)
+    const isRecursive = ctx.detailLevel !== 'minimal' && isRecursiveCall(node.goal, ctx.ancestorGoal || null);
+    const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
+    
     const clauseLabel = (clauseNumber && isUserPredicate) ? ` [clause ${clauseNumber}]` : '';
-    label = `Solve: ${formattedGoal}${clauseLabel}`;
+    label = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
   }
   
   const vizNode: VisualizationNode = {
@@ -327,51 +367,43 @@ function processTreeNode(
     }
   }
   
-  // Handle subgoals (from tabular blocks)
-  if (node.subgoals && node.subgoals.length > 0) {
-    // First subgoal is being solved (will be in children)
-    // Rest are pending
-    for (let i = 1; i < node.subgoals.length; i++) {
-      const pendingGoal = node.subgoals[i];
+  // Handle subgoals (from tabular blocks) - Only show clause body nodes at 'detailed' level or higher
+  let clauseBodyNodeId: string | null = null;
+  let actualSubgoals: string[] = [];
+  
+  if (node.subgoals && node.subgoals.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
+    // Filter out clause_marker from subgoals
+    actualSubgoals = node.subgoals.filter(sg => !sg.includes('clause_marker'));
+    
+    if (actualSubgoals.length > 0) {
+      // Create a clause body node showing all subgoals
+      clauseBodyNodeId = ctx.nextNodeId();
+      const formattedSubgoals = actualSubgoals.map(sg => sg.replace(/,(?!\s)/g, ', ')).join(', ');
       
-      // Only create pending node if we haven't seen this goal pattern before
-      let alreadyPending = false;
-      for (const existing of ctx.pendingGoalMap.keys()) {
-        if (matchesPendingGoal(pendingGoal, existing)) {
-          alreadyPending = true;
-          break;
-        }
-      }
+      const clauseBodyNode: VisualizationNode = {
+        id: clauseBodyNodeId,
+        type: 'clause-body',
+        label: `Clause ${clauseNumber || '?'} body:<br/>${formattedSubgoals}`,
+        emoji: EMOJIS['clause-body'],
+        level: node.level,
+      };
+      ctx.nodes.push(clauseBodyNode);
       
-      if (!alreadyPending) {
-        const pendingNodeId = ctx.nextNodeId(true); // Mark as pending
-        ctx.pendingGoalMap.set(pendingGoal, pendingNodeId);
-        
-        const pendingNode: VisualizationNode = {
-          id: pendingNodeId,
-          type: 'pending',
-          label: `Pending: ${pendingGoal.replace(/,(?!\s)/g, ', ')}`,
-          emoji: EMOJIS.pending,
-          level: node.level + 1,
-        };
-        ctx.nodes.push(pendingNode);
-        
-        // Queue edge from current node to pending
-        const queueEdge: VisualizationEdge = {
-          id: `edge_${ctx.edges.length}`,
-          from: nodeId,
-          to: pendingNodeId,
-          type: 'queue',
-          label: 'queue',
-          stepNumber: ctx.stepCounter(),
-        };
-        ctx.edges.push(queueEdge);
-      }
+      // Edge from current node to clause body
+      const bodyEdge: VisualizationEdge = {
+        id: `edge_${ctx.edges.length}`,
+        from: nodeId,
+        to: clauseBodyNodeId,
+        type: 'active',
+        label: 'clause body',
+        stepNumber: ctx.stepCounter(),
+      };
+      ctx.edges.push(bodyEdge);
     }
   }
   
   // Track the last node ID for chaining
-  let lastNodeId = nodeId;
+  let lastNodeId = clauseBodyNodeId || nodeId;
   
   // If this node has a binding (and it's not a success node), create a solved node FIRST
   // The solved node goes BETWEEN this solving node and its child
@@ -402,19 +434,25 @@ function processTreeNode(
     lastNodeId = solvedId;
   }
   
+  // Update ancestor goal for recursion detection
+  // For children, the ancestor is the current node's goal (if it's a user predicate)
+  const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(node.goal);
+  const newAncestor = isUserPredicate ? node.goal : ctx.ancestorGoal;
+  const newCtx = { ...ctx, ancestorGoal: newAncestor };
+  
   // Process children
   // If there are multiple children, they represent alternatives (OR branches)
   // The first child is the path taken, subsequent children are backtrack alternatives
   if (node.children.length > 1) {
     // First child is the main execution path
-    const mainChildId = processTreeNode(node.children[0], lastNodeId, ctx);
+    const mainChildId = processTreeNode(node.children[0], lastNodeId, newCtx);
     
     // Subsequent children are alternative branches (backtracking)
     for (let i = 1; i < node.children.length; i++) {
       const altChild = node.children[i];
       // Process alternative branch - it connects to the same parent (lastNodeId)
       // but we need to mark it as a backtrack edge
-      const altNodeId = ctx.nextNodeId();
+      const altNodeId = newCtx.nextNodeId();
       
       let altLabel: string;
       let altType: VisualizationNode['type'];
@@ -424,7 +462,7 @@ function processTreeNode(
       
       if (altChild.type === 'success') {
         altType = 'success';
-        altLabel = 'SUCCESS';
+        altLabel = `SUCCESS<br/>Result = ${altChild.goal}`;
       } else if (altChild.type === 'failure') {
         altType = 'solving';
         altLabel = `Solve: ${altChild.goal.replace(/,(?!\s)/g, ', ')}`;
@@ -443,8 +481,10 @@ function processTreeNode(
           }
         }
         const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(altChild.goal) && !hasTopLevelComma;
+        const isRecursive = newCtx.detailLevel !== 'minimal' && isRecursiveCall(altChild.goal, newCtx.ancestorGoal || null);
+        const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
         const clauseLabel = (altClauseNumber && isUserPredicate) ? ` [clause ${altClauseNumber}]` : '';
-        altLabel = `Solve: ${formattedGoal}${clauseLabel}`;
+        altLabel = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
       }
       
       const altVizNode: VisualizationNode = {
@@ -455,21 +495,21 @@ function processTreeNode(
         level: altChild.level,
         clauseNumber: altClauseNumber,
       };
-      ctx.nodes.push(altVizNode);
+      newCtx.nodes.push(altVizNode);
       
       // Create backtrack edge - show both backtrack and clause number
       const backtrackLabel = altClauseNumber ? `backtrack (clause ${altClauseNumber})` : 'backtrack';
       const backtrackEdge: VisualizationEdge = {
-        id: `edge_${ctx.edges.length}`,
+        id: `edge_${newCtx.edges.length}`,
         from: lastNodeId,
         to: altNodeId,
         type: 'active',
         label: backtrackLabel,
-        stepNumber: ctx.stepCounter(),
+        stepNumber: newCtx.stepCounter(),
       };
-      ctx.edges.push(backtrackEdge);
+      newCtx.edges.push(backtrackEdge);
       
-      ctx.executionSteps.push({
+      newCtx.executionSteps.push({
         stepNumber: backtrackEdge.stepNumber,
         goal: altChild.goal,
         description: `Backtracking: ${altChild.goal}`,
@@ -477,14 +517,14 @@ function processTreeNode(
       
       // Recursively process the alternative branch's children
       if (altChild.children.length > 0) {
-        processAlternativeBranch(altChild, altNodeId, ctx);
+        processAlternativeBranch(altChild, altNodeId, newCtx);
       }
     }
     
     return mainChildId;
   } else if (node.children.length === 1) {
     // Single child - sequential execution
-    const childId = processTreeNode(node.children[0], lastNodeId, ctx);
+    const childId = processTreeNode(node.children[0], lastNodeId, newCtx);
     return childId;
   }
   
@@ -502,10 +542,13 @@ function processAlternativeBranch(
   nodeId: string,
   ctx: ProcessContext
 ): void {
+  // Update ancestor goal for recursion detection
+  const newCtx = { ...ctx, ancestorGoal: node.goal };
+  
   // Process children of this alternative branch
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i];
-    const childId = ctx.nextNodeId();
+    const childId = newCtx.nextNodeId();
     
     // Get clause number from child
     const childClauseNumber = child.clauseNumber;
@@ -523,8 +566,10 @@ function processAlternativeBranch(
       childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}`;
     } else {
       childType = 'solving';
+      const isRecursive = newCtx.detailLevel !== 'minimal' && isRecursiveCall(child.goal, newCtx.ancestorGoal || null);
+      const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
       const clauseLabel = childClauseNumber ? ` [clause ${childClauseNumber}]` : '';
-      childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}${clauseLabel}`;
+      childLabel = `${recursivePrefix}${child.goal.replace(/,(?!\s)/g, ', ')}${clauseLabel}`;
     }
     
     const childVizNode: VisualizationNode = {
@@ -535,7 +580,7 @@ function processAlternativeBranch(
       level: child.level,
       clauseNumber: childClauseNumber,
     };
-    ctx.nodes.push(childVizNode);
+    newCtx.nodes.push(childVizNode);
     
     // Create edge - show backtrack + clause number for alternatives
     let edgeLabel = '';
@@ -548,16 +593,16 @@ function processAlternativeBranch(
     }
     
     const edge: VisualizationEdge = {
-      id: `edge_${ctx.edges.length}`,
+      id: `edge_${newCtx.edges.length}`,
       from: nodeId,
       to: childId,
       type: 'active',
       label: edgeLabel,
-      stepNumber: ctx.stepCounter(),
+      stepNumber: newCtx.stepCounter(),
     };
-    ctx.edges.push(edge);
+    newCtx.edges.push(edge);
     
-    ctx.executionSteps.push({
+    newCtx.executionSteps.push({
       stepNumber: edge.stepNumber,
       goal: child.goal,
       description: `Solving ${child.goal}`,
@@ -565,7 +610,7 @@ function processAlternativeBranch(
     
     // Recursively process this child's children
     if (child.children.length > 0) {
-      processAlternativeBranch(child, childId, ctx);
+      processAlternativeBranch(child, childId, newCtx);
     }
   }
 }

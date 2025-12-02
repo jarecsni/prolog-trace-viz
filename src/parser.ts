@@ -96,6 +96,10 @@ function filterClauseMarkers(node: ExecutionNode): ExecutionNode {
     if (node.children.length > 0) {
       const child = filterClauseMarkers(node.children[0]);
       child.clauseNumber = clauseNumber;
+      // Preserve subgoals from the parent (the node being filtered out)
+      if (node.subgoals && !child.subgoals) {
+        child.subgoals = node.subgoals;
+      }
       return child;
     }
     // No children - return the node as-is (shouldn't happen)
@@ -111,6 +115,10 @@ function filterClauseMarkers(node: ExecutionNode): ExecutionNode {
     const firstChild = node.children[0];
     if (firstChild.clauseNumber) {
       node.clauseNumber = firstChild.clauseNumber;
+    }
+    // Also inherit subgoals if the first child has them
+    if (firstChild.subgoals && !node.subgoals) {
+      node.subgoals = firstChild.subgoals;
     }
   }
   

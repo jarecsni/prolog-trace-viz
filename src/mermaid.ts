@@ -13,11 +13,12 @@ const CIRCLED_NUMBERS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧',
 
 // Color scheme - matching the steering guide
 const COLORS = {
-  query: '#e1f5ff',      // Light blue
-  solving: '#fff9c4',    // Light yellow
-  pending: '#e0e0e0',    // Gray
-  solved: '#c8e6c9',     // Light green
-  success: '#c8e6c9',    // Light green
+  query: '#e1f5ff',        // Light blue
+  solving: '#fff9c4',      // Light yellow
+  pending: '#e0e0e0',      // Gray
+  solved: '#c8e6c9',       // Light green
+  success: '#c8e6c9',      // Light green
+  'clause-body': '#e1bee7', // Light purple
 };
 
 const STROKES = {
@@ -26,6 +27,7 @@ const STROKES = {
   pending: '#616161',
   solved: '#388e3c',
   success: '#2e7d32',
+  'clause-body': '#7b1fa2',
 };
 
 /**
@@ -112,6 +114,8 @@ export function formatNode(node: VisualizationNode): string {
       return `${node.id}["${label}"]`;    // Rectangle
     case 'solved':
       return `${node.id}("${label}")`;    // Rounded rectangle
+    case 'clause-body':
+      return `${node.id}[/"${label}"/]`;  // Trapezoid shape
     default:
       return `${node.id}["${label}"]`;
   }
