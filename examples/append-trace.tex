@@ -1,0 +1,39 @@
+% File created by SLDNF Draw version 1.6
+% http://endif.unife.it/it/ricerca-1/aree-di-ricerca/informazione/ingegneria-informatica/software/sldnf-draw
+
+
+\begin{bundle}{append(\lbrack 1,2\rbrack ,\lbrack 3,4\rbrack ,$X_{0}$)}
+
+ \chunk[$X_{0}$/\lbrack 1$|$$R_{0}$\rbrack ]{
+ \begin{bundle}{\begin{tabular}{c}clause\_marker(append,2),\\append(\lbrack 2\rbrack ,\lbrack 3,4\rbrack ,$R_{0}$)\end{tabular}}
+
+  \chunk[]{
+  \begin{bundle}{append(\lbrack 2\rbrack ,\lbrack 3,4\rbrack ,$R_{0}$)}
+
+   \chunk[$R_{0}$/\lbrack 2$|$$R_{1}$\rbrack ]{
+   \begin{bundle}{\begin{tabular}{c}clause\_marker(append,2),\\append(\lbrack\rbrack ,\lbrack 3,4\rbrack ,$R_{1}$)\end{tabular}}
+
+    \chunk[]{
+    \begin{bundle}{append(\lbrack\rbrack ,\lbrack 3,4\rbrack ,$R_{1}$)}
+
+     \chunk[$R_{1}$/\lbrack 3,4\rbrack ]{
+     \begin{bundle}{clause\_marker(append,1)}
+
+      \chunk[]{~~~~~~~~~~true~~~~~~~~~~
+      }
+     \end{bundle}
+
+     }
+    \end{bundle}
+
+    }
+   \end{bundle}
+
+   }
+  \end{bundle}
+
+  }
+ \end{bundle}
+
+ }
+\end{bundle}
