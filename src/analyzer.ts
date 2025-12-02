@@ -217,8 +217,21 @@ function processTreeNode(
     nodeType = 'solving';
     // Add space after commas in goal
     const formattedGoal = node.goal.replace(/,(?!\s)/g, ', ');
-    // Add clause number to label if available
-    const clauseLabel = clauseNumber ? ` [clause ${clauseNumber}]` : '';
+    // Add clause number to label only for user-defined predicates (not built-ins or compound goals)
+    // Check if it's a compound goal (has commas outside parentheses)
+    let depth = 0;
+    let hasTopLevelComma = false;
+    for (const char of node.goal) {
+      if (char === '(' || char === '[') depth++;
+      else if (char === ')' || char === ']') depth--;
+      else if (char === ',' && depth === 0) {
+        hasTopLevelComma = true;
+        break;
+      }
+    }
+    // User predicates: start with lowercase letter followed by (, and no top-level commas
+    const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(node.goal) && !hasTopLevelComma;
+    const clauseLabel = (clauseNumber && isUserPredicate) ? ` [clause ${clauseNumber}]` : '';
     label = `Solve: ${formattedGoal}${clauseLabel}`;
   }
   
@@ -405,6 +418,9 @@ function processTreeNode(
       let altLabel: string;
       let altType: VisualizationNode['type'];
       
+      // Get clause number from alternative child
+      const altClauseNumber = altChild.clauseNumber;
+      
       if (altChild.type === 'success') {
         altType = 'success';
         altLabel = 'SUCCESS';
@@ -413,17 +429,27 @@ function processTreeNode(
         altLabel = `Solve: ${altChild.goal.replace(/,(?!\s)/g, ', ')}`;
       } else {
         altType = 'solving';
-        altLabel = `Solve: ${altChild.goal.replace(/,(?!\s)/g, ', ')}`;
+        const formattedGoal = altChild.goal.replace(/,(?!\s)/g, ', ');
+        // Check if it's a compound goal
+        let depth = 0;
+        let hasTopLevelComma = false;
+        for (const char of altChild.goal) {
+          if (char === '(' || char === '[') depth++;
+          else if (char === ')' || char === ']') depth--;
+          else if (char === ',' && depth === 0) {
+            hasTopLevelComma = true;
+            break;
+          }
+        }
+        const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(altChild.goal) && !hasTopLevelComma;
+        const clauseLabel = (altClauseNumber && isUserPredicate) ? ` [clause ${altClauseNumber}]` : '';
+        altLabel = `Solve: ${formattedGoal}${clauseLabel}`;
       }
-      
-      // Get clause number from alternative child
-      const altClauseNumber = altChild.clauseNumber;
-      const clauseLabel = altClauseNumber ? ` [clause ${altClauseNumber}]` : '';
       
       const altVizNode: VisualizationNode = {
         id: altNodeId,
         type: altType,
-        label: altLabel + clauseLabel,
+        label: altLabel,
         emoji: EMOJIS[altType],
         level: altChild.level,
         clauseNumber: altClauseNumber,
@@ -506,13 +532,14 @@ function processAlternativeBranch(
     };
     ctx.nodes.push(childVizNode);
     
-    // Create edge
+    // Create edge - show clause number if available, otherwise empty
+    const edgeLabel = childClauseNumber ? `clause ${childClauseNumber}` : '';
     const edge: VisualizationEdge = {
       id: `edge_${ctx.edges.length}`,
       from: nodeId,
       to: childId,
       type: 'active',
-      label: 'recurse',
+      label: edgeLabel,
       stepNumber: ctx.stepCounter(),
     };
     ctx.edges.push(edge);

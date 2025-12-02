@@ -13,35 +13,35 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>factorial(3, X₀)"]]
-B["🔄 Solve: 3>0, N1₀ is 3-1 [clause 2]"]
+B["🔄 Solve: 3>0, N1₀ is 3-1"]
 B2["⏸️ Pending: factorial(N1₀, R1₀)"]
 B3["⏸️ Pending: X₀ is 3*R1₀"]
 C["🔄 Solve: N1₀ is 3-1"]
 D("✅ Solved: N1₀ = 2")
 E["🔄 Solve: factorial(2, R1₀) [clause 2]"]
 F("✅ Solved: N1₀ = 2")
-G["🔄 Solve: 2>0, N1₁ is 2-1 [clause 2]"]
+G["🔄 Solve: 2>0, N1₁ is 2-1"]
 G2["⏸️ Pending: factorial(N1₁, R1₁)"]
 G3["⏸️ Pending: R1₀ is 2*R1₁"]
 H["🔄 Solve: N1₁ is 2-1"]
 I("✅ Solved: N1₁ = 1")
 J["🔄 Solve: factorial(1, R1₁) [clause 2]"]
 K("✅ Solved: N1₁ = 1")
-L["🔄 Solve: 1>0, N1₂ is 1-1 [clause 2]"]
+L["🔄 Solve: 1>0, N1₂ is 1-1"]
 L2["⏸️ Pending: factorial(N1₂, R1₂)"]
 L3["⏸️ Pending: R1₁ is 1*R1₂"]
 M["🔄 Solve: N1₂ is 1-1"]
 N("✅ Solved: N1₂ = 0")
 O["🔄 Solve: factorial(0, R1₂) [clause 1]"]
 P("✅ Solved: R1₂ = 1")
-Q["🔄 Solve: R1₁ is 1*1 [clause 1]"]
+Q["🔄 Solve: R1₁ is 1*1"]
 R("✅ Solved: R1₁ = 1")
 S["🔄 Solve: R1₀ is 2*1"]
 T("✅ Solved: R1₀ = 2")
 U["🔄 Solve: X₀ is 3*2"]
 V("✅ Solved: X₀ = 6")
 W(("🎉 SUCCESS"))
-X["🔄 Solve: 0>0, N1₃ is 0-1 [clause 2]"]
+X["🔄 Solve: 0>0, N1₃ is 0-1"]
 Y["🔄 Solve: false"]
 
 %% Edges
@@ -77,7 +77,7 @@ T -->|"(29) done"| U
 U -->|"(30) X₀ = 6"| V
 V -->|"(31) all done"| W
 P -->|"(32) backtrack"| X
-X -->|"(33) recurse"| Y
+X -->|"(33)"| Y
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px

@@ -24,11 +24,11 @@ H["🔄 Solve: false"]
 %% Edges
 A -->|"① clause 1"| B
 A -->|"② backtrack"| C
-C -->|"③ recurse"| D
-C -->|"④ recurse"| E
-E -->|"⑤ recurse"| F
-E -->|"⑥ recurse"| G
-G -->|"⑦ recurse"| H
+C -->|"③ clause 1"| D
+C -->|"④ clause 2"| E
+E -->|"⑤ clause 1"| F
+E -->|"⑥ clause 2"| G
+G -->|"⑦"| H
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
