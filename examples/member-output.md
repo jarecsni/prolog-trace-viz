@@ -6,6 +6,11 @@
 member(X, [1,2,3])
 ```
 
+## Clauses Defined
+
+1. `member(X, [X|_])`
+2. `member(X, [_|T]) :- member(X, T)`
+
 ## Search Tree Visualization
 
 ```mermaid
@@ -13,21 +18,21 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>member(X₀, [1, 2, 3])"]]
-B(("🎉 SUCCESS"))
+B(("🎉 SUCCESS<br/>Result = true"))
 C["🔄 Solve: member(X₀, [2, 3]) [clause 2]"]
-D(("🎉 SUCCESS"))
+D(("🎉 SUCCESS<br/>Result = true"))
 E["🔄 Solve: member(X₀, [3]) [clause 2]"]
-F(("🎉 SUCCESS"))
+F(("🎉 SUCCESS<br/>Result = true"))
 G["🔄 Solve: member(X₀, []) [clause 2]"]
 H["🔄 Solve: false"]
 
 %% Edges
 A -->|"① clause 1"| B
-A -->|"② backtrack"| C
+A -->|"② backtrack (clause 2)"| C
 C -->|"③ clause 1"| D
-C -->|"④ clause 2"| E
+C -->|"④ backtrack (clause 2)"| E
 E -->|"⑤ clause 1"| F
-E -->|"⑥ clause 2"| G
+E -->|"⑥ backtrack (clause 2)"| G
 G -->|"⑦"| H
 
 %% Styles
@@ -100,8 +105,3 @@ style H fill:#fff9c4,stroke:#f57f17
 ## Final Answer
 
 Query succeeded with no bindings.
-
-## Clauses Defined
-
-1. `member(X, [X|_])`
-2. `member(X, [_|T]) :- member(X, T)`

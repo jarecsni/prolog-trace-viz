@@ -212,7 +212,8 @@ function processTreeNode(
     label = `QUERY<br/>${formattedGoal}`;
   } else if (node.type === 'success') {
     nodeType = 'success';
-    label = 'SUCCESS';
+    // Show the result on a new line
+    label = `SUCCESS<br/>Result = ${node.goal}`;
   } else {
     nodeType = 'solving';
     // Add space after commas in goal
@@ -456,13 +457,14 @@ function processTreeNode(
       };
       ctx.nodes.push(altVizNode);
       
-      // Create backtrack edge
+      // Create backtrack edge - show both backtrack and clause number
+      const backtrackLabel = altClauseNumber ? `backtrack (clause ${altClauseNumber})` : 'backtrack';
       const backtrackEdge: VisualizationEdge = {
         id: `edge_${ctx.edges.length}`,
         from: lastNodeId,
         to: altNodeId,
         type: 'active',
-        label: 'backtrack',
+        label: backtrackLabel,
         stepNumber: ctx.stepCounter(),
       };
       ctx.edges.push(backtrackEdge);
@@ -501,18 +503,21 @@ function processAlternativeBranch(
   ctx: ProcessContext
 ): void {
   // Process children of this alternative branch
-  for (const child of node.children) {
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i];
     const childId = ctx.nextNodeId();
     
     // Get clause number from child
     const childClauseNumber = child.clauseNumber;
+    const isBacktrack = i > 0; // First child is main path, rest are backtracks
     
     let childLabel: string;
     let childType: VisualizationNode['type'];
     
     if (child.type === 'success') {
       childType = 'success';
-      childLabel = 'SUCCESS';
+      // Show the result on a new line
+      childLabel = `SUCCESS<br/>Result = ${child.goal}`;
     } else if (child.type === 'failure') {
       childType = 'solving';
       childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}`;
@@ -532,8 +537,16 @@ function processAlternativeBranch(
     };
     ctx.nodes.push(childVizNode);
     
-    // Create edge - show clause number if available, otherwise empty
-    const edgeLabel = childClauseNumber ? `clause ${childClauseNumber}` : '';
+    // Create edge - show backtrack + clause number for alternatives
+    let edgeLabel = '';
+    if (isBacktrack && childClauseNumber) {
+      edgeLabel = `backtrack (clause ${childClauseNumber})`;
+    } else if (childClauseNumber) {
+      edgeLabel = `clause ${childClauseNumber}`;
+    } else if (isBacktrack) {
+      edgeLabel = 'backtrack';
+    }
+    
     const edge: VisualizationEdge = {
       id: `edge_${ctx.edges.length}`,
       from: nodeId,

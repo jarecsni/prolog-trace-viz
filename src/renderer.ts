@@ -25,6 +25,13 @@ export function renderMarkdown(context: RenderContext): string {
   sections.push(context.query);
   sections.push('```');
   sections.push('');
+  
+  // Clauses defined (moved up front)
+  sections.push('## Clauses Defined');
+  sections.push('');
+  sections.push(renderClausesUsed(context.clausesUsed));
+  sections.push('');
+  
   // Mermaid diagram
   sections.push('## Search Tree Visualization');
   sections.push('');
@@ -53,12 +60,6 @@ export function renderMarkdown(context: RenderContext): string {
   } else {
     sections.push('Query succeeded with no bindings.');
   }
-  sections.push('');
-  
-  // Clauses defined
-  sections.push('## Clauses Defined');
-  sections.push('');
-  sections.push(renderClausesUsed(context.clausesUsed));
   
   return sections.join('\n');
 }

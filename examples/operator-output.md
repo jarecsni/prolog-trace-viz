@@ -6,6 +6,12 @@
 t(1+0+1, X)
 ```
 
+## Clauses Defined
+
+1. `t(0+1, 1+0)`
+2. `t(X+0+1, X+1+0)`
+3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+
 ## Search Tree Visualization
 
 ```mermaid
@@ -48,9 +54,3 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```prolog
 X = 1+1+0
 ```
-
-## Clauses Defined
-
-1. `t(0+1, 1+0)`
-2. `t(X+0+1, X+1+0)`
-3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`

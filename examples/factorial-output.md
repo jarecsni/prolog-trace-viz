@@ -6,6 +6,11 @@
 factorial(3, X)
 ```
 
+## Clauses Defined
+
+1. `factorial(0, 1)`
+2. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
+
 ## Search Tree Visualization
 
 ```mermaid
@@ -40,7 +45,7 @@ S["🔄 Solve: R1₀ is 2*1"]
 T("✅ Solved: R1₀ = 2")
 U["🔄 Solve: X₀ is 3*2"]
 V("✅ Solved: X₀ = 6")
-W(("🎉 SUCCESS"))
+W(("🎉 SUCCESS<br/>Result = true"))
 X["🔄 Solve: 0>0, N1₃ is 0-1"]
 Y["🔄 Solve: false"]
 
@@ -76,7 +81,7 @@ S -->|"(28) R1₀ = 2"| T
 T -->|"(29) done"| U
 U -->|"(30) X₀ = 6"| V
 V -->|"(31) all done"| W
-P -->|"(32) backtrack"| X
+P -->|"(32) backtrack (clause 2)"| X
 X -->|"(33)"| Y
 
 %% Styles
@@ -242,8 +247,3 @@ linkStyle 6,14,22 stroke:#4caf50,stroke-width:3px
 ```prolog
 X = 6
 ```
-
-## Clauses Defined
-
-1. `factorial(0, 1)`
-2. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
