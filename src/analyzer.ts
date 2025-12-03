@@ -2,7 +2,7 @@ import { ExecutionNode } from './parser.js';
 
 export interface VisualizationNode {
   id: string;
-  type: 'query' | 'solving' | 'pending' | 'solved' | 'success' | 'clause-body';
+  type: 'query' | 'solving' | 'pending' | 'solved' | 'success' | 'clause-body' | 'match';
   label: string;
   emoji: string;
   level: number;
@@ -64,9 +64,99 @@ const EMOJIS = {
   solved: '✅',
   success: '🎉',
   'clause-body': '📋',
+  match: '📦',
 };
 
 import { Clause, inferClauseFromGoal } from './clauses.js';
+
+/**
+ * Extracts unification details by matching a goal against a clause.
+ */
+function extractUnifications(goal: string, clause: Clause): string[] {
+  const unifications: string[] = [];
+  
+  // Parse clause head (before :- if it exists)
+  const clauseHead = clause.text.includes(':-') 
+    ? clause.text.split(':-')[0].trim() 
+    : clause.text.trim();
+  
+  // Extract predicate name and arguments from both goal and clause head
+  const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+  const clauseMatch = clauseHead.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+  
+  if (!goalMatch || !clauseMatch) {
+    return unifications;
+  }
+  
+  const [, goalPred, goalArgsStr] = goalMatch;
+  const [, clausePred, clauseArgsStr] = clauseMatch;
+  
+  if (goalPred !== clausePred) {
+    return unifications;
+  }
+  
+  // Parse arguments (simple split by comma, doesn't handle nested structures perfectly)
+  const goalArgs = parseArguments(goalArgsStr);
+  const clauseArgs = parseArguments(clauseArgsStr);
+  
+  if (goalArgs.length !== clauseArgs.length) {
+    return unifications;
+  }
+  
+  // Match each argument pair
+  for (let i = 0; i < goalArgs.length; i++) {
+    const goalArg = goalArgs[i].trim();
+    const clauseArg = clauseArgs[i].trim();
+    
+    // If clause arg is a variable (starts with uppercase or _)
+    if (/^[A-Z_]/.test(clauseArg)) {
+      unifications.push(`${clauseArg} = ${goalArg}`);
+    } else if (goalArg !== clauseArg) {
+      // If they're different, show the unification
+      unifications.push(`${goalArg} = ${clauseArg}`);
+    }
+  }
+  
+  return unifications;
+}
+
+/**
+ * Parse arguments from a comma-separated string, respecting nested structures.
+ */
+function parseArguments(argsStr: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let depth = 0;
+  
+  for (const char of argsStr) {
+    if (char === ',' && depth === 0) {
+      args.push(current.trim());
+      current = '';
+    } else {
+      if (char === '(' || char === '[') depth++;
+      if (char === ')' || char === ']') depth--;
+      current += char;
+    }
+  }
+  
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+  
+  return args;
+}
+
+/**
+ * Extracts subgoals from a clause body.
+ */
+function extractSubgoals(clause: Clause): string[] {
+  if (!clause.text.includes(':-')) {
+    return [];
+  }
+  
+  const body = clause.text.split(':-')[1].trim();
+  return parseArguments(body);
+}
 
 /**
  * Analyzes an execution tree and produces visualization data.
@@ -288,61 +378,119 @@ function processTreeNode(
   
   // Create edge from parent if exists
   if (parentId) {
-    // Determine edge label based on node types
-    let edgeLabel = '';
-    
-    // Find parent node to determine label
+    // Find parent node to determine if we need a match node
     const parentNode = ctx.nodes.find(n => n.id === parentId);
     
-    if (parentNode) {
-      if (parentNode.type === 'query' && vizNode.type === 'solving') {
-        // Query to first solving: show clause number if available
-        edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
-      } else if (parentNode.type === 'query' && vizNode.type === 'success') {
-        // Query to success: show clause number if available
-        edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
-      } else if (parentNode.type === 'solved' && vizNode.type === 'solving') {
-        // Solved to solving: show clause number if available, otherwise "done"
-        edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'done';
-      } else if (parentNode.type === 'solving' && vizNode.type === 'success') {
-        // Solving to success: show clause number if available, otherwise "success"
-        edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'success';
-      } else if (parentNode.type === 'solving' && vizNode.type === 'solving') {
-        // Solving to solving: check if this is a backtrack (alternative branch)
-        // Count how many active edges (not queue) already exist from this parent to solving nodes
-        const existingActiveEdges = ctx.edges.filter(e => 
-          e.from === parentId && e.type === 'active' && 
-          ctx.nodes.find(n => n.id === e.to && n.type === 'solving')
-        ).length;
+    // Insert match node if we have a clause number and we're at detailed level or higher
+    let actualParentId = parentId;
+    
+    if (clauseNumber && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
+      const clause = ctx.clauses.find(c => c.number === clauseNumber);
+      
+      if (clause) {
+        // Create match node
+        const matchNodeId = ctx.nextNodeId();
+        const unifications = extractUnifications(node.goal, clause);
+        const subgoals = extractSubgoals(clause);
         
-        if (existingActiveEdges > 0) {
-          // This is not the first active edge to a solving node, so it's a backtrack
-          edgeLabel = 'backtrack';
-        } else {
-          // First edge - show clause number if available, otherwise empty
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+        // Build match node label
+        let matchLabel = `Match Clause ${clauseNumber}<br/>${clause.text}`;
+        
+        if (unifications.length > 0) {
+          matchLabel += '<br/><br/>Unifications:<br/>' + unifications.map(u => `• ${u}`).join('<br/>');
         }
-      } else if (parentNode.type === 'solved' && vizNode.type === 'success') {
-        // Solved to success: use "all done"
-        edgeLabel = 'all done';
+        
+        if (subgoals.length > 0) {
+          matchLabel += '<br/><br/>Subgoals:<br/>' + subgoals.map(sg => `• ${sg}`).join('<br/>');
+        }
+        
+        const matchNode: VisualizationNode = {
+          id: matchNodeId,
+          type: 'match',
+          label: matchLabel,
+          emoji: EMOJIS.match,
+          level: node.level,
+          clauseNumber,
+        };
+        ctx.nodes.push(matchNode);
+        
+        // Edge from parent to match node
+        const toMatchEdge: VisualizationEdge = {
+          id: `edge_${ctx.edges.length}`,
+          from: parentId,
+          to: matchNodeId,
+          type: 'active',
+          label: 'try',
+          stepNumber: ctx.stepCounter(),
+        };
+        ctx.edges.push(toMatchEdge);
+        
+        // Edge from match node to actual node
+        const fromMatchEdge: VisualizationEdge = {
+          id: `edge_${ctx.edges.length}`,
+          from: matchNodeId,
+          to: nodeId,
+          type: 'active',
+          label: 'matched',
+          stepNumber: ctx.stepCounter(),
+        };
+        ctx.edges.push(fromMatchEdge);
+        
+        actualParentId = matchNodeId;
       } else {
-        // Default: empty label (bindings are shown on solved nodes, not edges)
-        edgeLabel = '';
+        // No clause found, create edge without match node
+        const edge: VisualizationEdge = {
+          id: `edge_${ctx.edges.length}`,
+          from: parentId,
+          to: nodeId,
+          type: 'active',
+          label: clauseNumber ? `clause ${clauseNumber}` : '',
+          stepNumber: ctx.stepCounter(),
+        };
+        ctx.edges.push(edge);
       }
+    } else {
+      // No match node needed, create direct edge
+      let edgeLabel = '';
+      
+      if (parentNode) {
+        if (parentNode.type === 'query' && vizNode.type === 'solving') {
+          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+        } else if (parentNode.type === 'query' && vizNode.type === 'success') {
+          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+        } else if (parentNode.type === 'solved' && vizNode.type === 'solving') {
+          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'done';
+        } else if (parentNode.type === 'solving' && vizNode.type === 'success') {
+          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'success';
+        } else if (parentNode.type === 'solving' && vizNode.type === 'solving') {
+          const existingActiveEdges = ctx.edges.filter(e => 
+            e.from === parentId && e.type === 'active' && 
+            ctx.nodes.find(n => n.id === e.to && n.type === 'solving')
+          ).length;
+          
+          if (existingActiveEdges > 0) {
+            edgeLabel = 'backtrack';
+          } else {
+            edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+          }
+        } else if (parentNode.type === 'solved' && vizNode.type === 'success') {
+          edgeLabel = 'all done';
+        }
+      }
+      
+      const edge: VisualizationEdge = {
+        id: `edge_${ctx.edges.length}`,
+        from: parentId,
+        to: nodeId,
+        type: 'active',
+        label: edgeLabel,
+        stepNumber: ctx.stepCounter(),
+      };
+      ctx.edges.push(edge);
     }
     
-    const edge: VisualizationEdge = {
-      id: `edge_${ctx.edges.length}`,
-      from: parentId,
-      to: nodeId,
-      type: 'active',
-      label: edgeLabel,
-      stepNumber: ctx.stepCounter(),
-    };
-    ctx.edges.push(edge);
-    
     ctx.executionSteps.push({
-      stepNumber: edge.stepNumber,
+      stepNumber: ctx.edges[ctx.edges.length - 1].stepNumber,
       goal: node.goal,
       description: `Solving ${node.goal}`,
       clauseMatched: node.binding,

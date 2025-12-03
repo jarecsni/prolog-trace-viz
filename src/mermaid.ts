@@ -19,6 +19,7 @@ const COLORS = {
   solved: '#c8e6c9',       // Light green
   success: '#c8e6c9',      // Light green
   'clause-body': '#e1bee7', // Light purple
+  match: '#ffe0b2',        // Light orange
 };
 
 const STROKES = {
@@ -28,6 +29,7 @@ const STROKES = {
   solved: '#388e3c',
   success: '#2e7d32',
   'clause-body': '#7b1fa2',
+  match: '#e65100',
 };
 
 /**
@@ -116,6 +118,8 @@ export function formatNode(node: VisualizationNode): string {
       return `${node.id}("${label}")`;    // Rounded rectangle
     case 'clause-body':
       return `${node.id}[/"${label}"/]`;  // Trapezoid shape
+    case 'match':
+      return `${node.id}["${label}"]`;    // Rectangle
     default:
       return `${node.id}["${label}"]`;
   }

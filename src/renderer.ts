@@ -73,6 +73,7 @@ export function renderLegend(): string {
     '',
     '- 🎯 **Blue**: Initial query',
     '- 🔄 **Yellow**: Currently solving goal',
+    '- 📦 **Orange**: Clause match with unifications',
     '- ⏸️ **Gray**: Pending goals (waiting for current goal to complete)',
     '- ✅ **Green**: Solved goal with binding',
     '- 🎉 **Green**: Final success',
