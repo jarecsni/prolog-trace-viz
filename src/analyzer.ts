@@ -147,6 +147,27 @@ function parseArguments(argsStr: string): string[] {
 }
 
 /**
+ * Splits a compound goal into individual goals, respecting nested structures.
+ * E.g., "3>0, N1 is 3-1" -> ["3>0", "N1 is 3-1"]
+ */
+function splitCompoundGoal(goal: string): string[] {
+  return parseArguments(goal);
+}
+
+/**
+ * Checks if a goal is a compound goal (contains top-level commas).
+ */
+function isCompoundGoal(goal: string): boolean {
+  let depth = 0;
+  for (const char of goal) {
+    if (char === '(' || char === '[') depth++;
+    else if (char === ')' || char === ']') depth--;
+    else if (char === ',' && depth === 0) return true;
+  }
+  return false;
+}
+
+/**
  * Extracts subgoals from a clause body.
  */
 function extractSubgoals(clause: Clause): string[] {
@@ -322,6 +343,57 @@ function processTreeNode(
   // Get clause number from node FIRST (set by parser)
   const clauseNumber = node.clauseNumber;
   
+  // Check if this is a compound goal that should be decomposed (at detailed level)
+  if (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full') {
+    if (isCompoundGoal(node.goal) && node.type !== 'success' && node.type !== 'failure') {
+      // Split into individual goals and create a chain
+      const subgoals = splitCompoundGoal(node.goal);
+      
+      if (subgoals.length > 1) {
+        // Create chain of nodes for each subgoal
+        let currentParentId = parentId;
+        
+        for (let i = 0; i < subgoals.length; i++) {
+          const subgoalNodeId = ctx.nextNodeId();
+          const isLast = i === subgoals.length - 1;
+          
+          const subgoalNode: VisualizationNode = {
+            id: subgoalNodeId,
+            type: 'solving',
+            label: `Solve: ${subgoals[i]}`,
+            emoji: EMOJIS.solving,
+            level: node.level,
+          };
+          ctx.nodes.push(subgoalNode);
+          
+          // Create edge from parent
+          if (currentParentId) {
+            const edge: VisualizationEdge = {
+              id: `edge_${ctx.edges.length}`,
+              from: currentParentId,
+              to: subgoalNodeId,
+              type: 'active',
+              label: i === 0 ? '' : 'next',
+              stepNumber: ctx.stepCounter(),
+            };
+            ctx.edges.push(edge);
+          }
+          
+          currentParentId = subgoalNodeId;
+        }
+        
+        // Process children from the last subgoal node
+        if (node.children.length > 0) {
+          for (const child of node.children) {
+            processTreeNode(child, currentParentId, ctx);
+          }
+        }
+        
+        return currentParentId!;
+      }
+    }
+  }
+  
   // Create node for this goal
   const nodeId = ctx.nextNodeId();
   
@@ -393,15 +465,19 @@ function processTreeNode(
         const unifications = extractUnifications(node.goal, clause);
         const subgoals = extractSubgoals(clause);
         
-        // Build match node label
-        let matchLabel = `Match Clause ${clauseNumber}<br/>${clause.text}`;
+        // Build match node label - only show clause HEAD, not body
+        const clauseHead = clause.text.includes(':-') 
+          ? clause.text.split(':-')[0].trim() 
+          : clause.text.trim();
+        
+        let matchLabel = `Match Clause ${clauseNumber}<br/>${clauseHead}`;
         
         if (unifications.length > 0) {
           matchLabel += '<br/><br/>Unifications:<br/>' + unifications.map(u => `• ${u}`).join('<br/>');
         }
         
         if (subgoals.length > 0) {
-          matchLabel += '<br/><br/>Subgoals:<br/>' + subgoals.map(sg => `• ${sg}`).join('<br/>');
+          matchLabel += '<br/><br/>Subgoals (solve left-to-right):<br/>' + subgoals.map((sg, i) => `${i + 1}. ${sg}`).join('<br/>');
         }
         
         const matchNode: VisualizationNode = {
@@ -431,7 +507,7 @@ function processTreeNode(
           from: matchNodeId,
           to: nodeId,
           type: 'active',
-          label: 'matched',
+          label: '',
           stepNumber: ctx.stepCounter(),
         };
         ctx.edges.push(fromMatchEdge);
@@ -515,43 +591,8 @@ function processTreeNode(
     }
   }
   
-  // Handle subgoals (from tabular blocks) - Only show clause body nodes at 'detailed' level or higher
-  let clauseBodyNodeId: string | null = null;
-  let actualSubgoals: string[] = [];
-  
-  if (node.subgoals && node.subgoals.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
-    // Filter out clause_marker from subgoals
-    actualSubgoals = node.subgoals.filter(sg => !sg.includes('clause_marker'));
-    
-    if (actualSubgoals.length > 0) {
-      // Create a clause body node showing all subgoals
-      clauseBodyNodeId = ctx.nextNodeId();
-      const formattedSubgoals = actualSubgoals.map(sg => sg.replace(/,(?!\s)/g, ', ')).join(', ');
-      
-      const clauseBodyNode: VisualizationNode = {
-        id: clauseBodyNodeId,
-        type: 'clause-body',
-        label: `Clause ${clauseNumber || '?'} body:<br/>${formattedSubgoals}`,
-        emoji: EMOJIS['clause-body'],
-        level: node.level,
-      };
-      ctx.nodes.push(clauseBodyNode);
-      
-      // Edge from current node to clause body
-      const bodyEdge: VisualizationEdge = {
-        id: `edge_${ctx.edges.length}`,
-        from: nodeId,
-        to: clauseBodyNodeId,
-        type: 'active',
-        label: 'clause body',
-        stepNumber: ctx.stepCounter(),
-      };
-      ctx.edges.push(bodyEdge);
-    }
-  }
-  
-  // Track the last node ID for chaining
-  let lastNodeId = clauseBodyNodeId || nodeId;
+  // Track the last node ID for chaining (no clause body nodes - match box shows subgoals)
+  let lastNodeId = nodeId;
   
   // If this node has a binding (and it's not a success node), create a solved node FIRST
   // The solved node goes BETWEEN this solving node and its child

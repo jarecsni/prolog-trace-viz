@@ -18,122 +18,111 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>factorial(3, X₀)"]]
-B["🔄 Solve: 3>0, N1₀ is 3-1"]
-C[/"📋 Clause 2 body:<br/>3>0, N1₀ is 3-1, factorial(N1₀, R1₀), X₀ is 3*R1₀"/]
+B["🔄 Solve: 3>0"]
+C["🔄 Solve: N1₀ is 3-1"]
 D["🔄 Solve: N1₀ is 3-1"]
-E[/"📋 Clause ? body:<br/>N1₀ is 3-1, factorial(N1₀, R1₀), X₀ is 3*R1₀"/]
-F("✅ Solved: N1₀ = 2")
-G["🔄 🔁 Recurse: factorial(2, R1₀) [clause 2]"]
-H[/"📋 Clause 2 body:<br/>factorial(2, R1₀), X₀ is 3*R1₀"/]
-I("✅ Solved: N1₀ = 2")
-J["🔄 Solve: 2>0, N1₁ is 2-1"]
-K[/"📋 Clause 2 body:<br/>2>0, N1₁ is 2-1, factorial(N1₁, R1₁), R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-L["🔄 Solve: N1₁ is 2-1"]
-M[/"📋 Clause ? body:<br/>N1₁ is 2-1, factorial(N1₁, R1₁), R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-N("✅ Solved: N1₁ = 1")
-O["🔄 🔁 Recurse: factorial(1, R1₁) [clause 2]"]
-P[/"📋 Clause 2 body:<br/>factorial(1, R1₁), R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-Q("✅ Solved: N1₁ = 1")
-R["🔄 Solve: 1>0, N1₂ is 1-1"]
-S[/"📋 Clause 2 body:<br/>1>0, N1₂ is 1-1, factorial(N1₂, R1₂), R1₁ is 1*R1₂, R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-T["🔄 Solve: N1₂ is 1-1"]
-U[/"📋 Clause ? body:<br/>N1₂ is 1-1, factorial(N1₂, R1₂), R1₁ is 1*R1₂, R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-V("✅ Solved: N1₂ = 0")
-W["🔄 🔁 Recurse: factorial(0, R1₂) [clause 1]"]
-X[/"📋 Clause 1 body:<br/>factorial(0, R1₂), R1₁ is 1*R1₂, R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-Y("✅ Solved: R1₂ = 1")
-Z["🔄 Solve: R1₁ is 1*1"]
-AA[/"📋 Clause 1 body:<br/>R1₁ is 1*1, R1₀ is 2*R1₁, X₀ is 3*R1₀"/]
-AB("✅ Solved: R1₁ = 1")
-AC["🔄 Solve: R1₀ is 2*1"]
-AD[/"📋 Clause ? body:<br/>R1₀ is 2*1, X₀ is 3*R1₀"/]
-AE("✅ Solved: R1₀ = 2")
-AF["🔄 Solve: X₀ is 3*2"]
-AG("✅ Solved: X₀ = 6")
-AH(("🎉 SUCCESS<br/>Result = true"))
-AI["🔄 Solve: 0>0, N1₃ is 0-1"]
-AJ["🔄 Solve: false"]
+E("✅ Solved: N1₀ = 2")
+F["🔄 🔁 Recurse: factorial(2, R1₀) [clause 2]"]
+G["📦 Match Clause 2<br/>factorial(N, R)<br/><br/>Unifications:<br/>• N = 2<br/>• R = R1₀<br/><br/>Subgoals (solve left-to-right):<br/>1. N > 0<br/>2. N1 is N - 1<br/>3. factorial(N1, R1)<br/>4. R is N * R1"]
+H("✅ Solved: N1₀ = 2")
+I["🔄 Solve: 2>0"]
+J["🔄 Solve: N1₁ is 2-1"]
+K["🔄 Solve: N1₁ is 2-1"]
+L("✅ Solved: N1₁ = 1")
+M["🔄 🔁 Recurse: factorial(1, R1₁) [clause 2]"]
+N["📦 Match Clause 2<br/>factorial(N, R)<br/><br/>Unifications:<br/>• N = 1<br/>• R = R1₁<br/><br/>Subgoals (solve left-to-right):<br/>1. N > 0<br/>2. N1 is N - 1<br/>3. factorial(N1, R1)<br/>4. R is N * R1"]
+O("✅ Solved: N1₁ = 1")
+P["🔄 Solve: 1>0"]
+Q["🔄 Solve: N1₂ is 1-1"]
+R["🔄 Solve: N1₂ is 1-1"]
+S("✅ Solved: N1₂ = 0")
+T["🔄 🔁 Recurse: factorial(0, R1₂) [clause 1]"]
+U["📦 Match Clause 1<br/>factorial(0, 1)<br/><br/>Unifications:<br/>• R1₂ = 1"]
+V("✅ Solved: R1₂ = 1")
+W["🔄 Solve: R1₁ is 1*1"]
+X["📦 Match Clause 1<br/>factorial(0, 1)"]
+Y("✅ Solved: R1₁ = 1")
+Z["🔄 Solve: R1₀ is 2*1"]
+AA("✅ Solved: R1₀ = 2")
+AB["🔄 Solve: X₀ is 3*2"]
+AC("✅ Solved: X₀ = 6")
+AD(("🎉 SUCCESS<br/>Result = true"))
+AE["🔄 Solve: 0>0, N1₃ is 0-1"]
+AF["🔄 Solve: false"]
 
 %% Edges
-A -->|"① clause 2"| B
-B -->|"② clause body"| C
+A -->|"①"| B
+B -->|"② next"| C
 C -->|"③"| D
-D -->|"④ clause body"| E
-D -->|"⑤ N1₀ = 2"| F
-F -->|"⑥ clause 2"| G
-G -->|"⑦ clause body"| H
-G -->|"⑧ N1₀ = 2"| I
-I -->|"⑨ clause 2"| J
-J -->|"⑩ clause body"| K
-K -->|"⑪"| L
-L -->|"⑫ clause body"| M
-L -->|"⑬ N1₁ = 1"| N
-N -->|"⑭ clause 2"| O
-O -->|"⑮ clause body"| P
-O -->|"⑯ N1₁ = 1"| Q
-Q -->|"⑰ clause 2"| R
-R -->|"⑱ clause body"| S
-S -->|"⑲"| T
-T -->|"⑳ clause body"| U
-T -->|"(21) N1₂ = 0"| V
-V -->|"(22) clause 1"| W
-W -->|"(23) clause body"| X
-W -->|"(24) R1₂ = 1"| Y
-Y -->|"(25) clause 1"| Z
-Z -->|"(26) clause body"| AA
-Z -->|"(27) R1₁ = 1"| AB
-AB -->|"(28) done"| AC
-AC -->|"(29) clause body"| AD
-AC -->|"(30) R1₀ = 2"| AE
-AE -->|"(31) done"| AF
-AF -->|"(32) X₀ = 6"| AG
-AG -->|"(33) all done"| AH
-Y -->|"(34) backtrack (clause 2)"| AI
-AI -->|"(35)"| AJ
+D -->|"④ N1₀ = 2"| E
+E -->|"⑤ try"| G
+G -->|"⑥"| F
+F -->|"⑦ N1₀ = 2"| H
+H -->|"⑧"| I
+I -->|"⑨ next"| J
+J -->|"⑩"| K
+K -->|"⑪ N1₁ = 1"| L
+L -->|"⑫ try"| N
+N -->|"⑬"| M
+M -->|"⑭ N1₁ = 1"| O
+O -->|"⑮"| P
+P -->|"⑯ next"| Q
+Q -->|"⑰"| R
+R -->|"⑱ N1₂ = 0"| S
+S -->|"⑲ try"| U
+U -->|"⑳"| T
+T -->|"(21) R1₂ = 1"| V
+V -->|"(22) try"| X
+X -->|"(23)"| W
+W -->|"(24) R1₁ = 1"| Y
+Y -->|"(25) done"| Z
+Z -->|"(26) R1₀ = 2"| AA
+AA -->|"(27) done"| AB
+AB -->|"(28) X₀ = 6"| AC
+AC -->|"(29) all done"| AD
+V -->|"(30) backtrack (clause 2)"| AE
+AE -->|"(31)"| AF
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#fff9c4,stroke:#f57f17
-style C fill:#e1bee7,stroke:#7b1fa2
+style C fill:#fff9c4,stroke:#f57f17
 style D fill:#fff9c4,stroke:#f57f17
-style E fill:#e1bee7,stroke:#7b1fa2
-style F fill:#c8e6c9,stroke:#388e3c
-style G fill:#fff9c4,stroke:#f57f17
-style H fill:#e1bee7,stroke:#7b1fa2
-style I fill:#c8e6c9,stroke:#388e3c
+style E fill:#c8e6c9,stroke:#388e3c
+style F fill:#fff9c4,stroke:#f57f17
+style G fill:#ffe0b2,stroke:#e65100
+style H fill:#c8e6c9,stroke:#388e3c
+style I fill:#fff9c4,stroke:#f57f17
 style J fill:#fff9c4,stroke:#f57f17
-style K fill:#e1bee7,stroke:#7b1fa2
-style L fill:#fff9c4,stroke:#f57f17
-style M fill:#e1bee7,stroke:#7b1fa2
-style N fill:#c8e6c9,stroke:#388e3c
-style O fill:#fff9c4,stroke:#f57f17
-style P fill:#e1bee7,stroke:#7b1fa2
-style Q fill:#c8e6c9,stroke:#388e3c
+style K fill:#fff9c4,stroke:#f57f17
+style L fill:#c8e6c9,stroke:#388e3c
+style M fill:#fff9c4,stroke:#f57f17
+style N fill:#ffe0b2,stroke:#e65100
+style O fill:#c8e6c9,stroke:#388e3c
+style P fill:#fff9c4,stroke:#f57f17
+style Q fill:#fff9c4,stroke:#f57f17
 style R fill:#fff9c4,stroke:#f57f17
-style S fill:#e1bee7,stroke:#7b1fa2
+style S fill:#c8e6c9,stroke:#388e3c
 style T fill:#fff9c4,stroke:#f57f17
-style U fill:#e1bee7,stroke:#7b1fa2
+style U fill:#ffe0b2,stroke:#e65100
 style V fill:#c8e6c9,stroke:#388e3c
 style W fill:#fff9c4,stroke:#f57f17
-style X fill:#e1bee7,stroke:#7b1fa2
+style X fill:#ffe0b2,stroke:#e65100
 style Y fill:#c8e6c9,stroke:#388e3c
 style Z fill:#fff9c4,stroke:#f57f17
-style AA fill:#e1bee7,stroke:#7b1fa2
-style AB fill:#c8e6c9,stroke:#388e3c
-style AC fill:#fff9c4,stroke:#f57f17
-style AD fill:#e1bee7,stroke:#7b1fa2
-style AE fill:#c8e6c9,stroke:#388e3c
+style AA fill:#c8e6c9,stroke:#388e3c
+style AB fill:#fff9c4,stroke:#f57f17
+style AC fill:#c8e6c9,stroke:#388e3c
+style AD fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style AE fill:#fff9c4,stroke:#f57f17
 style AF fill:#fff9c4,stroke:#f57f17
-style AG fill:#c8e6c9,stroke:#388e3c
-style AH fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style AI fill:#fff9c4,stroke:#f57f17
-style AJ fill:#fff9c4,stroke:#f57f17
 ```
 
 ### Legend
 
 - 🎯 **Blue**: Initial query
 - 🔄 **Yellow**: Currently solving goal
+- 📦 **Orange**: Clause match with unifications
 - ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
 - ✅ **Green**: Solved goal with binding
 - 🎉 **Green**: Final success
@@ -142,12 +131,6 @@ style AJ fill:#fff9c4,stroke:#f57f17
 - **Double arrows (green)**: Pending goal becomes active
 
 ## Step-by-Step Execution
-
-### Step 1
-
-**Goal:** `3>0,N1₀ is 3-1`
-
-**Action:** Solving 3>0,N1₀ is 3-1
 
 ### Step 3
 
@@ -165,13 +148,7 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `N1₀/2`
 
-### Step 9
-
-**Goal:** `2>0,N1₁ is 2-1`
-
-**Action:** Solving 2>0,N1₁ is 2-1
-
-### Step 11
+### Step 10
 
 **Goal:** `N1₁ is 2-1`
 
@@ -179,7 +156,7 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `N1₁/1`
 
-### Step 14
+### Step 13
 
 **Goal:** `factorial(1,R1₁)`
 
@@ -189,19 +166,13 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 ### Step 17
 
-**Goal:** `1>0,N1₂ is 1-1`
-
-**Action:** Solving 1>0,N1₂ is 1-1
-
-### Step 19
-
 **Goal:** `N1₂ is 1-1`
 
 **Action:** Solving N1₂ is 1-1
 
 **Clause matched:** `N1₂/0`
 
-### Step 22
+### Step 20
 
 **Goal:** `factorial(0,R1₂)`
 
@@ -209,7 +180,7 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `R1₂/1`
 
-### Step 25
+### Step 23
 
 **Goal:** `R1₁ is 1*1`
 
@@ -217,7 +188,7 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `R1₁/1`
 
-### Step 28
+### Step 25
 
 **Goal:** `R1₀ is 2*1`
 
@@ -225,7 +196,7 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `R1₀/2`
 
-### Step 31
+### Step 27
 
 **Goal:** `X₀ is 3*2`
 
@@ -233,19 +204,19 @@ style AJ fill:#fff9c4,stroke:#f57f17
 
 **Clause matched:** `X₀/6`
 
-### Step 33
+### Step 29
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 34
+### Step 30
 
 **Goal:** `0>0,N1₃ is 0-1`
 
 **Action:** Backtracking: 0>0,N1₃ is 0-1
 
-### Step 35
+### Step 31
 
 **Goal:** `false`
 
