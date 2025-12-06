@@ -226,6 +226,9 @@ export function analyzeTree(
     }
   };
   
+  // Extract final answer first so we can show it in the success node
+  const finalAnswer = extractFinalAnswer(root);
+  
   // Process the tree
   processTreeNode(root, null, {
     nodes,
@@ -236,6 +239,7 @@ export function analyzeTree(
     nextNodeId,
     clauses,
     detailLevel,
+    finalAnswer,
   });
   
   // Clause usage tracking - since we can't reliably determine which clauses were used,
@@ -254,7 +258,7 @@ export function analyzeTree(
     executionOrder: nodes.map(n => n.id),
     clausesUsed,
     executionSteps,
-    finalAnswer: extractFinalAnswer(root),
+    finalAnswer,
   };
 }
 
@@ -268,6 +272,7 @@ interface ProcessContext {
   clauses: Clause[];
   ancestorGoal?: string; // Track parent goal for recursion detection
   detailLevel: DetailLevel;
+  finalAnswer?: string; // Final answer to show in success node
 }
 
 /**
@@ -408,8 +413,12 @@ function processTreeNode(
     label = `QUERY<br/>${formattedGoal}`;
   } else if (node.type === 'success') {
     nodeType = 'success';
-    // Show the result on a new line
-    label = `SUCCESS<br/>Result = ${node.goal}`;
+    // Show SUCCESS with the final answer if available
+    if (ctx.finalAnswer) {
+      label = `SUCCESS<br/>${ctx.finalAnswer}`;
+    } else {
+      label = 'SUCCESS';
+    }
   } else {
     nodeType = 'solving';
     // Add space after commas in goal
@@ -651,7 +660,11 @@ function processTreeNode(
       
       if (altChild.type === 'success') {
         altType = 'success';
-        altLabel = `SUCCESS<br/>Result = ${altChild.goal}`;
+        if (newCtx.finalAnswer) {
+          altLabel = `SUCCESS<br/>${newCtx.finalAnswer}`;
+        } else {
+          altLabel = 'SUCCESS';
+        }
       } else if (altChild.type === 'failure') {
         altType = 'solving';
         altLabel = `Solve: ${altChild.goal.replace(/,(?!\s)/g, ', ')}`;
@@ -748,8 +761,11 @@ function processAlternativeBranch(
     
     if (child.type === 'success') {
       childType = 'success';
-      // Show the result on a new line
-      childLabel = `SUCCESS<br/>Result = ${child.goal}`;
+      if (newCtx.finalAnswer) {
+        childLabel = `SUCCESS<br/>${newCtx.finalAnswer}`;
+      } else {
+        childLabel = 'SUCCESS';
+      }
     } else if (child.type === 'failure') {
       childType = 'solving';
       childLabel = `Solve: ${child.goal.replace(/,(?!\s)/g, ', ')}`;

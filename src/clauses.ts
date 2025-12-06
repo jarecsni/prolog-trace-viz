@@ -11,35 +11,64 @@ export interface Clause {
 
 /**
  * Parses a Prolog file and extracts clauses.
+ * Filters out directives, comments, and non-predicate statements.
  */
 export function parsePrologFile(content: string): Clause[] {
   const clauses: Clause[] = [];
-  const lines = content.split('\n');
   let clauseNumber = 1;
+  let inBlockComment = false;
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+  // First pass: remove comments, directives, and join multi-line statements
+  const completeStatements: string[] = [];
+  const lines = content.split('\n');
+  let currentStatement = '';
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
     
-    // Skip comments and empty lines
-    if (line.startsWith('%') || line.length === 0) {
+    // Handle block comments
+    if (trimmed.includes('/*')) {
+      inBlockComment = true;
+    }
+    if (inBlockComment) {
+      if (trimmed.includes('*/')) {
+        inBlockComment = false;
+      }
       continue;
     }
     
-    // Check if it's a fact or rule
-    if (line.includes(':-')) {
-      // Rule: head :- body
-      const parts = line.split(':-');
+    // Skip line comments, empty lines, and directives
+    if (trimmed.startsWith('%') || trimmed.length === 0 || trimmed.startsWith(':-')) {
+      continue;
+    }
+    
+    // Accumulate lines until we hit a period
+    if (currentStatement) {
+      currentStatement += ' ' + trimmed;
+    } else {
+      currentStatement = trimmed;
+    }
+    
+    // If line ends with period, we have a complete statement
+    if (trimmed.endsWith('.')) {
+      completeStatements.push(currentStatement);
+      currentStatement = '';
+    }
+  }
+  
+  // Second pass: parse complete statements into clauses
+  for (const statement of completeStatements) {
+    // Check if it's a rule (has :- but doesn't start with it)
+    if (statement.includes(':-') && !statement.startsWith(':-')) {
+      const parts = statement.split(':-');
       const head = parts[0].trim();
-      let body = parts[1].trim();
+      const bodyWithPeriod = parts.slice(1).join(':-').trim();
+      const body = bodyWithPeriod.replace(/\.$/, '').trim();
       
-      // Handle multi-line rules
-      while (!body.endsWith('.') && i + 1 < lines.length) {
-        i++;
-        body += ' ' + lines[i].trim();
+      // Only process if head looks like a predicate
+      if (!/^[a-z_][a-zA-Z0-9_]*\(/.test(head)) {
+        continue;
       }
-      
-      // Remove trailing period
-      body = body.replace(/\.$/, '').trim();
       
       clauses.push({
         number: clauseNumber++,
@@ -47,9 +76,15 @@ export function parsePrologFile(content: string): Clause[] {
         body,
         text: `${head} :- ${body}`,
       });
-    } else if (line.endsWith('.')) {
+    } else {
       // Fact
-      const head = line.replace(/\.$/, '').trim();
+      const head = statement.replace(/\.$/, '').trim();
+      
+      // Only process if it looks like a predicate
+      if (!/^[a-z_][a-zA-Z0-9_]*\(/.test(head)) {
+        continue;
+      }
+      
       clauses.push({
         number: clauseNumber++,
         head,
@@ -64,66 +99,105 @@ export function parsePrologFile(content: string): Clause[] {
 /**
  * Instruments Prolog code by adding clause_marker/2 calls to track which clauses are used.
  * Each clause gets a marker as the first goal in its body.
+ * Uses the same filtering logic as parsePrologFile to ensure clause numbers match.
  */
 export function instrumentPrologCode(content: string): string {
+  // First, parse to get the filtered clauses with their numbers
+  const clauses = parsePrologFile(content);
+  
+  // Create a map of clause text to clause number
+  const clauseMap = new Map<string, number>();
+  for (const clause of clauses) {
+    clauseMap.set(clause.text, clause.number);
+  }
+  
+  // Now instrument the original content, but only add markers to clauses in our map
   const lines = content.split('\n');
   const result: string[] = [];
-  let clauseNumber = 1;
+  let inBlockComment = false;
+  let currentStatement = '';
+  let currentStatementStartLine = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
     
-    // Pass through comments and empty lines
-    if (trimmed.startsWith('%') || trimmed.length === 0) {
+    // Handle block comments
+    if (trimmed.includes('/*')) {
+      inBlockComment = true;
+    }
+    if (inBlockComment) {
+      result.push(line);
+      if (trimmed.includes('*/')) {
+        inBlockComment = false;
+      }
+      continue;
+    }
+    
+    // Pass through comments, empty lines, and directives as-is
+    if (trimmed.startsWith('%') || trimmed.length === 0 || trimmed.startsWith(':-')) {
       result.push(line);
       continue;
     }
     
-    // Extract predicate name from clause head
-    const predicateMatch = trimmed.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
-    if (!predicateMatch) {
-      result.push(line);
-      continue;
+    // Accumulate lines until we hit a period
+    if (!currentStatement) {
+      currentStatementStartLine = i;
+      currentStatement = trimmed;
+    } else {
+      currentStatement += ' ' + trimmed;
     }
     
-    const predicateName = predicateMatch[1];
-    
-    // Check if it's a rule or fact
-    if (trimmed.includes(':-')) {
-      // Rule: head :- body
-      const parts = trimmed.split(':-');
-      const head = parts[0].trim();
-      let body = parts[1].trim();
+    // If line ends with period, we have a complete statement
+    if (trimmed.endsWith('.')) {
+      // Check if this statement is in our clause map
+      const statementWithoutPeriod = currentStatement.replace(/\.$/, '').trim();
       
-      // Handle multi-line rules
-      let fullLine = line;
-      while (!body.endsWith('.') && i + 1 < lines.length) {
-        i++;
-        fullLine += '\n' + lines[i];
-        body += ' ' + lines[i].trim();
+      // Try to match as-is first
+      let clauseNumber = clauseMap.get(statementWithoutPeriod);
+      
+      // If not found, try matching with normalized spacing
+      if (!clauseNumber) {
+        for (const [clauseText, num] of clauseMap.entries()) {
+          if (clauseText.replace(/\s+/g, ' ') === statementWithoutPeriod.replace(/\s+/g, ' ')) {
+            clauseNumber = num;
+            break;
+          }
+        }
       }
       
-      // Remove trailing period from body
-      body = body.replace(/\.$/, '').trim();
+      if (clauseNumber) {
+        // This is a clause we want to instrument
+        const predicateMatch = currentStatement.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+        const predicateName = predicateMatch ? predicateMatch[1] : 'unknown';
+        
+        if (currentStatement.includes(':-') && !currentStatement.startsWith(':-')) {
+          // Rule: add marker to body
+          const parts = currentStatement.split(':-');
+          const head = parts[0].trim();
+          const bodyWithPeriod = parts.slice(1).join(':-').trim();
+          const body = bodyWithPeriod.replace(/\.$/, '').trim();
+          
+          const instrumentedBody = `clause_marker(${predicateName}, ${clauseNumber}), ${body}`;
+          const indent = lines[currentStatementStartLine].match(/^\s*/)?.[0] || '';
+          result.push(`${indent}${head} :- ${instrumentedBody}.`);
+        } else {
+          // Fact: convert to rule with marker
+          const head = currentStatement.replace(/\.$/, '').trim();
+          const indent = lines[currentStatementStartLine].match(/^\s*/)?.[0] || '';
+          result.push(`${indent}${head} :- clause_marker(${predicateName}, ${clauseNumber}).`);
+        }
+      } else {
+        // Not a clause we're tracking, pass through as-is
+        result.push(line);
+      }
       
-      // Insert clause marker as first goal in body
-      const instrumentedBody = `clause_marker(${predicateName}, ${clauseNumber}), ${body}`;
-      
-      // Reconstruct the clause with proper indentation
-      const indent = line.match(/^\s*/)?.[0] || '';
-      result.push(`${indent}${head} :- ${instrumentedBody}.`);
-      
-      clauseNumber++;
-    } else if (trimmed.endsWith('.')) {
-      // Fact: convert to rule with just the marker
-      const head = trimmed.replace(/\.$/, '').trim();
-      const indent = line.match(/^\s*/)?.[0] || '';
-      result.push(`${indent}${head} :- clause_marker(${predicateName}, ${clauseNumber}).`);
-      
-      clauseNumber++;
+      currentStatement = '';
+    } else if (currentStatement) {
+      // Multi-line statement in progress, don't output this line yet
+      // (it will be output when we complete the statement)
     } else {
-      // Not a complete clause yet, pass through
+      // Shouldn't reach here, but pass through just in case
       result.push(line);
     }
   }
