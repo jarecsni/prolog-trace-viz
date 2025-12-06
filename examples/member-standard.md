@@ -1,9 +1,9 @@
-# Prolog Execution Tree: member(X, [1,2,3])
+# Prolog Execution Tree: member(2, [1,2,3])
 
 ## Query
 
 ```prolog
-member(X, [1,2,3])
+member(2, [1,2,3])
 ```
 
 ## Clauses Defined
@@ -17,39 +17,34 @@ member(X, [1,2,3])
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>member(X₀, [1, 2, 3])"]]
-B(("🎉 SUCCESS<br/>Result = true"))
-C["🔄 🔁 Recurse: member(X₀, [2, 3]) [clause 2]"]
-D(("🎉 SUCCESS<br/>Result = true"))
-E["🔄 🔁 Recurse: member(X₀, [3]) [clause 2]"]
-F(("🎉 SUCCESS<br/>Result = true"))
-G["🔄 🔁 Recurse: member(X₀, []) [clause 2]"]
-H["🔄 Solve: false"]
+A[["🎯 QUERY<br/>member(2, [1, 2, 3])"]]
+B["🔄 🔁 Recurse: member(2, [2, 3]) [clause 2]"]
+C(("🎉 SUCCESS"))
+D["🔄 🔁 Recurse: member(2, [3]) [clause 2]"]
+E["🔄 🔁 Recurse: member(2, []) [clause 2]"]
+F["🔄 Solve: false"]
 
 %% Edges
-A -->|"① clause 1"| B
-A -->|"② backtrack (clause 2)"| C
-C -->|"③ clause 1"| D
-C -->|"④ backtrack (clause 2)"| E
-E -->|"⑤ clause 1"| F
-E -->|"⑥ backtrack (clause 2)"| G
-G -->|"⑦"| H
+A -->|"① clause 2"| B
+B -->|"② clause 1"| C
+B -->|"③ backtrack (clause 2)"| D
+D -->|"④ clause 2"| E
+E -->|"⑤"| F
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style C fill:#fff9c4,stroke:#f57f17
-style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#fff9c4,stroke:#f57f17
+style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style D fill:#fff9c4,stroke:#f57f17
 style E fill:#fff9c4,stroke:#f57f17
-style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style G fill:#fff9c4,stroke:#f57f17
-style H fill:#fff9c4,stroke:#f57f17
+style F fill:#fff9c4,stroke:#f57f17
 ```
 
 ### Legend
 
 - 🎯 **Blue**: Initial query
 - 🔄 **Yellow**: Currently solving goal
+- 📦 **Orange**: Clause match with unifications
 - ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
 - ✅ **Green**: Solved goal with binding
 - 🎉 **Green**: Final success
@@ -61,41 +56,29 @@ style H fill:#fff9c4,stroke:#f57f17
 
 ### Step 1
 
-**Goal:** `true`
+**Goal:** `member(2,[2,3])`
 
-**Action:** Solving true
+**Action:** Solving member(2,[2,3])
 
 ### Step 2
 
-**Goal:** `member(X₀,[2,3])`
+**Goal:** `true`
 
-**Action:** Backtracking: member(X₀,[2,3])
+**Action:** Solving true
 
 ### Step 3
 
-**Goal:** `true`
+**Goal:** `member(2,[3])`
 
-**Action:** Solving true
+**Action:** Backtracking: member(2,[3])
 
 ### Step 4
 
-**Goal:** `member(X₀,[3])`
+**Goal:** `member(2,[])`
 
-**Action:** Solving member(X₀,[3])
+**Action:** Solving member(2,[])
 
 ### Step 5
-
-**Goal:** `true`
-
-**Action:** Solving true
-
-### Step 6
-
-**Goal:** `member(X₀,[])`
-
-**Action:** Solving member(X₀,[])
-
-### Step 7
 
 **Goal:** `false`
 

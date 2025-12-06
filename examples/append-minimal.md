@@ -22,7 +22,7 @@ B["🔄 Solve: append([2], [3, 4], R₀) [clause 2]"]
 C("✅ Solved: R₀ = [2|R₁]")
 D["🔄 Solve: append([], [3, 4], R₁) [clause 2]"]
 E("✅ Solved: R₁ = [3,4]")
-F(("🎉 SUCCESS<br/>Result = true"))
+F(("🎉 SUCCESS<br/>X = [1|R₀]"))
 
 %% Edges
 A -->|"① clause 2"| B
@@ -44,6 +44,7 @@ style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 - 🎯 **Blue**: Initial query
 - 🔄 **Yellow**: Currently solving goal
+- 📦 **Orange**: Clause match with unifications
 - ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
 - ✅ **Green**: Solved goal with binding
 - 🎉 **Green**: Final success

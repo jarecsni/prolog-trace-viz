@@ -1,9 +1,9 @@
-# Prolog Execution Tree: t(1+0+1, X)
+# Prolog Execution Tree: t(0+1, A)
 
 ## Query
 
 ```prolog
-t(1+0+1, X)
+t(0+1, A)
 ```
 
 ## Clauses Defined
@@ -18,11 +18,11 @@ t(1+0+1, X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(1+0+1, X₀)"]]
-B(("🎉 SUCCESS<br/>Result = true"))
+A[["🎯 QUERY<br/>t(0+1, A₀)"]]
+B(("🎉 SUCCESS<br/>A = 1+0"))
 
 %% Edges
-A -->|"① clause 2"| B
+A -->|"① clause 1"| B
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
@@ -33,6 +33,7 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 - 🎯 **Blue**: Initial query
 - 🔄 **Yellow**: Currently solving goal
+- 📦 **Orange**: Clause match with unifications
 - ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
 - ✅ **Green**: Solved goal with binding
 - 🎉 **Green**: Final success
@@ -52,5 +53,5 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ## Final Answer
 
 ```prolog
-X = 1+1+0
+A = 1+0
 ```

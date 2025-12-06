@@ -1,9 +1,9 @@
-# Prolog Execution Tree: factorial(3, X)
+# Prolog Execution Tree: factorial(5, X)
 
 ## Query
 
 ```prolog
-factorial(3, X)
+factorial(5, X)
 ```
 
 ## Clauses Defined
@@ -17,57 +17,55 @@ factorial(3, X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>factorial(3, X₀)"]]
-B["🔄 Solve: 3>0, N1₀ is 3-1"]
-C["🔄 Solve: N1₀ is 3-1"]
-D("✅ Solved: N1₀ = 2")
-E["🔄 Solve: factorial(2, R1₀) [clause 2]"]
-F("✅ Solved: N1₀ = 2")
-G["🔄 Solve: 2>0, N1₁ is 2-1"]
-H["🔄 Solve: N1₁ is 2-1"]
-I("✅ Solved: N1₁ = 1")
-J["🔄 Solve: factorial(1, R1₁) [clause 2]"]
-K("✅ Solved: N1₁ = 1")
-L["🔄 Solve: 1>0, N1₂ is 1-1"]
-M["🔄 Solve: N1₂ is 1-1"]
-N("✅ Solved: N1₂ = 0")
-O["🔄 Solve: factorial(0, R1₂) [clause 1]"]
-P("✅ Solved: R1₂ = 1")
-Q["🔄 Solve: R1₁ is 1*1"]
-R("✅ Solved: R1₁ = 1")
-S["🔄 Solve: R1₀ is 2*1"]
-T("✅ Solved: R1₀ = 2")
-U["🔄 Solve: X₀ is 3*2"]
-V("✅ Solved: X₀ = 6")
-W(("🎉 SUCCESS<br/>Result = true"))
-X["🔄 Solve: 0>0, N1₃ is 0-1"]
-Y["🔄 Solve: false"]
+A[["🎯 QUERY<br/>factorial(5, X₀)"]]
+B["🔄 Solve: 5>0, N1₀ is 5-1"]
+C["🔄 Solve: N1₀ is 5-1"]
+D("✅ Solved: N1₀ = 4")
+E["🔄 Solve: factorial(4, R1₀) [clause 2]"]
+F("✅ Solved: N1₀ = 4")
+G["🔄 Solve: 4>0, N1₁ is 4-1"]
+H["🔄 Solve: N1₁ is 4-1"]
+I("✅ Solved: N1₁ = 3")
+J["🔄 Solve: factorial(3, R1₁) [clause 2]"]
+K("✅ Solved: N1₁ = 3")
+L["🔄 Solve: 3>0, N1₂ is 3-1"]
+M["🔄 Solve: N1₂ is 3-1"]
+N("✅ Solved: N1₂ = 2")
+O["🔄 Solve: factorial(2, R1₂) [clause 2]"]
+P("✅ Solved: N1₂ = 2")
+Q["🔄 Solve: 2>0, N1₃ is 2-1"]
+R["🔄 Solve: N1₃ is 2-1"]
+S("✅ Solved: N1₃ = 1")
+T["🔄 Solve: factorial(1, R1₃) [clause 2]"]
+U("✅ Solved: N1₃ = 1")
+V["🔄 Solve: 1>0, N1₄ is 1-1"]
+W["🔄 Solve: N1₄ is 1-1"]
+X("✅ Solved: N1₄ = 0")
 
 %% Edges
 A -->|"① clause 2"| B
 B -->|"②"| C
-C -->|"③ N1₀ = 2"| D
+C -->|"③ N1₀ = 4"| D
 D -->|"④ clause 2"| E
-E -->|"⑤ N1₀ = 2"| F
+E -->|"⑤ N1₀ = 4"| F
 F -->|"⑥ clause 2"| G
 G -->|"⑦"| H
-H -->|"⑧ N1₁ = 1"| I
+H -->|"⑧ N1₁ = 3"| I
 I -->|"⑨ clause 2"| J
-J -->|"⑩ N1₁ = 1"| K
+J -->|"⑩ N1₁ = 3"| K
 K -->|"⑪ clause 2"| L
 L -->|"⑫"| M
-M -->|"⑬ N1₂ = 0"| N
-N -->|"⑭ clause 1"| O
-O -->|"⑮ R1₂ = 1"| P
-P -->|"⑯ clause 1"| Q
-Q -->|"⑰ R1₁ = 1"| R
-R -->|"⑱ done"| S
-S -->|"⑲ R1₀ = 2"| T
-T -->|"⑳ done"| U
-U -->|"(21) X₀ = 6"| V
-V -->|"(22) all done"| W
-P -->|"(23) backtrack (clause 2)"| X
-X -->|"(24)"| Y
+M -->|"⑬ N1₂ = 2"| N
+N -->|"⑭ clause 2"| O
+O -->|"⑮ N1₂ = 2"| P
+P -->|"⑯ clause 2"| Q
+Q -->|"⑰"| R
+R -->|"⑱ N1₃ = 1"| S
+S -->|"⑲ clause 2"| T
+T -->|"⑳ N1₃ = 1"| U
+U -->|"(21) clause 2"| V
+V -->|"(22)"| W
+W -->|"(23) N1₄ = 0"| X
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
@@ -87,20 +85,20 @@ style N fill:#c8e6c9,stroke:#388e3c
 style O fill:#fff9c4,stroke:#f57f17
 style P fill:#c8e6c9,stroke:#388e3c
 style Q fill:#fff9c4,stroke:#f57f17
-style R fill:#c8e6c9,stroke:#388e3c
-style S fill:#fff9c4,stroke:#f57f17
-style T fill:#c8e6c9,stroke:#388e3c
-style U fill:#fff9c4,stroke:#f57f17
-style V fill:#c8e6c9,stroke:#388e3c
-style W fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style X fill:#fff9c4,stroke:#f57f17
-style Y fill:#fff9c4,stroke:#f57f17
+style R fill:#fff9c4,stroke:#f57f17
+style S fill:#c8e6c9,stroke:#388e3c
+style T fill:#fff9c4,stroke:#f57f17
+style U fill:#c8e6c9,stroke:#388e3c
+style V fill:#fff9c4,stroke:#f57f17
+style W fill:#fff9c4,stroke:#f57f17
+style X fill:#c8e6c9,stroke:#388e3c
 ```
 
 ### Legend
 
 - 🎯 **Blue**: Initial query
 - 🔄 **Yellow**: Currently solving goal
+- 📦 **Orange**: Clause match with unifications
 - ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
 - ✅ **Green**: Solved goal with binding
 - 🎉 **Green**: Final success
@@ -112,115 +110,107 @@ style Y fill:#fff9c4,stroke:#f57f17
 
 ### Step 1
 
-**Goal:** `3>0,N1₀ is 3-1`
+**Goal:** `5>0,N1₀ is 5-1`
 
-**Action:** Solving 3>0,N1₀ is 3-1
+**Action:** Solving 5>0,N1₀ is 5-1
 
 ### Step 2
 
-**Goal:** `N1₀ is 3-1`
+**Goal:** `N1₀ is 5-1`
 
-**Action:** Solving N1₀ is 3-1
+**Action:** Solving N1₀ is 5-1
 
-**Clause matched:** `N1₀/2`
+**Clause matched:** `N1₀/4`
 
 ### Step 4
 
-**Goal:** `factorial(2,R1₀)`
+**Goal:** `factorial(4,R1₀)`
 
-**Action:** Solving factorial(2,R1₀)
+**Action:** Solving factorial(4,R1₀)
 
-**Clause matched:** `N1₀/2`
+**Clause matched:** `N1₀/4`
 
 ### Step 6
 
-**Goal:** `2>0,N1₁ is 2-1`
+**Goal:** `4>0,N1₁ is 4-1`
 
-**Action:** Solving 2>0,N1₁ is 2-1
+**Action:** Solving 4>0,N1₁ is 4-1
 
 ### Step 7
 
-**Goal:** `N1₁ is 2-1`
+**Goal:** `N1₁ is 4-1`
 
-**Action:** Solving N1₁ is 2-1
+**Action:** Solving N1₁ is 4-1
 
-**Clause matched:** `N1₁/1`
+**Clause matched:** `N1₁/3`
 
 ### Step 9
 
-**Goal:** `factorial(1,R1₁)`
+**Goal:** `factorial(3,R1₁)`
 
-**Action:** Solving factorial(1,R1₁)
+**Action:** Solving factorial(3,R1₁)
 
-**Clause matched:** `N1₁/1`
+**Clause matched:** `N1₁/3`
 
 ### Step 11
 
-**Goal:** `1>0,N1₂ is 1-1`
+**Goal:** `3>0,N1₂ is 3-1`
 
-**Action:** Solving 1>0,N1₂ is 1-1
+**Action:** Solving 3>0,N1₂ is 3-1
 
 ### Step 12
 
-**Goal:** `N1₂ is 1-1`
+**Goal:** `N1₂ is 3-1`
 
-**Action:** Solving N1₂ is 1-1
+**Action:** Solving N1₂ is 3-1
 
-**Clause matched:** `N1₂/0`
+**Clause matched:** `N1₂/2`
 
 ### Step 14
 
-**Goal:** `factorial(0,R1₂)`
+**Goal:** `factorial(2,R1₂)`
 
-**Action:** Solving factorial(0,R1₂)
+**Action:** Solving factorial(2,R1₂)
 
-**Clause matched:** `R1₂/1`
+**Clause matched:** `N1₂/2`
 
 ### Step 16
 
-**Goal:** `R1₁ is 1*1`
+**Goal:** `2>0,N1₃ is 2-1`
 
-**Action:** Solving R1₁ is 1*1
+**Action:** Solving 2>0,N1₃ is 2-1
 
-**Clause matched:** `R1₁/1`
+### Step 17
 
-### Step 18
+**Goal:** `N1₃ is 2-1`
 
-**Goal:** `R1₀ is 2*1`
+**Action:** Solving N1₃ is 2-1
 
-**Action:** Solving R1₀ is 2*1
+**Clause matched:** `N1₃/1`
 
-**Clause matched:** `R1₀/2`
+### Step 19
 
-### Step 20
+**Goal:** `factorial(1,R1₃)`
 
-**Goal:** `X₀ is 3*2`
+**Action:** Solving factorial(1,R1₃)
 
-**Action:** Solving X₀ is 3*2
+**Clause matched:** `N1₃/1`
 
-**Clause matched:** `X₀/6`
+### Step 21
+
+**Goal:** `1>0,N1₄ is 1-1`
+
+**Action:** Solving 1>0,N1₄ is 1-1
 
 ### Step 22
 
-**Goal:** `true`
+**Goal:** `N1₄ is 1-1`
 
-**Action:** Solving true
+**Action:** Solving N1₄ is 1-1
 
-### Step 23
-
-**Goal:** `0>0,N1₃ is 0-1`
-
-**Action:** Backtracking: 0>0,N1₃ is 0-1
-
-### Step 24
-
-**Goal:** `false`
-
-**Action:** Solving false
+**Clause matched:** `N1₄/0`
 
 
 ## Final Answer
 
-```prolog
-X = 6
-```
+Query succeeded with no bindings.
