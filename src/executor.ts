@@ -4,7 +4,8 @@ import * as path from 'node:path';
 import { createError, ErrorCode, ToolError } from './errors.js';
 
 export interface ExecutionResult {
-  latex: string;
+  latex?: string;  // Legacy field for backward compatibility
+  json?: string;   // New field for JSON trace output
   exitCode: number;
   stderr: string;
 }

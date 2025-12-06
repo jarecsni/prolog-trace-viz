@@ -35,7 +35,7 @@
   - Test malformed queries
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 2. Update data models and interfaces
+- [x] 2. Update data models and interfaces
   - Add `TraceEvent` interface to `parser.ts`
   - Add `Unification` interface to `parser.ts`
   - Update `ExecutionNode` interface with new fields (unifications, clauseLine, arguments)
@@ -43,7 +43,7 @@
   - Update `ExecutionResult` interface in `executor.ts` (json instead of latex)
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 3. Implement JSON parser to replace LaTeX parser
+- [x] 3. Implement JSON parser to replace LaTeX parser
   - Create `parseTraceJson()` function to parse JSON trace events
   - Implement tree building algorithm using call/exit/redo/fail ports
   - Extract unifications from exit events
@@ -51,19 +51,19 @@
   - Handle malformed JSON gracefully
   - _Requirements: 2.6, 4.3, 6.1_
 
-- [ ] 3.1 Write property test for JSON round-trip
+- [x] 3.1 Write property test for JSON round-trip
   - **Property 6: JSON output validity**
   - **Validates: Requirements 2.6**
 
-- [ ] 3.2 Write property test for parser format compatibility
+- [x] 3.2 Write property test for parser format compatibility
   - **Property 11: Parser format compatibility**
   - **Validates: Requirements 4.3**
 
-- [ ] 3.3 Write property test for analyzer interface compatibility
+- [x] 3.3 Write property test for analyzer interface compatibility
   - **Property 12: Analyzer interface compatibility**
   - **Validates: Requirements 4.4, 6.1**
 
-- [ ] 3.4 Write unit tests for JSON parser
+- [x] 3.4 Write unit tests for JSON parser
   - Test parsing valid trace events
   - Test handling missing fields
   - Test handling type mismatches

@@ -1,14 +1,35 @@
 import { createError, ErrorCode, ToolError } from './errors.js';
 
+export interface Unification {
+  variable: string;
+  value: string;
+}
+
+export interface TraceEvent {
+  port: 'call' | 'exit' | 'redo' | 'fail';
+  level: number;
+  goal: string;
+  arguments?: any[];
+  clause?: {
+    head: string;
+    body: string;
+    line: number;
+  };
+  predicate: string;
+}
+
 export interface ExecutionNode {
   id: string;
   type: 'query' | 'goal' | 'success' | 'failure';
   goal: string;
   binding?: string;
+  unifications?: Unification[];
   clauseNumber?: number;
+  clauseLine?: number;
   children: ExecutionNode[];
   subgoals?: string[];
   level: number;
+  arguments?: any[];
 }
 
 export interface Bundle {
@@ -414,4 +435,225 @@ function serializeNode(node: ExecutionNode): string {
   lines.push(`\\end{bundle}`);
   
   return lines.join('\n');
+}
+
+/**
+ * Parses JSON trace events from the custom tracer into an execution tree.
+ */
+export function parseTraceJson(json: string): ExecutionNode {
+  let events: TraceEvent[];
+  
+  try {
+    events = JSON.parse(json);
+  } catch (error) {
+    throw createError(ErrorCode.PARSE_ERROR, `Invalid JSON: ${error}`);
+  }
+  
+  if (!Array.isArray(events)) {
+    throw createError(ErrorCode.PARSE_ERROR, 'Expected JSON array of trace events');
+  }
+  
+  return buildTreeFromEvents(events);
+}
+
+/**
+ * Builds an execution tree from trace events using the 4-port model.
+ */
+function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
+  const ctx: ParseContext = { nodeIdCounter: 0 };
+  
+  // Stack to track active goals by level
+  const stack: Map<number, ExecutionNode> = new Map();
+  
+  // Root node (query)
+  let root: ExecutionNode | null = null;
+  
+  for (const event of events) {
+    const { port, level, goal, arguments: args, clause, predicate } = event;
+    
+    if (port === 'call') {
+      // Create new node for this goal
+      const node: ExecutionNode = {
+        id: `node_${ctx.nodeIdCounter++}`,
+        type: level === 0 ? 'query' : 'goal',
+        goal,
+        children: [],
+        level,
+      };
+      
+      // Extract clause information if present
+      if (clause) {
+        node.clauseLine = clause.line;
+        // Try to extract clause number from line (assuming clauses are numbered sequentially)
+        // This is a heuristic - we'll refine it later
+        node.clauseNumber = clause.line;
+      }
+      
+      // Add to parent's children
+      if (level === 0) {
+        root = node;
+      } else {
+        const parent = stack.get(level - 1);
+        if (parent) {
+          parent.children.push(node);
+        }
+      }
+      
+      // Push onto stack
+      stack.set(level, node);
+      
+    } else if (port === 'exit') {
+      // Goal succeeded - record arguments and unifications
+      const node = stack.get(level);
+      if (node && args && args.length > 0) {
+        node.arguments = args;
+        
+        // Extract unifications from arguments
+        // Parse the goal to get variable names
+        const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+        if (goalMatch) {
+          const argString = goalMatch[2];
+          const goalArgs = parseArguments(argString);
+          
+          // Create unifications by pairing goal args with actual values
+          const unifications: Unification[] = [];
+          for (let i = 0; i < Math.min(goalArgs.length, args.length); i++) {
+            const goalArg = goalArgs[i].trim();
+            const actualValue = formatValue(args[i]);
+            
+            // Only create unification if goal arg is a variable (starts with uppercase or _)
+            if (goalArg.match(/^[A-Z_]/)) {
+              unifications.push({
+                variable: goalArg,
+                value: actualValue,
+              });
+            }
+          }
+          
+          if (unifications.length > 0) {
+            node.unifications = unifications;
+            // Also set binding for backward compatibility
+            node.binding = unifications.map(u => `${u.variable}=${u.value}`).join(', ');
+          }
+        }
+      }
+      
+      // Update clause info if present
+      if (node && clause) {
+        node.clauseLine = clause.line;
+      }
+      
+    } else if (port === 'fail') {
+      // Goal failed - mark as failure
+      const node = stack.get(level);
+      if (node) {
+        // Add failure child if no children exist
+        if (node.children.length === 0) {
+          node.children.push({
+            id: `node_${ctx.nodeIdCounter++}`,
+            type: 'failure',
+            goal: 'false',
+            children: [],
+            level: level + 1,
+          });
+        }
+      }
+      
+      // Pop from stack
+      stack.delete(level);
+      
+    } else if (port === 'redo') {
+      // Backtracking - for now, just note it
+      // We might need to handle this more sophisticatedly later
+    }
+  }
+  
+  // Add success nodes to goals that exited successfully
+  for (const [level, node] of stack.entries()) {
+    if (node.children.length === 0 && node.type !== 'query') {
+      node.children.push({
+        id: `node_${ctx.nodeIdCounter++}`,
+        type: 'success',
+        goal: 'true',
+        children: [],
+        level: level + 1,
+      });
+    }
+  }
+  
+  // If root has no children, add success
+  if (root && root.children.length === 0) {
+    root.children.push({
+      id: `node_${ctx.nodeIdCounter++}`,
+      type: 'success',
+      goal: 'true',
+      children: [],
+      level: 1,
+    });
+  }
+  
+  return root || {
+    id: `node_${ctx.nodeIdCounter++}`,
+    type: 'query',
+    goal: '',
+    children: [],
+    level: 0,
+  };
+}
+
+/**
+ * Parses argument string into individual arguments.
+ * Handles nested structures like lists and compounds.
+ */
+function parseArguments(argString: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let depth = 0;
+  let inQuotes = false;
+  
+  for (let i = 0; i < argString.length; i++) {
+    const char = argString[i];
+    
+    if (char === '"' || char === "'") {
+      inQuotes = !inQuotes;
+      current += char;
+    } else if (inQuotes) {
+      current += char;
+    } else if (char === '(' || char === '[') {
+      depth++;
+      current += char;
+    } else if (char === ')' || char === ']') {
+      depth--;
+      current += char;
+    } else if (char === ',' && depth === 0) {
+      args.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+  
+  return args;
+}
+
+/**
+ * Formats a value for display.
+ */
+function formatValue(value: any): string {
+  if (typeof value === 'string') {
+    return value;
+  } else if (typeof value === 'number') {
+    return value.toString();
+  } else if (Array.isArray(value)) {
+    return `[${value.map(formatValue).join(',')}]`;
+  } else if (typeof value === 'object' && value !== null) {
+    // Handle compound terms
+    return JSON.stringify(value);
+  } else {
+    return String(value);
+  }
 }

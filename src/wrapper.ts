@@ -6,6 +6,7 @@ export interface WrapperConfig {
   prologContent: string;
   query: string;
   depth?: number;
+  tracerPath?: string;
 }
 
 export interface TempFile {
