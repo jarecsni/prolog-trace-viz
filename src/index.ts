@@ -101,12 +101,7 @@ async function run(options: CLIOptions): Promise<void> {
       : options.prologFile;
     const nameWithoutExt = prologBasename.replace(/\.pl$/, '');
     
-    // Save LaTeX trace next to source file
-    const latexPath = `${prologDir}/${nameWithoutExt}-trace.tex`;
-    await fs.writeFile(latexPath, execResult.latex, 'utf-8');
-    logVerbose(`LaTeX saved to ${latexPath}`, options);
-    
-    // Parse LaTeX
+    // Parse LaTeX (no need to save it - it's just intermediate output)
     logVerbose('Parsing LaTeX output...', options);
     const tree = parseLatex(execResult.latex);
     
