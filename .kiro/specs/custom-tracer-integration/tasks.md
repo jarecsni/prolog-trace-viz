@@ -70,7 +70,7 @@
   - Test building tree from events
   - _Requirements: 2.6, 4.3_
 
-- [ ] 4. Update wrapper generator
+- [x] 4. Update wrapper generator
   - Remove `instrumentPrologCode()` call from wrapper generation
   - Update wrapper template to load `tracer.pl`
   - Add `install_tracer/0` call before query execution
@@ -79,11 +79,11 @@
   - Add error handling with catch/3
   - _Requirements: 3.1, 3.2, 3.4, 4.1_
 
-- [ ] 4.1 Write property test for code preservation
+- [x] 4.1 Write property test for code preservation
   - **Property 8: Code preservation**
   - **Validates: Requirements 3.2**
 
-- [ ] 4.2 Write unit tests for wrapper generation
+- [x] 4.2 Write unit tests for wrapper generation
   - Test wrapper template generation
   - Test tracer path resolution
   - Test error handling in wrapper

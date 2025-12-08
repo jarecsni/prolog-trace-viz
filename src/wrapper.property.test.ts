@@ -4,14 +4,67 @@ import { generateWrapper, parseWrapper, WrapperConfig } from './wrapper.js';
 
 describe('Wrapper Generator - Property Tests', () => {
   /**
-   * **Feature: prolog-trace-visualizer, Property 2: Wrapper file contains all input content**
-   * **Validates: Requirements 2.2, 2.3**
+   * **Feature: custom-tracer-integration, Property 8: Code preservation**
+   * **Validates: Requirements 3.2**
+   * 
+   * For any Prolog file, the content loaded by the tracer should be identical to the 
+   * original file content (no instrumentation markers added).
+   */
+  it('Property 8: Code preservation', () => {
+    // Generate arbitrary Prolog-like content
+    const arbitraryPrologContent = fc.stringOf(
+      fc.constantFrom(...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_(),. \n:-'),
+      { minLength: 1, maxLength: 200 }
+    ).filter(s => s.trim().length > 0);
+
+    const arbitraryQuery = fc.stringOf(
+      fc.constantFrom(...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_(),. '),
+      { minLength: 1, maxLength: 100 }
+    ).filter(s => s.trim().length > 0);
+
+    const arbitraryTracerPath = fc.constantFrom(
+      'tracer.pl',
+      '/path/to/tracer.pl',
+      './tracer.pl',
+      '../tracer.pl'
+    );
+
+    fc.assert(
+      fc.property(
+        arbitraryPrologContent,
+        arbitraryQuery,
+        arbitraryTracerPath,
+        (prologContent, query, tracerPath) => {
+          const config: WrapperConfig = { prologContent, query, tracerPath };
+          const wrapper = generateWrapper(config);
+
+          // Verify the prolog content appears in the wrapper exactly as provided
+          // (no instrumentation markers like trace_call/3 or clause_marker/2)
+          expect(wrapper).toContain(prologContent.trim());
+          
+          // Verify no instrumentation markers are present
+          expect(wrapper).not.toContain('trace_call');
+          expect(wrapper).not.toContain('clause_marker');
+          expect(wrapper).not.toContain('begin_program');
+          expect(wrapper).not.toContain('end_program');
+          
+          // Verify the wrapper uses the custom tracer
+          expect(wrapper).toContain('install_tracer');
+          expect(wrapper).toContain('export_trace_json');
+          expect(wrapper).toContain('remove_tracer');
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Wrapper structure validation
    * 
    * For any Prolog file content and query string, the generated wrapper file SHALL contain
-   * the Prolog content within `:-begin_program.` and `:-end_program.` markers AND the query
-   * within `:-begin_query.` and `:-end_query.` markers.
+   * the tracer loading, user code, and query execution with proper error handling.
    */
-  it('Property 2: Wrapper file contains all input content', () => {
+  it('Wrapper structure validation', () => {
     // Generate arbitrary Prolog-like content (avoiding special regex chars for simplicity)
     const arbitraryPrologContent = fc.stringOf(
       fc.constantFrom(...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_(),. \n'),
@@ -23,39 +76,44 @@ describe('Wrapper Generator - Property Tests', () => {
       { minLength: 1, maxLength: 100 }
     ).filter(s => s.trim().length > 0);
 
-    const arbitraryDepth = fc.option(fc.integer({ min: 1, max: 100 }), { nil: undefined });
+    const arbitraryTracerPath = fc.constantFrom(
+      'tracer.pl',
+      '/path/to/tracer.pl',
+      './tracer.pl'
+    );
 
     fc.assert(
       fc.property(
         arbitraryPrologContent,
         arbitraryQuery,
-        arbitraryDepth,
-        (prologContent, query, depth) => {
-          const config: WrapperConfig = { prologContent, query, depth };
+        arbitraryTracerPath,
+        (prologContent, query, tracerPath) => {
+          const config: WrapperConfig = { prologContent, query, tracerPath };
           const wrapper = generateWrapper(config);
 
-          // Verify begin_program and end_program markers exist
-          expect(wrapper).toContain(':- begin_program.');
-          expect(wrapper).toContain(':- end_program.');
+          // Verify tracer is loaded
+          expect(wrapper).toContain(`:- ['${tracerPath}'].`);
 
-          // Verify begin_query and end_query markers exist
-          expect(wrapper).toContain(':- begin_query.');
-          expect(wrapper).toContain(':- end_query.');
+          // Verify the prolog content is included
+          expect(wrapper).toContain(prologContent.trim());
 
-          // Verify the prolog content is between program markers
-          const programMatch = wrapper.match(/:-\s*begin_program\.\s*([\s\S]*?)\s*:-\s*end_program\./);
-          expect(programMatch).not.toBeNull();
-          expect(programMatch![1].trim()).toBe(prologContent.trim());
-
-          // Verify the query is between query markers
-          const queryMatch = wrapper.match(/:-\s*begin_query\.\s*([\s\S]*?)\s*:-\s*end_query\./);
-          expect(queryMatch).not.toBeNull();
-          expect(queryMatch![1].trim()).toBe(query.trim());
-
-          // Verify depth is included if specified
-          if (depth !== undefined) {
-            expect(wrapper).toContain(`:- set_depth(${depth}).`);
-          }
+          // Verify run_trace predicate exists
+          expect(wrapper).toContain('run_trace :-');
+          
+          // Verify tracer lifecycle
+          expect(wrapper).toContain('install_tracer');
+          expect(wrapper).toContain('export_trace_json');
+          expect(wrapper).toContain('remove_tracer');
+          
+          // Verify error handling
+          expect(wrapper).toContain('catch(');
+          
+          // Verify query is included
+          expect(wrapper).toContain(query.trim());
+          
+          // Verify execution directives
+          expect(wrapper).toContain(':- run_trace.');
+          expect(wrapper).toContain(':- halt.');
         }
       ),
       { numRuns: 100 }
@@ -73,22 +131,26 @@ describe('Wrapper Generator - Property Tests', () => {
       { minLength: 1, maxLength: 100 }
     ).filter(s => s.trim().length > 0);
 
-    const arbitraryDepth = fc.option(fc.integer({ min: 1, max: 100 }), { nil: undefined });
+    const arbitraryTracerPath = fc.constantFrom(
+      'tracer.pl',
+      '/path/to/tracer.pl',
+      './tracer.pl'
+    );
 
     fc.assert(
       fc.property(
         arbitraryPrologContent,
         arbitraryQuery,
-        arbitraryDepth,
-        (prologContent, query, depth) => {
-          const config: WrapperConfig = { prologContent, query, depth };
+        arbitraryTracerPath,
+        (prologContent, query, tracerPath) => {
+          const config: WrapperConfig = { prologContent, query, tracerPath };
           const wrapper = generateWrapper(config);
           const parsed = parseWrapper(wrapper);
 
           expect(parsed).not.toBeNull();
           expect(parsed!.prologContent).toBe(prologContent.trim());
           expect(parsed!.query).toBe(query.trim());
-          expect(parsed!.depth).toBe(depth);
+          expect(parsed!.tracerPath).toBe(tracerPath);
         }
       ),
       { numRuns: 100 }

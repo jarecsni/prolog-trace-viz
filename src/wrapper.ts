@@ -6,7 +6,7 @@ export interface WrapperConfig {
   prologContent: string;
   query: string;
   depth?: number;
-  tracerPath?: string;
+  tracerPath: string;
 }
 
 export interface TempFile {
@@ -15,47 +15,38 @@ export interface TempFile {
 }
 
 /**
- * Generates the sldnfdraw wrapper file content.
+ * Generates the custom tracer wrapper file content.
  * The wrapper includes:
- * - sldnfdraw library import
- * - User's Prolog clauses in begin_program section (instrumented with clause markers)
- * - User's query in begin_query section
- * - Optional depth parameter
+ * - Custom tracer import
+ * - User's Prolog code (loaded without instrumentation)
+ * - Query execution with tracer installed
+ * - JSON export after query
+ * - Tracer cleanup
  */
 export function generateWrapper(config: WrapperConfig): string {
-  const { prologContent, query, depth } = config;
+  const { prologContent, query, tracerPath } = config;
   
   const lines: string[] = [
-    ':- use_module(library(sldnfdraw)).',
+    `% Load custom tracer`,
+    `:- ['${tracerPath}'].`,
     '',
-    ':- sldnf.',
+    `% User's Prolog code (no instrumentation)`,
+    prologContent.trim(),
+    '',
+    '% Run trace with error handling',
+    'run_trace :-',
+    '    install_tracer,',
+    '    catch(',
+    `        (${query.trim()}, export_trace_json('trace.json')),`,
+    '        Error,',
+    `        (format('Error: ~w~n', [Error]), export_trace_json('trace.json'))`,
+    '    ),',
+    '    remove_tracer.',
+    '',
+    ':- run_trace.',
+    ':- halt.',
     '',
   ];
-  
-  // Add depth configuration if specified
-  if (depth !== undefined) {
-    lines.push(`:- set_depth(${depth}).`);
-    lines.push('');
-  }
-  
-  // Begin program section with instrumented Prolog content
-  lines.push(':-begin_program.');
-  lines.push('');
-  lines.push('% Clause marker predicate (no-op, just for tracking)');
-  lines.push('clause_marker(_, _).');
-  lines.push('');
-  lines.push(prologContent.trim());
-  lines.push('');
-  lines.push(':- end_program.');
-  lines.push('');
-  
-  // Begin query section
-  lines.push(':- begin_query.');
-  lines.push('');
-  lines.push(query.trim() + '.');
-  lines.push('');
-  lines.push(':- end_query.');
-  lines.push('');
   
   return lines.join('\n');
 }
@@ -87,23 +78,30 @@ export async function createTempWrapper(config: WrapperConfig): Promise<TempFile
  * Returns null if the content doesn't match expected wrapper format.
  */
 export function parseWrapper(content: string): WrapperConfig | null {
-  const programMatch = content.match(/:-\s*begin_program\.\s*([\s\S]*?)\s*:-\s*end_program\./);
-  const queryMatch = content.match(/:-\s*begin_query\.\s*([\s\S]*?)\s*:-\s*end_query\./);
-  const depthMatch = content.match(/:- set_depth\((\d+)\)\./);
-  
-  if (!programMatch || !queryMatch) {
+  // Extract tracer path
+  const tracerMatch = content.match(/:-\s*\['([^']+)'\]\./);
+  if (!tracerMatch) {
     return null;
   }
+  const tracerPath = tracerMatch[1];
   
-  let query = queryMatch[1].trim();
-  // Remove trailing period if present
-  if (query.endsWith('.')) {
-    query = query.slice(0, -1).trim();
+  // Extract query from run_trace predicate - match everything between ( and , export_trace_json
+  const queryMatch = content.match(/catch\(\s*\(([\s\S]*?),\s*export_trace_json/);
+  if (!queryMatch) {
+    return null;
   }
+  const query = queryMatch[1].trim();
+  
+  // Extract user's Prolog content (between tracer load and run_trace)
+  const contentMatch = content.match(/:-\s*\['[^']+'\]\.\s*\n\s*%\s*User's Prolog code[^\n]*\n([\s\S]*?)\n\s*%\s*Run trace/);
+  if (!contentMatch) {
+    return null;
+  }
+  const prologContent = contentMatch[1].trim();
   
   return {
-    prologContent: programMatch[1].trim(),
+    prologContent,
     query,
-    depth: depthMatch ? parseInt(depthMatch[1], 10) : undefined,
+    tracerPath,
   };
 }
