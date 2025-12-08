@@ -4,80 +4,94 @@ import * as path from 'node:path';
 import { createError, ErrorCode, ToolError } from './errors.js';
 
 export interface ExecutionResult {
-  latex?: string;  // Legacy field for backward compatibility
-  json?: string;   // New field for JSON trace output
+  json: string;
   exitCode: number;
   stderr: string;
 }
 
 export interface DependencyStatus {
   swiplInstalled: boolean;
-  sldnfdrawInstalled: boolean;
+  swiplVersion?: string;
   error?: ToolError;
 }
 
 /**
- * Checks if SWI-Prolog is installed and accessible.
+ * Checks if SWI-Prolog is installed and gets its version.
  */
-async function checkSwipl(): Promise<boolean> {
+async function checkSwipl(): Promise<{ installed: boolean; version?: string }> {
   return new Promise((resolve) => {
     const proc = spawn('swipl', ['--version']);
-    proc.on('error', () => resolve(false));
-    proc.on('close', (code) => resolve(code === 0));
+    let stdout = '';
+    
+    proc.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    proc.on('error', () => resolve({ installed: false }));
+    
+    proc.on('close', (code) => {
+      if (code === 0) {
+        // Extract version from output like "SWI-Prolog version 8.4.3"
+        const versionMatch = stdout.match(/version\s+(\d+\.\d+\.\d+)/i);
+        resolve({ 
+          installed: true, 
+          version: versionMatch ? versionMatch[1] : undefined 
+        });
+      } else {
+        resolve({ installed: false });
+      }
+    });
   });
 }
 
 /**
- * Checks if sldnfdraw pack is installed.
+ * Checks if SWI-Prolog version is >= 7.0 (required for prolog_trace_interception/4).
  */
-async function checkSldnfdraw(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const proc = spawn('swipl', ['-g', 'use_module(library(sldnfdraw))', '-g', 'halt']);
-    proc.on('error', () => resolve(false));
-    proc.on('close', (code) => resolve(code === 0));
-  });
+function checkSwiplVersion(version: string): boolean {
+  const parts = version.split('.').map(Number);
+  const major = parts[0] || 0;
+  return major >= 7;
 }
 
 /**
  * Checks all required dependencies.
  */
 export async function checkDependencies(): Promise<DependencyStatus> {
-  const swiplInstalled = await checkSwipl();
+  const { installed, version } = await checkSwipl();
   
-  if (!swiplInstalled) {
+  if (!installed) {
     return {
       swiplInstalled: false,
-      sldnfdrawInstalled: false,
       error: createError(ErrorCode.PROLOG_NOT_INSTALLED),
     };
   }
   
-  const sldnfdrawInstalled = await checkSldnfdraw();
-  
-  if (!sldnfdrawInstalled) {
+  if (version && !checkSwiplVersion(version)) {
     return {
       swiplInstalled: true,
-      sldnfdrawInstalled: false,
-      error: createError(ErrorCode.SLDNFDRAW_NOT_INSTALLED),
+      swiplVersion: version,
+      error: createError(
+        ErrorCode.PROLOG_VERSION_TOO_OLD,
+        `SWI-Prolog version ${version} is too old. Version 7.0 or later is required for custom tracer support.`
+      ),
     };
   }
   
   return {
     swiplInstalled: true,
-    sldnfdrawInstalled: true,
+    swiplVersion: version,
   };
 }
 
 /**
- * Executes sldnfdraw with the given wrapper file and captures the LaTeX output.
+ * Executes the custom tracer with the given wrapper file and captures the JSON output.
  */
-export async function executeSldnfdraw(wrapperPath: string): Promise<ExecutionResult> {
+export async function executeTracer(wrapperPath: string): Promise<ExecutionResult> {
   const wrapperDir = path.dirname(wrapperPath);
-  const wrapperName = path.basename(wrapperPath, '.pl');
-  const texPath = path.join(wrapperDir, `${wrapperName}.tex`);
+  const jsonPath = path.join(wrapperDir, 'trace.json');
   
   return new Promise((resolve, reject) => {
-    const proc = spawn('swipl', ['-g', `[${wrapperName}]`, '-g', `draw_goal("${wrapperName}.tex")`, '-g', 'halt'], {
+    const proc = spawn('swipl', [wrapperPath], {
       cwd: wrapperDir,
     });
     
@@ -94,29 +108,37 @@ export async function executeSldnfdraw(wrapperPath: string): Promise<ExecutionRe
     proc.on('close', async (code) => {
       if (code !== 0) {
         resolve({
-          latex: '',
+          json: '',
           exitCode: code ?? 1,
           stderr,
         });
         return;
       }
       
-      // Read the generated .tex file
+      // Read the generated trace.json file
       try {
-        const latex = await fs.readFile(texPath, 'utf-8');
+        const json = await fs.readFile(jsonPath, 'utf-8');
         resolve({
-          latex,
+          json,
           exitCode: 0,
           stderr,
         });
       } catch (err) {
-        // .tex file might not exist if sldnfdraw failed silently
+        // trace.json file might not exist if tracer failed silently
         resolve({
-          latex: '',
+          json: '',
           exitCode: 0,
-          stderr: stderr || 'No LaTeX output generated',
+          stderr: stderr || 'No JSON trace output generated',
         });
       }
     });
   });
+}
+
+/**
+ * Legacy function for backward compatibility.
+ * @deprecated Use executeTracer instead.
+ */
+export async function executeSldnfdraw(wrapperPath: string): Promise<ExecutionResult> {
+  return executeTracer(wrapperPath);
 }

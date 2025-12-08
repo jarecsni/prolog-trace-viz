@@ -1,6 +1,7 @@
 export enum ErrorCode {
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
   PROLOG_NOT_INSTALLED = 'PROLOG_NOT_INSTALLED',
+  PROLOG_VERSION_TOO_OLD = 'PROLOG_VERSION_TOO_OLD',
   SLDNFDRAW_NOT_INSTALLED = 'SLDNFDRAW_NOT_INSTALLED',
   INVALID_QUERY = 'INVALID_QUERY',
   PARSE_ERROR = 'PARSE_ERROR',
@@ -23,6 +24,10 @@ const ERROR_MESSAGES: Record<ErrorCode, { message: string; suggestion?: string }
   [ErrorCode.PROLOG_NOT_INSTALLED]: {
     message: 'SWI-Prolog is not installed',
     suggestion: 'Install SWI-Prolog from https://www.swi-prolog.org/Download.html',
+  },
+  [ErrorCode.PROLOG_VERSION_TOO_OLD]: {
+    message: 'SWI-Prolog version is too old',
+    suggestion: 'Upgrade to SWI-Prolog 7.0 or later from https://www.swi-prolog.org/Download.html',
   },
   [ErrorCode.SLDNFDRAW_NOT_INSTALLED]: {
     message: 'The sldnfdraw pack is not installed',

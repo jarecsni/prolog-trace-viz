@@ -89,7 +89,7 @@
   - Test error handling in wrapper
   - _Requirements: 3.1, 3.4, 5.3_
 
-- [ ] 5. Update executor
+- [x] 5. Update executor
   - Remove sldnfdraw dependency check
   - Update `executeSldnfdraw()` to `executeTracer()`
   - Execute wrapper with `swipl` directly
@@ -98,11 +98,11 @@
   - Add SWI-Prolog version check (>= 7.0)
   - _Requirements: 4.1, 4.2, 5.3_
 
-- [ ] 5.1 Write property test for dependency independence
+- [x] 5.1 Write property test for dependency independence
   - **Property 10: Dependency independence**
   - **Validates: Requirements 4.1, 4.2**
 
-- [ ] 5.2 Write unit tests for executor
+- [x] 5.2 Write unit tests for executor
   - Test successful execution
   - Test query failure vs execution error
   - Test file not found error
