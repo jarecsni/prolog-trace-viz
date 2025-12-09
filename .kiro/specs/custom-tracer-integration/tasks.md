@@ -116,7 +116,7 @@
   - Update error messages to reference custom tracer
   - _Requirements: 4.1, 4.3_
 
-- [ ] 7. Simplify clauses.ts
+- [x] 7. Simplify clauses.ts
   - Remove `instrumentPrologCode()` function (no longer needed)
   - Keep `parsePrologFile()` for clause list display
   - Update tests to remove instrumentation tests
