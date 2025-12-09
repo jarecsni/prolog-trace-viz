@@ -250,12 +250,12 @@
   - Document tracer architecture and design decisions
   - _Requirements: 4.2_
 
-- [ ] 16. Regenerate all example outputs
+- [x] 16. Regenerate all example outputs
   - Delete old example outputs
   - Generate new outputs for all examples with all detail levels
   - Verify output quality matches or exceeds sldnfdraw version
   - _Requirements: 4.5_
 
-- [ ] 17. Final checkpoint - Ensure all tests pass
+- [x] 17. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
