@@ -109,7 +109,7 @@
   - Test SWI-Prolog version check
   - _Requirements: 4.1, 4.2, 5.3_
 
-- [ ] 6. Update main entry point
+- [x] 6. Update main entry point
   - Update `src/index.ts` to use `executeTracer()` instead of `executeSldnfdraw()`
   - Update to call `parseTraceJson()` instead of `parseLatex()`
   - Remove instrumentation step from pipeline

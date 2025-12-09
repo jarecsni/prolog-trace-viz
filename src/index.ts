@@ -3,9 +3,10 @@
 import * as fs from 'node:fs/promises';
 import { parseArgs, getHelpText, getVersion, CLIOptions } from './cli.js';
 import { formatError } from './errors.js';
-import { generateWrapper, createTempWrapper } from './wrapper.js';
-import { executeSldnfdraw, checkDependencies } from './executor.js';
-import { parseLatex } from './parser.js';
+import { createTempWrapper } from './wrapper.js';
+import { executeTracer, checkDependencies } from './executor.js';
+import { parseTraceJson } from './parser.js';
+import * as path from 'node:path';
 import { analyzeTree } from './analyzer.js';
 import { generateMermaid } from './mermaid.js';
 import { renderMarkdown } from './renderer.js';
@@ -62,30 +63,28 @@ async function run(options: CLIOptions): Promise<void> {
     process.exit(1);
   }
   
-  // Parse Prolog clauses
+  // Parse Prolog clauses (for display purposes)
   logVerbose('Parsing Prolog clauses...', options);
   const clauses = parsePrologFile(prologContent);
   
-  // Instrument Prolog code with clause markers
-  logVerbose('Instrumenting Prolog code...', options);
-  const { instrumentPrologCode } = await import('./clauses.js');
-  const instrumentedContent = instrumentPrologCode(prologContent);
+  // Get absolute path to tracer.pl
+  const tracerPath = path.resolve(process.cwd(), 'tracer.pl');
   
-  // Create wrapper
-  logVerbose('Creating sldnfdraw wrapper...', options);
+  // Create wrapper (no instrumentation needed)
+  logVerbose('Creating tracer wrapper...', options);
   const tempFile = await createTempWrapper({
-    prologContent: instrumentedContent,
+    prologContent,
     query: options.query,
-    depth: options.depth,
+    tracerPath,
   });
   
   try {
-    // Execute sldnfdraw
-    logVerbose('Executing sldnfdraw...', options);
-    const execResult = await executeSldnfdraw(tempFile.path);
+    // Execute custom tracer
+    logVerbose('Executing custom tracer...', options);
+    const execResult = await executeTracer(tempFile.path);
     
-    if (execResult.exitCode !== 0 || !execResult.latex) {
-      logError('sldnfdraw execution failed');
+    if (execResult.exitCode !== 0 || !execResult.json) {
+      logError('Custom tracer execution failed');
       if (execResult.stderr) {
         logError(execResult.stderr);
       }
@@ -101,9 +100,9 @@ async function run(options: CLIOptions): Promise<void> {
       : options.prologFile;
     const nameWithoutExt = prologBasename.replace(/\.pl$/, '');
     
-    // Parse LaTeX (no need to save it - it's just intermediate output)
-    logVerbose('Parsing LaTeX output...', options);
-    const tree = parseLatex(execResult.latex);
+    // Parse JSON trace output
+    logVerbose('Parsing JSON trace output...', options);
+    const tree = parseTraceJson(execResult.json);
     
     // Analyze tree
     logVerbose('Analyzing execution tree...', options);
