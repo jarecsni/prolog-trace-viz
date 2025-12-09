@@ -67,7 +67,7 @@ const EMOJIS = {
   match: '📦',
 };
 
-import { Clause, inferClauseFromGoal } from './clauses.js';
+import { Clause } from './clauses.js';
 
 /**
  * Extracts unification details by matching a goal against a clause.
@@ -471,7 +471,17 @@ function processTreeNode(
       if (clause) {
         // Create match node
         const matchNodeId = ctx.nextNodeId();
-        const unifications = extractUnifications(node.goal, clause);
+        
+        // Use unifications from node if available, otherwise try to extract them
+        let unifications: string[];
+        if (node.unifications && node.unifications.length > 0) {
+          // Use accurate unifications from tracer
+          unifications = node.unifications.map(u => `${u.variable} = ${u.value}`);
+        } else {
+          // Fallback to extraction (for backward compatibility)
+          unifications = extractUnifications(node.goal, clause);
+        }
+        
         const subgoals = extractSubgoals(clause);
         
         // Build match node label - only show clause HEAD, not body

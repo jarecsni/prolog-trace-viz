@@ -122,26 +122,26 @@
   - Update tests to remove instrumentation tests
   - _Requirements: 3.2, 4.1_
 
-- [ ] 8. Update analyzer for accurate unifications
+- [x] 8. Update analyzer for accurate unifications
   - Remove unification inference logic (no longer needed)
   - Use unifications directly from ExecutionNode
   - Use clause numbers directly from trace events
   - Verify analyzer works with new ExecutionNode structure
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 6.3_
 
-- [ ] 8.1 Write property test for unification accuracy
+- [x] 8.1 Write property test for unification accuracy
   - **Property 1: Unification accuracy**
   - **Validates: Requirements 1.1, 1.2, 1.4**
 
-- [ ] 8.2 Write property test for unbound variable indication
+- [x] 8.2 Write property test for unbound variable indication
   - **Property 2: Unbound variable indication**
   - **Validates: Requirements 1.3**
 
-- [ ] 8.3 Write property test for clause number consistency
+- [x] 8.3 Write property test for clause number consistency
   - **Property 15: Clause number consistency**
   - **Validates: Requirements 6.3**
 
-- [ ] 8.4 Write unit tests for analyzer with new data
+- [x] 8.4 Write unit tests for analyzer with new data
   - Test analysis with accurate unifications
   - Test handling of unbound variables
   - Test clause number mapping
