@@ -147,80 +147,80 @@
   - Test clause number mapping
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 6.3_
 
-- [ ] 9. Verify renderer and Mermaid generator compatibility
+- [x] 9. Verify renderer and Mermaid generator compatibility
   - Run existing renderer tests with new analyzer output
   - Run existing Mermaid generator tests with new analyzer output
   - Verify no modifications needed
   - _Requirements: 6.4_
 
-- [ ] 9.1 Write property test for renderer compatibility
+- [x] 9.1 Write property test for renderer compatibility
   - **Property 16: Renderer compatibility**
   - **Validates: Requirements 6.4**
 
-- [ ] 9.2 Write property test for tree structure preservation
+- [x] 9.2 Write property test for tree structure preservation
   - **Property 14: Tree structure preservation**
   - **Validates: Requirements 6.2**
 
-- [ ] 10. Implement visualization correctness properties
+- [x] 10. Implement visualization correctness properties
   - Verify subgoal edge generation in analyzer
   - Verify success and failure edges
   - Verify backtracking edges with clause numbers
   - Verify step numbering is sequential
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.2, 8.3_
 
-- [ ] 10.1 Write property test for subgoal edge generation
+- [x] 10.1 Write property test for subgoal edge generation
   - **Property 17: Subgoal edge generation**
   - **Validates: Requirements 7.1, 7.3, 8.2, 8.3**
 
-- [ ] 10.2 Write property test for success and failure edges
+- [x] 10.2 Write property test for success and failure edges
   - **Property 18: Success and failure edges**
   - **Validates: Requirements 7.2**
 
-- [ ] 10.3 Write property test for backtracking edges
+- [x] 10.3 Write property test for backtracking edges
   - **Property 19: Backtracking edges**
   - **Validates: Requirements 7.4, 9.2**
 
-- [ ] 10.4 Write property test for step numbering
+- [x] 10.4 Write property test for step numbering
   - **Property 20: Step numbering**
   - **Validates: Requirements 7.5**
 
-- [ ] 11. Implement subgoal decomposition visualization
+- [x] 11. Implement subgoal decomposition visualization
   - Verify subgoal node creation in analyzer
   - Verify subgoal completion propagation
   - Verify subgoal failure short-circuit
   - _Requirements: 8.1, 8.4, 8.5_
 
-- [ ] 11.1 Write property test for subgoal node creation
+- [x] 11.1 Write property test for subgoal node creation
   - **Property 21: Subgoal node creation**
   - **Validates: Requirements 8.1**
 
-- [ ] 11.2 Write property test for subgoal completion propagation
+- [x] 11.2 Write property test for subgoal completion propagation
   - **Property 22: Subgoal completion propagation**
   - **Validates: Requirements 8.4**
 
-- [ ] 11.3 Write property test for subgoal failure short-circuit
+- [x] 11.3 Write property test for subgoal failure short-circuit
   - **Property 23: Subgoal failure short-circuit**
   - **Validates: Requirements 8.5**
 
-- [ ] 12. Implement clause selection visualization
+- [x] 12. Implement clause selection visualization
   - Verify clause attempt ordering in analyzer
   - Verify goal failure indication
   - Verify success short-circuit (no subsequent clauses)
   - _Requirements: 9.1, 9.3, 9.4, 9.5_
 
-- [ ] 12.1 Write property test for clause attempt ordering
+- [x] 12.1 Write property test for clause attempt ordering
   - **Property 24: Clause attempt ordering**
   - **Validates: Requirements 9.1, 9.3**
 
-- [ ] 12.2 Write property test for goal failure indication
+- [x] 12.2 Write property test for goal failure indication
   - **Property 25: Goal failure indication**
   - **Validates: Requirements 9.4**
 
-- [ ] 12.3 Write property test for success short-circuit
+- [x] 12.3 Write property test for success short-circuit
   - **Property 26: Success short-circuit**
   - **Validates: Requirements 9.5**
 
-- [ ] 13. End-to-end integration testing
+- [x] 13. End-to-end integration testing
   - Test complete pipeline with factorial example
   - Test complete pipeline with append example
   - Test complete pipeline with member example
@@ -228,21 +228,21 @@
   - Compare output quality with sldnfdraw version
   - _Requirements: 4.5, 6.2, 6.4_
 
-- [ ] 13.1 Write property test for behavioral equivalence
+- [x] 13.1 Write property test for behavioral equivalence
   - **Property 9: Behavioral equivalence**
   - **Validates: Requirements 3.3**
 
-- [ ] 13.2 Write integration tests for complete pipeline
+- [x] 13.2 Write integration tests for complete pipeline
   - Test factorial trace end-to-end
   - Test append trace end-to-end
   - Test member trace end-to-end
   - Test operators trace end-to-end
   - _Requirements: 4.5, 6.2, 6.4_
 
-- [ ] 14. Checkpoint - Ensure all tests pass
+- [x] 14. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 15. Update documentation
+- [x] 15. Update documentation
   - Update README with custom tracer information
   - Remove sldnfdraw installation instructions
   - Add SWI-Prolog version requirement (>= 7.0)

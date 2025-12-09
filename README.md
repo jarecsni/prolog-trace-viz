@@ -4,21 +4,18 @@ Generate beautiful, educational Mermaid diagrams from Prolog execution traces.
 
 ## Features
 
-- Automatically wraps your Prolog files for sldnfdraw
-- Parses LaTeX output into structured execution trees
+- Custom Prolog tracer using SWI-Prolog's trace interception hook
+- Captures accurate unification information directly from execution
 - Generates colour-coded Mermaid diagrams
 - Produces complete markdown documentation with step-by-step breakdowns
 - Tracks pending goals, variable bindings, and clause usage
+- No external dependencies beyond SWI-Prolog
 
 ## Prerequisites
 
-1. **SWI-Prolog** - Install from https://www.swi-prolog.org/Download.html
+**SWI-Prolog 7.0 or later** - Install from https://www.swi-prolog.org/Download.html
 
-2. **sldnfdraw pack** - Install by running:
-
-```
-swipl -g "pack_install(sldnfdraw)" -t halt
-```
+The tool uses a custom tracer built on SWI-Prolog's `prolog_trace_interception/4` hook, which requires version 7.0 or later. No additional packages are required.
 
 ## Installation
 
@@ -48,7 +45,6 @@ prolog-trace-viz <prolog-file> <query> [options]
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file instead of stdout |
-| `--depth <n>` | Set maximum trace depth for sldnfdraw |
 | `--verbose` | Display detailed processing information |
 | `--quiet` | Suppress all non-error output except final result |
 | `-h, --help` | Show help message |
@@ -68,10 +64,10 @@ Save to file:
 prolog-trace-viz program.pl "member(X, [a,b,c])" -o trace.md
 ```
 
-With depth limit and verbose output:
+With verbose output:
 
 ```
-prolog-trace-viz program.pl "factorial(5, X)" --depth 10 --verbose
+prolog-trace-viz program.pl "factorial(5, X)" --verbose
 ```
 
 ## Example Output
@@ -114,6 +110,25 @@ Produces a markdown document with:
 - **Yellow** - Solving nodes
 - **Grey** - Pending nodes
 - **Green** - Solved/Success nodes
+
+## Architecture
+
+The tool uses a custom Prolog tracer that leverages SWI-Prolog's `prolog_trace_interception/4` hook to capture execution events. This approach provides several advantages:
+
+- **Accurate unifications**: Direct access to variable bindings via `prolog_frame_attribute/3`
+- **No code instrumentation**: Your Prolog code runs unmodified
+- **Reliable clause tracking**: Clause numbers come from Prolog's internal tracking
+- **Structured output**: JSON-based trace format for easy parsing
+
+### Pipeline
+
+1. Parse user's Prolog file to extract clauses
+2. Generate wrapper that loads custom tracer
+3. Execute query with trace interception active
+4. Export trace events as JSON
+5. Build execution tree from trace events
+6. Analyze tree and generate visualization
+7. Render as Mermaid diagram in markdown
 
 ## Development
 
