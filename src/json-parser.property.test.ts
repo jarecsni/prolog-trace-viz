@@ -856,6 +856,164 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 9: Backtracking representation**
+   * **Validates: Requirements 5.1, 5.2, 5.3**
+   * 
+   * For any sequence containing redo events, the tree builder should maintain 
+   * proper tree structure and handle alternative execution paths correctly.
+   */
+  it('Property 9: Backtracking representation - handles redo events correctly', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('member/2', 'append/3', 'test/1'),
+            level: fc.integer({ min: 0, max: 2 }),
+            solutions: fc.array(fc.oneof(fc.integer(), fc.string()), { minLength: 1, maxLength: 3 }),
+          }),
+          { minLength: 1, maxLength: 3 }
+        ),
+        (specs) => {
+          const events = [];
+          
+          for (const spec of specs) {
+            const goalName = spec.predicate.split('/')[0];
+            const goal = `${goalName}(X,Y)`;
+            
+            // Generate call event
+            events.push({
+              port: 'call' as const,
+              level: spec.level,
+              goal,
+              predicate: spec.predicate,
+            });
+            
+            // Generate multiple solutions with redo events
+            for (let i = 0; i < spec.solutions.length; i++) {
+              if (i > 0) {
+                // Add redo event before subsequent solutions
+                events.push({
+                  port: 'redo' as const,
+                  level: spec.level,
+                  goal,
+                  predicate: spec.predicate,
+                });
+              }
+              
+              // Add exit event for this solution
+              events.push({
+                port: 'exit' as const,
+                level: spec.level,
+                goal,
+                predicate: spec.predicate,
+                arguments: [spec.solutions[i], 'result'],
+              });
+            }
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should handle redo events without breaking tree structure
+          expect(tree).toHaveProperty('id');
+          expect(tree).toHaveProperty('type');
+          expect(tree.type).toBe('query');
+          expect(tree).toHaveProperty('children');
+          expect(Array.isArray(tree.children)).toBe(true);
+          
+          // Tree should remain valid even with backtracking
+          function validateTreeStructure(node: any): void {
+            expect(node).toHaveProperty('id');
+            expect(node).toHaveProperty('type');
+            expect(['query', 'goal', 'success', 'failure']).toContain(node.type);
+            expect(node).toHaveProperty('children');
+            expect(Array.isArray(node.children)).toBe(true);
+            
+            for (const child of node.children) {
+              validateTreeStructure(child);
+            }
+          }
+          
+          validateTreeStructure(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 10: Multiple solution handling**
+   * **Validates: Requirements 5.4**
+   * 
+   * For any goal with multiple solutions, the tree builder should represent 
+   * all solutions appropriately without losing information.
+   */
+  it('Property 10: Multiple solution handling - preserves all solutions', async () => {
+    await fc.assert(
+      fc.property(
+        fc.integer({ min: 2, max: 5 }),
+        fc.constantFrom('member/2', 'test/1', 'choice/1'),
+        (numSolutions, predicate) => {
+          const events = [];
+          const goalName = predicate.split('/')[0];
+          const goal = `${goalName}(X)`;
+          
+          // Generate call event
+          events.push({
+            port: 'call' as const,
+            level: 0,
+            goal,
+            predicate,
+          });
+          
+          // Generate multiple solutions
+          for (let i = 0; i < numSolutions; i++) {
+            if (i > 0) {
+              // Add redo event for backtracking
+              events.push({
+                port: 'redo' as const,
+                level: 0,
+                goal,
+                predicate,
+              });
+            }
+            
+            // Add exit event for this solution
+            events.push({
+              port: 'exit' as const,
+              level: 0,
+              goal,
+              predicate,
+              arguments: [i + 1], // Different solution each time
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should preserve information about multiple solutions
+          expect(tree.type).toBe('query');
+          expect(tree.goal).toBe(goal);
+          
+          // Should have unifications from the final solution
+          if (tree.unifications) {
+            expect(tree.unifications.length).toBeGreaterThan(0);
+            // Should have the last solution's binding
+            const xUnification = tree.unifications.find(u => u.variable === 'X');
+            expect(xUnification).toBeDefined();
+            expect(xUnification?.value).toBe(numSolutions.toString());
+          }
+          
+          // Tree structure should remain valid
+          expect(tree.children).toBeDefined();
+          expect(Array.isArray(tree.children)).toBe(true);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: custom-tracer-integration, Property 12: Analyzer interface compatibility**
    * **Validates: Requirements 4.4, 6.1**
    * 

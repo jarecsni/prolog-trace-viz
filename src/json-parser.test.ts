@@ -836,4 +836,287 @@ describe('JSON Parser Unit Tests', () => {
     expect(level1Node.goal).toBe('middle(X)');
     expect(level2Node.goal).toBe('inner(X)');
   });
+
+  it('processes redo events for backtracking', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [1, [1, 2, 3]],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [2, [1, 2, 3]],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [3, [1, 2, 3]],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('member(X,[1,2,3])');
+    
+    // Should have the final solution's unification
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('3'); // Last solution
+    }
+  });
+
+  it('processes fail events correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'impossible(X)',
+        predicate: 'impossible/1',
+      },
+      {
+        port: 'fail',
+        level: 0,
+        goal: 'impossible(X)',
+        predicate: 'impossible/1',
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('impossible(X)');
+    
+    // Should have failure child
+    expect(tree.children.some(c => c.type === 'failure')).toBe(true);
+    
+    const failureChild = tree.children.find(c => c.type === 'failure');
+    expect(failureChild?.goal).toBe('false');
+  });
+
+  it('handles multiple solutions with different bindings', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        arguments: ['first'],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        arguments: ['second'],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'fail',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('test(X)');
+    
+    // Should have the last successful solution before failure
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('second');
+    }
+    
+    // Should also have failure child since it ended with fail
+    expect(tree.children.some(c => c.type === 'failure')).toBe(true);
+  });
+
+  it('handles alternative execution paths correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'choice(X)',
+        predicate: 'choice/1',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'option1(X)',
+        predicate: 'option1/1',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'option1(X)',
+        predicate: 'option1/1',
+        arguments: ['a'],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'choice(X)',
+        predicate: 'choice/1',
+        arguments: ['a'],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'choice(X)',
+        predicate: 'choice/1',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'option2(X)',
+        predicate: 'option2/1',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'option2(X)',
+        predicate: 'option2/1',
+        arguments: ['b'],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'choice(X)',
+        predicate: 'choice/1',
+        arguments: ['b'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('choice(X)');
+    
+    // Should have the final solution
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('b'); // Last solution
+    }
+    
+    // Should have children from the alternative paths
+    expect(tree.children.length).toBeGreaterThan(0);
+  });
+
+  it('maintains tree structure during backtracking', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'parent(X)',
+        predicate: 'parent/1',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'child1(X)',
+        predicate: 'child1/1',
+      },
+      {
+        port: 'fail',
+        level: 1,
+        goal: 'child1(X)',
+        predicate: 'child1/1',
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'parent(X)',
+        predicate: 'parent/1',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'child2(X)',
+        predicate: 'child2/1',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'child2(X)',
+        predicate: 'child2/1',
+        arguments: ['success'],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'parent(X)',
+        predicate: 'parent/1',
+        arguments: ['success'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('parent(X)');
+    
+    // Should have successful unification
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('success');
+    }
+    
+    // Tree structure should be maintained
+    expect(tree.children.length).toBeGreaterThan(0);
+    
+    // Should have child nodes from successful path
+    const successfulChild = tree.children.find(c => c.goal === 'child2(X)');
+    expect(successfulChild).toBeDefined();
+  });
 });
+

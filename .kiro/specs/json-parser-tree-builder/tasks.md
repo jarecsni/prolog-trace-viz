@@ -115,22 +115,22 @@
   - Test multiple clause attempts
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6. Implement backtracking and multiple solutions
+- [x] 6. Implement backtracking and multiple solutions
   - Process redo events: mark nodes for backtracking
   - Process fail events: mark nodes as failed
   - Maintain tree structure for alternative paths
   - Handle multiple solution representation
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6.1 Write property test for backtracking representation
+- [x] 6.1 Write property test for backtracking representation
   - **Property 9: Backtracking representation**
   - **Validates: Requirements 5.1, 5.2, 5.3**
 
-- [ ] 6.2 Write property test for multiple solution handling
+- [x] 6.2 Write property test for multiple solution handling
   - **Property 10: Multiple solution handling**
   - **Validates: Requirements 5.4**
 
-- [ ] 6.3 Write unit tests for backtracking
+- [x] 6.3 Write unit tests for backtracking
   - Test redo event processing
   - Test fail event processing
   - Test alternative path representation

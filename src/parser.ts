@@ -684,27 +684,34 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
         const node = stackEntry.node;
         stackEntry.isFailed = true;
         
-        // Add failure child if no children exist
-        if (node.children.length === 0) {
-          node.children.push({
-            id: `node_${ctx.nodeIdCounter++}`,
-            type: 'failure',
-            goal: 'false',
-            children: [],
-            level: level + 1,
-          });
-        }
+        // Add failure child (but preserve any existing unifications from previous solutions)
+        node.children.push({
+          id: `node_${ctx.nodeIdCounter++}`,
+          type: 'failure',
+          goal: 'false',
+          children: [],
+          level: level + 1,
+        });
       }
       
       // Pop from stack
       callStack.pop(level);
       
     } else if (port === 'redo') {
-      // Backtracking - mark for alternative execution paths
+      // Backtracking - prepare for alternative execution
       const stackEntry = callStack.peek(level);
       if (stackEntry) {
-        // For now, just note that backtracking occurred
-        // More sophisticated handling can be added later
+        const node = stackEntry.node;
+        
+        // Store previous solution state (don't clear it yet - wait for next exit or fail)
+        // This allows us to preserve the last successful solution if we fail later
+        
+        // Remove success children to prepare for new attempt
+        node.children = node.children.filter(child => child.type !== 'success');
+        
+        // Reset completion state but keep unifications until we get a new solution or fail
+        stackEntry.isCompleted = false;
+        stackEntry.isFailed = false;
       }
     }
   }
