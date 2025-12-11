@@ -44,26 +44,26 @@
   - Test stack state management
   - _Requirements: 2.1, 2.5, 6.1_
 
-- [ ] 3. Implement tree building core algorithm
+- [x] 3. Implement tree building core algorithm
   - Process call events: create nodes, push to stack
   - Process exit events: pop nodes, extract data, build relationships
   - Handle event sequence validation
   - Create proper ExecutionNode instances with all fields
   - _Requirements: 2.2, 2.4, 7.1, 7.2, 7.3_
 
-- [ ] 3.1 Write property test for call/exit matching
+- [x] 3.1 Write property test for call/exit matching
   - **Property 4: Call/exit matching**
   - **Validates: Requirements 2.2, 2.4**
 
-- [ ] 3.2 Write property test for root node structure
+- [x] 3.2 Write property test for root node structure
   - **Property 3: Root node structure**
   - **Validates: Requirements 1.4, 7.1**
 
-- [ ] 3.3 Write property test for node type correctness
+- [x] 3.3 Write property test for node type correctness
   - **Property 13: Node type correctness**
   - **Validates: Requirements 7.2**
 
-- [ ] 3.4 Write unit tests for tree building
+- [x] 3.4 Write unit tests for tree building
   - Test call event processing
   - Test exit event processing
   - Test node creation and relationships

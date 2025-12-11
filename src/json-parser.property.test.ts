@@ -226,6 +226,168 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 4: Call/exit matching**
+   * **Validates: Requirements 2.2, 2.4**
+   * 
+   * For any call event followed by a matching exit event at the same level 
+   * and predicate, the tree builder should create a parent-child relationship.
+   */
+  it('Property 4: Call/exit matching - creates proper parent-child relationships', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('test/1', 'helper/2', 'factorial/2'),
+            level: fc.integer({ min: 0, max: 3 }),
+          }),
+          { minLength: 1, maxLength: 5 }
+        ),
+        (predicateSpecs) => {
+          // Generate balanced call/exit pairs
+          const events = [];
+          
+          // Generate calls in ascending level order
+          for (const spec of predicateSpecs.sort((a, b) => a.level - b.level)) {
+            const goalName = spec.predicate.split('/')[0];
+            events.push({
+              port: 'call' as const,
+              level: spec.level,
+              goal: `${goalName}(X)`,
+              predicate: spec.predicate,
+            });
+          }
+          
+          // Generate exits in descending level order
+          for (const spec of predicateSpecs.sort((a, b) => b.level - a.level)) {
+            const goalName = spec.predicate.split('/')[0];
+            events.push({
+              port: 'exit' as const,
+              level: spec.level,
+              goal: `${goalName}(X)`,
+              predicate: spec.predicate,
+              arguments: ['result'],
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should create proper tree structure
+          expect(tree).toHaveProperty('type');
+          expect(tree).toHaveProperty('children');
+          
+          // Verify parent-child relationships
+          function validateParentChild(node: any): void {
+            for (const child of node.children) {
+              if (child.type !== 'success' && child.type !== 'failure') {
+                // Child level should be greater than parent level
+                expect(child.level).toBeGreaterThan(node.level);
+              }
+              validateParentChild(child);
+            }
+          }
+          
+          validateParentChild(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 3: Root node structure**
+   * **Validates: Requirements 1.4, 7.1**
+   * 
+   * For any valid trace event sequence, the tree builder should return 
+   * exactly one root node with type 'query'.
+   */
+  it('Property 3: Root node structure - returns single query root', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit'),
+            level: fc.integer({ min: 0, max: 3 }),
+            goal: fc.constantFrom('test(X)', 'helper(Y)', 'factorial(N,F)'),
+            predicate: fc.constantFrom('test/1', 'helper/1', 'factorial/2'),
+            arguments: fc.option(fc.array(fc.string()), { nil: undefined }),
+          }),
+          { minLength: 0, maxLength: 10 }
+        ),
+        (events) => {
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should always return exactly one root node
+          expect(tree).toHaveProperty('id');
+          expect(tree).toHaveProperty('type');
+          expect(tree.type).toBe('query');
+          expect(tree).toHaveProperty('children');
+          expect(Array.isArray(tree.children)).toBe(true);
+          expect(tree).toHaveProperty('level');
+          expect(typeof tree.level).toBe('number');
+          expect(tree.level).toBeGreaterThanOrEqual(0);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 13: Node type correctness**
+   * **Validates: Requirements 7.2**
+   * 
+   * For any trace event, the resulting ExecutionNode should have the 
+   * appropriate type based on the event sequence (goal, success, failure).
+   */
+  it('Property 13: Node type correctness - assigns correct node types', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit', 'fail'),
+            level: fc.integer({ min: 0, max: 2 }),
+            goal: fc.string({ minLength: 1 }),
+            predicate: fc.string({ minLength: 3 }).filter(s => s.includes('/')),
+            arguments: fc.option(fc.array(fc.string()), { nil: undefined }),
+          }),
+          { minLength: 1, maxLength: 8 }
+        ),
+        (events) => {
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Root should always be query type
+          expect(tree.type).toBe('query');
+          
+          // Validate node types throughout tree
+          function validateNodeTypes(node: any): void {
+            expect(['query', 'goal', 'success', 'failure']).toContain(node.type);
+            
+            // Query type should only be at root
+            if (node.type === 'query') {
+              // The root level should be >= 0 (since invalid events might be filtered out)
+              expect(node.level).toBeGreaterThanOrEqual(0);
+            }
+            
+            // Success/failure nodes should be leaf nodes
+            if (node.type === 'success' || node.type === 'failure') {
+              expect(node.children).toEqual([]);
+            }
+            
+            for (const child of node.children) {
+              validateNodeTypes(child);
+            }
+          }
+          
+          validateNodeTypes(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: custom-tracer-integration, Property 6: JSON output validity**
    * **Validates: Requirements 2.6**
    * 
