@@ -330,6 +330,188 @@ describe('JSON Parser Unit Tests', () => {
     expect(tree.clauseLine).toBe(1);
   });
 
+  it('extracts complete clause information from events', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'factorial(N,F)',
+        predicate: 'factorial/2',
+        clause: {
+          head: 'factorial(N,F)',
+          body: 'N > 0, N1 is N-1, factorial(N1,F1), F is N*F1',
+          line: 5,
+        },
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'factorial(N,F)',
+        predicate: 'factorial/2',
+        arguments: [3, 6],
+        clause: {
+          head: 'factorial(N,F)',
+          body: 'N > 0, N1 is N-1, factorial(N1,F1), F is N*F1',
+          line: 5,
+        },
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should extract all clause information
+    expect(tree.clauseLine).toBe(5);
+    expect(tree.clauseNumber).toBe(5);
+  });
+
+  it('maps clause numbers correctly for visualization', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        clause: {
+          head: 'test(X)',
+          body: 'X = 1',
+          line: 10,
+        },
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        arguments: [1],
+        clause: {
+          head: 'test(X)',
+          body: 'X = 1',
+          line: 10,
+        },
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should map clause line to clause number for visualization
+    expect(tree.clauseNumber).toBe(10);
+    expect(tree.clauseLine).toBe(10);
+  });
+
+  it('handles missing clause information gracefully', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'mystery(X)',
+        predicate: 'mystery/1',
+        // No clause information provided
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'mystery(X)',
+        predicate: 'mystery/1',
+        arguments: ['result'],
+        // No clause information provided
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should handle missing clause info without errors
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('mystery(X)');
+    expect(tree.clauseLine).toBeUndefined();
+    expect(tree.clauseNumber).toBeUndefined();
+  });
+
+  it('handles partial clause information', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'partial(X)',
+        predicate: 'partial/1',
+        clause: {
+          head: 'partial(X)',
+          // Missing body and line
+        },
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'partial(X)',
+        predicate: 'partial/1',
+        arguments: ['value'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should handle partial clause info gracefully
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('partial(X)');
+    // Should not set clause info if incomplete
+    expect(tree.clauseLine).toBeUndefined();
+    expect(tree.clauseNumber).toBeUndefined();
+  });
+
+  it('tracks multiple clause attempts correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'multi(X)',
+        predicate: 'multi/1',
+        clause: {
+          head: 'multi(X)',
+          body: 'X = 1',
+          line: 1,
+        },
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'multi(X)',
+        predicate: 'multi/1',
+        arguments: [1],
+        clause: {
+          head: 'multi(X)',
+          body: 'X = 1',
+          line: 1,
+        },
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'multi(X)',
+        predicate: 'multi/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'multi(X)',
+        predicate: 'multi/1',
+        arguments: [2],
+        clause: {
+          head: 'multi(X)',
+          body: 'X = 2',
+          line: 2,
+        },
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should track clause attempts (implementation may vary)
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('multi(X)');
+    // Should have some clause information
+    expect(tree.clauseLine).toBeDefined();
+    expect(tree.clauseNumber).toBeDefined();
+  });
+
   it('handles empty event array', () => {
     const json = JSON.stringify([]);
     

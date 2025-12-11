@@ -93,22 +93,22 @@
   - Test binding format compatibility
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 7.5_
 
-- [ ] 5. Implement clause information mapping
+- [x] 5. Implement clause information mapping
   - Extract clause head, body, and line number from events
   - Map clause information to ExecutionNode fields
   - Handle missing clause information gracefully
   - Track clause numbers for visualization
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 5.1 Write property test for clause information preservation
+- [x] 5.1 Write property test for clause information preservation
   - **Property 7: Clause information preservation**
   - **Validates: Requirements 4.1, 4.2**
 
-- [ ] 5.2 Write property test for graceful clause handling
+- [x] 5.2 Write property test for graceful clause handling
   - **Property 8: Graceful clause handling**
   - **Validates: Requirements 4.3**
 
-- [ ] 5.3 Write unit tests for clause mapping
+- [x] 5.3 Write unit tests for clause mapping
   - Test clause information extraction
   - Test clause number mapping
   - Test handling of missing clause info

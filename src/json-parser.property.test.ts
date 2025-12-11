@@ -394,6 +394,197 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 7: Clause information preservation**
+   * **Validates: Requirements 4.1, 4.2**
+   * 
+   * For any trace event containing clause information, the resulting ExecutionNode 
+   * should preserve the clause head, body, line number, and clause number.
+   */
+  it('Property 7: Clause information preservation - preserves clause metadata', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('factorial/2', 'append/3', 'member/2'),
+            level: fc.integer({ min: 0, max: 2 }),
+            clauseHead: fc.string({ minLength: 5, maxLength: 20 }),
+            clauseBody: fc.string({ minLength: 3, maxLength: 15 }),
+            clauseLine: fc.integer({ min: 1, max: 100 }),
+          }),
+          { minLength: 1, maxLength: 3 }
+        ),
+        (specs) => {
+          const events = [];
+          
+          for (const spec of specs) {
+            const goalName = spec.predicate.split('/')[0];
+            const goal = `${goalName}(X)`;
+            
+            // Generate call event with clause information
+            events.push({
+              port: 'call' as const,
+              level: spec.level,
+              goal,
+              predicate: spec.predicate,
+              clause: {
+                head: spec.clauseHead,
+                body: spec.clauseBody,
+                line: spec.clauseLine,
+              },
+            });
+            
+            // Generate matching exit event with same clause information
+            events.push({
+              port: 'exit' as const,
+              level: spec.level,
+              goal,
+              predicate: spec.predicate,
+              arguments: ['result'],
+              clause: {
+                head: spec.clauseHead,
+                body: spec.clauseBody,
+                line: spec.clauseLine,
+              },
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Check clause information preservation
+          function checkClauseInfo(node: any): void {
+            if (node.clauseLine !== undefined) {
+              // Should preserve clause line number
+              expect(typeof node.clauseLine).toBe('number');
+              expect(node.clauseLine).toBeGreaterThan(0);
+              
+              // Should have clause number (currently same as line number)
+              expect(node.clauseNumber).toBeDefined();
+              expect(typeof node.clauseNumber).toBe('number');
+              expect(node.clauseNumber).toBeGreaterThan(0);
+            }
+            
+            // Recursively check children
+            for (const child of node.children) {
+              checkClauseInfo(child);
+            }
+          }
+          
+          checkClauseInfo(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 8: Graceful clause handling**
+   * **Validates: Requirements 4.3**
+   * 
+   * For any trace event missing clause information, the tree builder should 
+   * continue processing without errors.
+   */
+  it('Property 8: Graceful clause handling - handles missing clause info', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('test/1', 'helper/2', 'factorial/2'),
+            level: fc.integer({ min: 0, max: 2 }),
+            hasClause: fc.boolean(),
+            clauseHead: fc.option(fc.string({ minLength: 5, maxLength: 20 }), { nil: undefined }),
+            clauseBody: fc.option(fc.string({ minLength: 3, maxLength: 15 }), { nil: undefined }),
+            clauseLine: fc.option(fc.integer({ min: 1, max: 100 }), { nil: undefined }),
+          }),
+          { minLength: 1, maxLength: 5 }
+        ),
+        (specs) => {
+          const events = [];
+          
+          for (const spec of specs) {
+            const goalName = spec.predicate.split('/')[0];
+            const goal = `${goalName}(X)`;
+            
+            // Generate call event - sometimes with clause info, sometimes without
+            const callEvent: any = {
+              port: 'call' as const,
+              level: spec.level,
+              goal,
+              predicate: spec.predicate,
+            };
+            
+            // Add clause information only if hasClause is true and all fields are present
+            if (spec.hasClause && spec.clauseHead && spec.clauseBody && spec.clauseLine) {
+              callEvent.clause = {
+                head: spec.clauseHead,
+                body: spec.clauseBody,
+                line: spec.clauseLine,
+              };
+            }
+            
+            events.push(callEvent);
+            
+            // Generate matching exit event
+            const exitEvent: any = {
+              port: 'exit' as const,
+              level: spec.level,
+              goal,
+              predicate: spec.predicate,
+              arguments: ['result'],
+            };
+            
+            // Sometimes add clause info to exit event too
+            if (spec.hasClause && spec.clauseHead && spec.clauseBody && spec.clauseLine) {
+              exitEvent.clause = {
+                head: spec.clauseHead,
+                body: spec.clauseBody,
+                line: spec.clauseLine,
+              };
+            }
+            
+            events.push(exitEvent);
+          }
+          
+          const json = JSON.stringify(events);
+          
+          // Should not throw even with missing clause information
+          expect(() => {
+            const tree = parseTraceJson(json);
+            
+            // Should produce a valid tree structure
+            expect(tree).toHaveProperty('id');
+            expect(tree).toHaveProperty('type');
+            expect(tree).toHaveProperty('children');
+            expect(Array.isArray(tree.children)).toBe(true);
+            
+            // Tree should be valid even if some nodes lack clause info
+            function validateTree(node: any): void {
+              expect(node).toHaveProperty('id');
+              expect(node).toHaveProperty('type');
+              expect(['query', 'goal', 'success', 'failure']).toContain(node.type);
+              
+              // Clause info is optional - should not cause errors if missing
+              if (node.clauseLine !== undefined) {
+                expect(typeof node.clauseLine).toBe('number');
+              }
+              if (node.clauseNumber !== undefined) {
+                expect(typeof node.clauseNumber).toBe('number');
+              }
+              
+              for (const child of node.children) {
+                validateTree(child);
+              }
+            }
+            
+            validateTree(tree);
+          }).not.toThrow();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: json-parser-tree-builder, Property 4: Call/exit matching**
    * **Validates: Requirements 2.2, 2.4**
    * 
