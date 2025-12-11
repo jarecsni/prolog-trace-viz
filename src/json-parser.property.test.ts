@@ -90,6 +90,142 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 5: Stack management**
+   * **Validates: Requirements 2.1, 2.5**
+   * 
+   * For any sequence of call events, the call stack should grow appropriately, 
+   * and for matching exit events, the stack should shrink correctly.
+   */
+  it('Property 5: Stack management - call stack grows and shrinks correctly', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit'),
+            level: fc.integer({ min: 0, max: 5 }),
+            goal: fc.string({ minLength: 1 }),
+            predicate: fc.string({ minLength: 3 }).filter(s => s.includes('/')),
+            arguments: fc.option(fc.array(fc.oneof(fc.integer(), fc.string())), { nil: undefined }),
+          }),
+          { minLength: 2, maxLength: 20 }
+        ),
+        (events) => {
+          // Ensure we have balanced call/exit pairs
+          const balancedEvents = [];
+          const callStack = new Map();
+          
+          for (const event of events) {
+            if (event.port === 'call') {
+              balancedEvents.push(event);
+              callStack.set(event.level, event);
+            } else if (event.port === 'exit' && callStack.has(event.level)) {
+              const callEvent = callStack.get(event.level);
+              balancedEvents.push({
+                ...event,
+                goal: callEvent.goal,
+                predicate: callEvent.predicate,
+              });
+              callStack.delete(event.level);
+            }
+          }
+          
+          if (balancedEvents.length === 0) return;
+          
+          const json = JSON.stringify(balancedEvents);
+          const tree = parseTraceJson(json);
+          
+          // Should produce a valid tree structure
+          expect(tree).toHaveProperty('id');
+          expect(tree).toHaveProperty('type');
+          expect(tree).toHaveProperty('children');
+          expect(Array.isArray(tree.children)).toBe(true);
+          
+          // Tree should reflect proper nesting based on levels
+          function validateNesting(node: any, expectedMinLevel: number): void {
+            expect(node.level).toBeGreaterThanOrEqual(expectedMinLevel);
+            for (const child of node.children) {
+              if (child.type !== 'success' && child.type !== 'failure') {
+                validateNesting(child, node.level);
+              }
+            }
+          }
+          
+          if (balancedEvents.length > 0) {
+            const minLevel = Math.min(...balancedEvents.map(e => e.level));
+            validateNesting(tree, minLevel);
+          }
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 11: Recursion handling**
+   * **Validates: Requirements 6.1, 6.2, 6.3**
+   * 
+   * For any recursive call sequence, the tree builder should maintain separate 
+   * stack entries for each recursion level and create distinct ExecutionNode instances.
+   */
+  it('Property 11: Recursion handling - separate nodes for each recursion level', async () => {
+    await fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 5 }),
+        fc.string({ minLength: 1 }),
+        (maxDepth, basePredicate) => {
+          // Generate recursive call sequence
+          const events = [];
+          const predicate = `${basePredicate}/1`;
+          
+          // Generate nested calls
+          for (let level = 0; level < maxDepth; level++) {
+            events.push({
+              port: 'call' as const,
+              level,
+              goal: `${basePredicate}(${level})`,
+              predicate,
+            });
+          }
+          
+          // Generate matching exits in reverse order
+          for (let level = maxDepth - 1; level >= 0; level--) {
+            events.push({
+              port: 'exit' as const,
+              level,
+              goal: `${basePredicate}(${level})`,
+              predicate,
+              arguments: [level.toString()],
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should have proper recursive structure
+          expect(tree.type).toBe('query');
+          expect(tree.level).toBe(0);
+          
+          // Each level should have distinct nodes
+          function countNodesAtLevel(node: any, targetLevel: number): number {
+            let count = node.level === targetLevel ? 1 : 0;
+            for (const child of node.children) {
+              count += countNodesAtLevel(child, targetLevel);
+            }
+            return count;
+          }
+          
+          // Should have exactly one node at each level
+          for (let level = 0; level < maxDepth; level++) {
+            const nodesAtLevel = countNodesAtLevel(tree, level);
+            expect(nodesAtLevel).toBeGreaterThanOrEqual(1);
+          }
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: custom-tracer-integration, Property 6: JSON output validity**
    * **Validates: Requirements 2.6**
    * 

@@ -345,4 +345,166 @@ describe('JSON Parser Unit Tests', () => {
     expect(tree.goal).toBe('member(X,[1,2,3])');
     // Should handle redo events (for now just noting them)
   });
+
+  it('handles call stack push/pop operations correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: '3>0',
+        predicate: '>/2',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: '3>0',
+        predicate: '>/2',
+        arguments: [3, 0],
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'factorial(2,F1)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'factorial(2,F1)',
+        predicate: 'factorial/2',
+        arguments: [2, 2],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+        arguments: [3, 6],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.level).toBe(0);
+    expect(tree.children.length).toBeGreaterThan(0);
+    
+    // Should have proper nesting - level 1 goals as children
+    const level1Children = tree.children.filter(c => c.level === 1);
+    expect(level1Children.length).toBeGreaterThan(0);
+  });
+
+  it('handles level-based indexing correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 5, // Start at level 5
+        goal: 'test(A)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'call',
+        level: 6,
+        goal: 'helper(A)',
+        predicate: 'helper/1',
+      },
+      {
+        port: 'exit',
+        level: 6,
+        goal: 'helper(A)',
+        predicate: 'helper/1',
+        arguments: ['value'],
+      },
+      {
+        port: 'exit',
+        level: 5,
+        goal: 'test(A)',
+        predicate: 'test/1',
+        arguments: ['value'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.level).toBe(5); // Root should be at minimum level
+    expect(tree.children.length).toBeGreaterThan(0);
+    
+    // Should have level 6 child
+    const level6Child = tree.children.find(c => c.level === 6);
+    expect(level6Child).toBeDefined();
+  });
+
+  it('handles nested call state management', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'outer(X)',
+        predicate: 'outer/1',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'middle(X)',
+        predicate: 'middle/1',
+      },
+      {
+        port: 'call',
+        level: 2,
+        goal: 'inner(X)',
+        predicate: 'inner/1',
+      },
+      {
+        port: 'exit',
+        level: 2,
+        goal: 'inner(X)',
+        predicate: 'inner/1',
+        arguments: ['result'],
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'middle(X)',
+        predicate: 'middle/1',
+        arguments: ['result'],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'outer(X)',
+        predicate: 'outer/1',
+        arguments: ['result'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.level).toBe(0);
+    
+    // Should have proper nesting structure
+    function findNodeAtLevel(node: any, targetLevel: number): any {
+      if (node.level === targetLevel) return node;
+      for (const child of node.children) {
+        const found = findNodeAtLevel(child, targetLevel);
+        if (found) return found;
+      }
+      return null;
+    }
+    
+    const level1Node = findNodeAtLevel(tree, 1);
+    const level2Node = findNodeAtLevel(tree, 2);
+    
+    expect(level1Node).toBeDefined();
+    expect(level2Node).toBeDefined();
+    expect(level1Node.goal).toBe('middle(X)');
+    expect(level2Node.goal).toBe('inner(X)');
+  });
 });

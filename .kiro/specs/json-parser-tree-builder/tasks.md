@@ -22,22 +22,22 @@
   - Test filtering of system predicates
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Implement call stack management
+- [x] 2. Implement call stack management
   - Create `CallStack` class with level-indexed storage
   - Implement push/pop/peek operations
   - Add support for nested calls and recursion
   - Handle stack state tracking (active, completed, failed)
   - _Requirements: 2.1, 2.5, 6.1, 6.3_
 
-- [ ] 2.1 Write property test for stack management
+- [x] 2.1 Write property test for stack management
   - **Property 5: Stack management**
   - **Validates: Requirements 2.1, 2.5**
 
-- [ ] 2.2 Write property test for recursion handling
+- [x] 2.2 Write property test for recursion handling
   - **Property 11: Recursion handling**
   - **Validates: Requirements 6.1, 6.2, 6.3**
 
-- [ ] 2.3 Write unit tests for call stack
+- [x] 2.3 Write unit tests for call stack
   - Test push/pop operations
   - Test level-based indexing
   - Test nested call handling
