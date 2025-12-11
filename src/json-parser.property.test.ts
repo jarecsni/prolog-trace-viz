@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { parseTraceJson, TraceEvent } from './parser.js';
+import { analyzeTree } from './analyzer.js';
 
 describe('JSON Parser Property Tests', () => {
   /**
@@ -1091,6 +1092,186 @@ describe('JSON Parser Property Tests', () => {
         }
       ),
       { numRuns: 20 } // Reduce runs for performance since we're testing deep recursion
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 14: Interface compliance**
+   * **Validates: Requirements 7.3**
+   * 
+   * For any generated ExecutionNode tree, all nodes should conform to the 
+   * ExecutionNode interface with required fields populated correctly.
+   */
+  it('Property 14: Interface compliance - ExecutionNode conforms to interface', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit', 'fail'),
+            level: fc.integer({ min: 0, max: 3 }),
+            goal: fc.constantFrom('test(X)', 'factorial(N,F)', 'append(L1,L2,L3)'),
+            predicate: fc.constantFrom('test/1', 'factorial/2', 'append/3'),
+            arguments: fc.option(fc.array(fc.oneof(fc.integer(), fc.string())), { nil: undefined }),
+            clause: fc.option(
+              fc.record({
+                head: fc.string({ minLength: 3 }),
+                body: fc.string({ minLength: 1 }),
+                line: fc.integer({ min: 1, max: 50 }),
+              }),
+              { nil: undefined }
+            ),
+          }),
+          { minLength: 2, maxLength: 10 }
+        ),
+        (events) => {
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Verify ExecutionNode interface compliance
+          function validateExecutionNode(node: any): void {
+            // Required fields
+            expect(node).toHaveProperty('id');
+            expect(typeof node.id).toBe('string');
+            expect(node.id.length).toBeGreaterThan(0);
+            
+            expect(node).toHaveProperty('type');
+            expect(['query', 'goal', 'success', 'failure']).toContain(node.type);
+            
+            expect(node).toHaveProperty('goal');
+            expect(typeof node.goal).toBe('string');
+            
+            expect(node).toHaveProperty('children');
+            expect(Array.isArray(node.children)).toBe(true);
+            
+            expect(node).toHaveProperty('level');
+            expect(typeof node.level).toBe('number');
+            expect(node.level).toBeGreaterThanOrEqual(0);
+            
+            // Optional fields should have correct types when present
+            if (node.binding !== undefined) {
+              expect(typeof node.binding).toBe('string');
+            }
+            
+            if (node.unifications !== undefined) {
+              expect(Array.isArray(node.unifications)).toBe(true);
+              for (const unification of node.unifications) {
+                expect(unification).toHaveProperty('variable');
+                expect(unification).toHaveProperty('value');
+                expect(typeof unification.variable).toBe('string');
+                expect(typeof unification.value).toBe('string');
+              }
+            }
+            
+            if (node.clauseNumber !== undefined) {
+              expect(typeof node.clauseNumber).toBe('number');
+              expect(node.clauseNumber).toBeGreaterThan(0);
+            }
+            
+            if (node.clauseLine !== undefined) {
+              expect(typeof node.clauseLine).toBe('number');
+              expect(node.clauseLine).toBeGreaterThan(0);
+            }
+            
+            if (node.subgoals !== undefined) {
+              expect(Array.isArray(node.subgoals)).toBe(true);
+              for (const subgoal of node.subgoals) {
+                expect(typeof subgoal).toBe('string');
+              }
+            }
+            
+            if (node.arguments !== undefined) {
+              expect(Array.isArray(node.arguments)).toBe(true);
+            }
+            
+            // Recursively validate children
+            for (const child of node.children) {
+              validateExecutionNode(child);
+            }
+          }
+          
+          validateExecutionNode(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 15: Analyzer compatibility**
+   * **Validates: Requirements 7.4**
+   * 
+   * For any generated ExecutionNode tree, the existing analyzer should process 
+   * it without errors and generate valid visualizations.
+   */
+  it('Property 15: Analyzer compatibility - analyzer processes tree without errors', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit'),
+            level: fc.integer({ min: 0, max: 2 }),
+            goal: fc.constantFrom('factorial(3,F)', 'append([1],[2],L)', 'member(X,[1,2,3])'),
+            predicate: fc.constantFrom('factorial/2', 'append/3', 'member/2'),
+            arguments: fc.option(
+              fc.array(fc.oneof(fc.integer({ min: 0, max: 10 }), fc.string({ minLength: 1, maxLength: 5 }))),
+              { nil: undefined }
+            ),
+          }),
+          { minLength: 2, maxLength: 8 }
+        ),
+        (events) => {
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Use imported analyzeTree function
+          
+          // Should not throw when processing the tree
+          expect(() => {
+            const analysis = analyzeTree(tree, [], { detailLevel: 'standard' });
+            
+            // Should produce valid analysis result
+            expect(analysis).toHaveProperty('nodes');
+            expect(Array.isArray(analysis.nodes)).toBe(true);
+            
+            expect(analysis).toHaveProperty('edges');
+            expect(Array.isArray(analysis.edges)).toBe(true);
+            
+            expect(analysis).toHaveProperty('pendingGoals');
+            expect(analysis.pendingGoals instanceof Map).toBe(true);
+            
+            expect(analysis).toHaveProperty('executionOrder');
+            expect(Array.isArray(analysis.executionOrder)).toBe(true);
+            
+            expect(analysis).toHaveProperty('clausesUsed');
+            expect(Array.isArray(analysis.clausesUsed)).toBe(true);
+            
+            expect(analysis).toHaveProperty('executionSteps');
+            expect(Array.isArray(analysis.executionSteps)).toBe(true);
+            
+            // All nodes should have valid structure
+            for (const node of analysis.nodes) {
+              expect(node).toHaveProperty('id');
+              expect(node).toHaveProperty('type');
+              expect(node).toHaveProperty('label');
+              expect(node).toHaveProperty('emoji');
+              expect(node).toHaveProperty('level');
+              expect(typeof node.level).toBe('number');
+            }
+            
+            // All edges should have valid structure
+            for (const edge of analysis.edges) {
+              expect(edge).toHaveProperty('id');
+              expect(edge).toHaveProperty('from');
+              expect(edge).toHaveProperty('to');
+              expect(edge).toHaveProperty('type');
+              expect(edge).toHaveProperty('label');
+              expect(edge).toHaveProperty('stepNumber');
+            }
+            
+          }).not.toThrow();
+        }
+      ),
+      { numRuns: 50 } // Reduce runs since this involves more complex processing
     );
   });
 

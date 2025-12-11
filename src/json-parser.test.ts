@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { parseTraceJson } from './parser.js';
+import { analyzeTree } from './analyzer.js';
+import { generateMermaid } from './mermaid.js';
+import { renderMarkdown } from './renderer.js';
 
 describe('JSON Parser Unit Tests', () => {
   it('parses valid trace events', () => {
@@ -1291,6 +1294,130 @@ describe('JSON Parser Unit Tests', () => {
       expect(tree.type).toBe('query');
       expect(tree.level).toBe(0);
     }).not.toThrow();
+  });
+
+  it('integrates with analyzer for tree processing', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'factorial(2,F1)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'factorial(2,F1)',
+        predicate: 'factorial/2',
+        arguments: [2, 2],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+        arguments: [3, 6],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Use imported analyzeTree function
+    
+    // Should process tree without errors
+    const analysis = analyzeTree(tree, [], { detailLevel: 'standard' });
+    
+    // Should produce valid analysis
+    expect(analysis.nodes.length).toBeGreaterThan(0);
+    expect(analysis.executionOrder.length).toBeGreaterThan(0);
+    
+    // Should have query node
+    const queryNode = analysis.nodes.find(n => n.type === 'query');
+    expect(queryNode).toBeDefined();
+    expect(queryNode?.label).toContain('factorial');
+  });
+
+  it('integrates with analyzer for visualization generation', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'append([1],[2],L)',
+        predicate: 'append/3',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'append([1],[2],L)',
+        predicate: 'append/3',
+        arguments: [[1], [2], [1, 2]],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Use imported functions
+    
+    // Should process through full pipeline
+    const analysis = analyzeTree(tree, [], { detailLevel: 'standard' });
+    const mermaid = generateMermaid(analysis);
+    
+    // Should generate valid Mermaid diagram
+    expect(typeof mermaid).toBe('string');
+    expect(mermaid).toContain('graph TD');
+    expect(mermaid).toContain('append');
+  });
+
+  it('handles end-to-end pipeline integration', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [1, [1, 2, 3]],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [2, [1, 2, 3]],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Use imported functions
+    
+    // Should process through complete pipeline
+    const analysis = analyzeTree(tree, [], { detailLevel: 'standard' });
+    const mermaid = generateMermaid(analysis);
+    const markdown = renderMarkdown(analysis, mermaid, 'member(X,[1,2,3])');
+    
+    // Should generate complete markdown output
+    expect(typeof markdown).toBe('string');
+    expect(markdown).toContain('# Prolog Execution Tree');
+    expect(markdown).toContain('```mermaid');
+    expect(markdown).toContain('## Final Answer');
   });
 });
 
