@@ -1419,5 +1419,252 @@ describe('JSON Parser Unit Tests', () => {
     expect(markdown).toContain('```mermaid');
     expect(markdown).toContain('## Final Answer');
   });
+
+  it('handles unmatched exit events gracefully', () => {
+    const json = JSON.stringify([
+      // Missing call event for this exit
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'orphan(X)',
+        predicate: 'orphan/1',
+        arguments: ['value'],
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'normal(Y)',
+        predicate: 'normal/1',
+      },
+      {
+        port: 'exit',
+        level: 1,
+        goal: 'normal(Y)',
+        predicate: 'normal/1',
+        arguments: ['result'],
+      },
+    ]);
+    
+    // Should not throw despite unmatched exit event
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.children.length).toBeGreaterThan(0);
+    
+    // Should have created placeholder node for orphaned exit
+    const orphanNode = tree.children.find(c => c.goal.includes('orphan'));
+    expect(orphanNode).toBeDefined();
+    expect(orphanNode?.goal).toContain('recovered');
+    
+    // Should have extracted unifications from orphaned exit
+    expect(orphanNode?.unifications).toBeDefined();
+    if (orphanNode?.unifications) {
+      const xUnification = orphanNode.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('value');
+    }
+  });
+
+  it('handles stack underflow conditions', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'parent(X)',
+        predicate: 'parent/1',
+      },
+      // Missing intermediate calls
+      {
+        port: 'exit',
+        level: 2, // Much deeper level without matching call
+        goal: 'deep_child(X)',
+        predicate: 'deep_child/1',
+        arguments: ['deep_value'],
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'parent(X)',
+        predicate: 'parent/1',
+        arguments: ['parent_value'],
+      },
+    ]);
+    
+    // Should handle stack underflow gracefully
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('parent(X)');
+    
+    // Should have created placeholder for deep child
+    const deepChild = tree.children.find(c => c.goal.includes('deep_child'));
+    expect(deepChild).toBeDefined();
+    expect(deepChild?.goal).toContain('recovered');
+  });
+
+  it('handles missing call events with placeholder creation', () => {
+    const json = JSON.stringify([
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'missing_call(A,B)',
+        predicate: 'missing_call/2',
+        arguments: ['arg1', 'arg2'],
+      },
+      {
+        port: 'fail',
+        level: 1,
+        goal: 'failed_without_call(C)',
+        predicate: 'failed_without_call/1',
+      },
+    ]);
+    
+    // Should create placeholder nodes for missing calls
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.children.length).toBe(2);
+    
+    // Should have placeholder for successful exit
+    const successPlaceholder = tree.children.find(c => c.goal.includes('missing_call'));
+    expect(successPlaceholder).toBeDefined();
+    expect(successPlaceholder?.goal).toContain('recovered');
+    expect(successPlaceholder?.children.some(c => c.type === 'success')).toBe(true);
+    
+    // Should have placeholder for failed goal
+    const failurePlaceholder = tree.children.find(c => c.goal.includes('failed_without_call'));
+    expect(failurePlaceholder).toBeDefined();
+    expect(failurePlaceholder?.goal).toContain('recovered');
+    expect(failurePlaceholder?.children.some(c => c.type === 'failure')).toBe(true);
+  });
+
+  it('handles unmatched redo events', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'redo',
+        level: 1, // No matching call at this level
+        goal: 'orphan_redo(Y)',
+        predicate: 'orphan_redo/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        arguments: ['result'],
+      },
+    ]);
+    
+    // Should handle unmatched redo gracefully (just log warning)
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('test(X)');
+    expect(tree.unifications).toBeDefined();
+  });
+
+  it('provides detailed error logging', () => {
+    // Capture console output
+    const originalWarn = console.warn;
+    const warnings: string[] = [];
+    console.warn = (...args: any[]) => {
+      warnings.push(args.join(' '));
+    };
+    
+    const json = JSON.stringify([
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'unmatched_exit(X)',
+        predicate: 'unmatched_exit/1',
+        arguments: ['value'],
+      },
+      {
+        port: 'redo',
+        level: 1,
+        goal: 'unmatched_redo(Y)',
+        predicate: 'unmatched_redo/1',
+      },
+      {
+        port: 'fail',
+        level: 2,
+        goal: 'unmatched_fail(Z)',
+        predicate: 'unmatched_fail/1',
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Restore console
+    console.warn = originalWarn;
+    
+    // Should have logged warnings for unmatched events
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings.some(w => w.includes('Unmatched exit event'))).toBe(true);
+    expect(warnings.some(w => w.includes('Unmatched redo event'))).toBe(true);
+    expect(warnings.some(w => w.includes('Unmatched fail event'))).toBe(true);
+    
+    // Should still produce valid tree
+    expect(tree.type).toBe('query');
+    expect(tree.children.length).toBeGreaterThan(0);
+  });
+
+  it('recovers from complex error scenarios', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'complex(X)',
+        predicate: 'complex/1',
+      },
+      // Orphaned exit at wrong level
+      {
+        port: 'exit',
+        level: 5,
+        goal: 'deep_orphan(Y)',
+        predicate: 'deep_orphan/1',
+        arguments: ['deep_result'],
+      },
+      // Orphaned fail
+      {
+        port: 'fail',
+        level: 3,
+        goal: 'failed_orphan(Z)',
+        predicate: 'failed_orphan/1',
+      },
+      // Normal completion
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'complex(X)',
+        predicate: 'complex/1',
+        arguments: ['final_result'],
+      },
+    ]);
+    
+    // Should recover from multiple error conditions
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('complex(X)');
+    
+    // Should have main result
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('final_result');
+    }
+    
+    // Should have created placeholders for orphaned events
+    expect(tree.children.length).toBeGreaterThan(1); // Main success + placeholders
+    
+    const orphanedNodes = tree.children.filter(c => c.goal.includes('recovered'));
+    expect(orphanedNodes.length).toBe(2); // deep_orphan and failed_orphan
+  });
 });
 

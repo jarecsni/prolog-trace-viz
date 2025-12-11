@@ -595,12 +595,16 @@ class CallStack {
 
 /**
  * Builds an execution tree from trace events using the 4-port model.
- * Optimised for deep recursion with efficient memory usage.
+ * Optimised for deep recursion with efficient memory usage and comprehensive error handling.
  */
 function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   const ctx: ParseContext = { nodeIdCounter: 0 };
   const callStack = new CallStack();
   let root: ExecutionNode | null = null;
+  
+  // Error tracking for debugging
+  const errors: string[] = [];
+  const warnings: string[] = [];
   
   // Find the minimum level to determine the root level
   const minLevel = events.length > 0 ? Math.min(...events.map(e => e.level)) : 0;
@@ -682,6 +686,56 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
             level: level + 1,
           });
         }
+      } else {
+        // Handle unmatched exit event - create placeholder node
+        warnings.push(`Unmatched exit event at level ${level} for goal: ${goal}`);
+        
+        // Create placeholder node for missing call
+        const placeholderNode: ExecutionNode = {
+          id: `node_${ctx.nodeIdCounter++}`,
+          type: 'goal',
+          goal: goal + ' (recovered)',
+          children: [],
+          level,
+        };
+        
+        // Add arguments and unifications if present
+        if (args && args.length > 0) {
+          placeholderNode.arguments = args;
+          // Try to extract unifications even without matching call
+          const simpleUnifications = extractSimpleUnifications(goal, args);
+          if (simpleUnifications.length > 0) {
+            placeholderNode.unifications = simpleUnifications;
+            placeholderNode.binding = simpleUnifications.map(u => `${u.variable} = ${u.value}`).join(', ');
+          }
+        }
+        
+        // Add success child
+        placeholderNode.children.push({
+          id: `node_${ctx.nodeIdCounter++}`,
+          type: 'success',
+          goal: 'true',
+          children: [],
+          level: level + 1,
+        });
+        
+        // Add to parent if possible, otherwise ensure we have a root to contain it
+        const parent = callStack.getParent(level);
+        if (parent) {
+          parent.node.children.push(placeholderNode);
+        } else {
+          // Ensure we have a root node to contain placeholders
+          if (!root) {
+            root = {
+              id: `node_${ctx.nodeIdCounter++}`,
+              type: 'query',
+              goal: '',
+              children: [],
+              level: minLevel,
+            };
+          }
+          root.children.push(placeholderNode);
+        }
       }
       
     } else if (port === 'fail') {
@@ -699,10 +753,46 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
           children: [],
           level: level + 1,
         });
+        
+        // Pop from stack
+        callStack.pop(level);
+      } else {
+        // Handle unmatched fail event
+        warnings.push(`Unmatched fail event at level ${level} for goal: ${goal}`);
+        
+        // Create placeholder node for missing call
+        const placeholderNode: ExecutionNode = {
+          id: `node_${ctx.nodeIdCounter++}`,
+          type: 'goal',
+          goal: goal + ' (recovered)',
+          children: [{
+            id: `node_${ctx.nodeIdCounter++}`,
+            type: 'failure',
+            goal: 'false',
+            children: [],
+            level: level + 1,
+          }],
+          level,
+        };
+        
+        // Add to parent if possible, otherwise ensure we have a root to contain it
+        const parent = callStack.getParent(level);
+        if (parent) {
+          parent.node.children.push(placeholderNode);
+        } else {
+          // Ensure we have a root node to contain placeholders
+          if (!root) {
+            root = {
+              id: `node_${ctx.nodeIdCounter++}`,
+              type: 'query',
+              goal: '',
+              children: [],
+              level: minLevel,
+            };
+          }
+          root.children.push(placeholderNode);
+        }
       }
-      
-      // Pop from stack
-      callStack.pop(level);
       
     } else if (port === 'redo') {
       // Backtracking - prepare for alternative execution
@@ -719,8 +809,20 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
         // Reset completion state but keep unifications until we get a new solution or fail
         stackEntry.isCompleted = false;
         stackEntry.isFailed = false;
+      } else {
+        // Handle unmatched redo event
+        warnings.push(`Unmatched redo event at level ${level} for goal: ${goal}`);
+        // Redo events without matching calls are less critical, just log the warning
       }
     }
+  }
+  
+  // Log errors and warnings if any occurred
+  if (errors.length > 0) {
+    console.error('Parser errors encountered:', errors);
+  }
+  if (warnings.length > 0) {
+    console.warn('Parser warnings:', warnings);
   }
   
   // Return root or create empty root if none exists
@@ -820,4 +922,41 @@ function formatValue(value: any): string {
   } else {
     return String(value);
   }
+}
+
+/**
+ * Extracts simple unifications from a goal and arguments when no matching call exists.
+ * This is a fallback for error recovery scenarios.
+ */
+function extractSimpleUnifications(goal: string, args?: any[]): Unification[] {
+  const unifications: Unification[] = [];
+  
+  if (!args || args.length === 0) {
+    return unifications;
+  }
+  
+  // Parse goal to get argument positions
+  const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+  if (!goalMatch) {
+    return unifications;
+  }
+  
+  const goalArgString = goalMatch[2];
+  const goalArgs = parseArguments(goalArgString);
+  
+  // Create unifications for variables in goal arguments
+  for (let i = 0; i < Math.min(goalArgs.length, args.length); i++) {
+    const goalArg = goalArgs[i].trim();
+    const argValue = formatValue(args[i]);
+    
+    // Only create unification if goal arg looks like a variable
+    if (goalArg.match(/^[A-Z_]/)) {
+      unifications.push({
+        variable: goalArg,
+        value: argValue,
+      });
+    }
+  }
+  
+  return unifications;
 }
