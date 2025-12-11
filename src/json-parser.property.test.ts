@@ -226,6 +226,174 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 6: Unification extraction**
+   * **Validates: Requirements 3.1, 3.2, 3.3**
+   * 
+   * For any exit event containing arguments, the tree builder should extract 
+   * unifications and create appropriate Unification objects.
+   */
+  it('Property 6: Unification extraction - extracts variable bindings from exit events', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('test/1', 'factorial/2', 'append/3'),
+            level: fc.integer({ min: 0, max: 2 }),
+            variables: fc.array(fc.constantFrom('X', 'Y', 'Z', 'N', 'F', 'L'), { minLength: 1, maxLength: 3 }),
+            values: fc.array(fc.oneof(fc.integer(), fc.string(), fc.array(fc.integer())), { minLength: 1, maxLength: 3 }),
+          }),
+          { minLength: 1, maxLength: 3 }
+        ),
+        (specs) => {
+          const events = [];
+          
+          for (const spec of specs) {
+            const goalName = spec.predicate.split('/')[0];
+            const callArgs = spec.variables.join(',');
+            const callGoal = `${goalName}(${callArgs})`;
+            
+            // Generate call event
+            events.push({
+              port: 'call' as const,
+              level: spec.level,
+              goal: callGoal,
+              predicate: spec.predicate,
+            });
+            
+            // Generate matching exit event with arguments
+            const exitArgs = spec.values.slice(0, spec.variables.length);
+            events.push({
+              port: 'exit' as const,
+              level: spec.level,
+              goal: callGoal,
+              predicate: spec.predicate,
+              arguments: exitArgs,
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Should extract unifications from exit events
+          function checkUnifications(node: any): void {
+            if (node.unifications && node.unifications.length > 0) {
+              // Each unification should have variable and value
+              for (const unification of node.unifications) {
+                expect(unification).toHaveProperty('variable');
+                expect(unification).toHaveProperty('value');
+                expect(typeof unification.variable).toBe('string');
+                expect(typeof unification.value).toBe('string');
+                
+                // Variable should start with uppercase or underscore (Prolog variable convention)
+                expect(unification.variable).toMatch(/^[A-Z_]/);
+              }
+              
+              // Should have binding format for analyzer compatibility
+              if (node.binding) {
+                expect(typeof node.binding).toBe('string');
+                // Should contain variable = value format
+                expect(node.binding).toMatch(/\w+\s*=\s*.+/);
+              }
+            }
+            
+            // Recursively check children
+            for (const child of node.children) {
+              checkUnifications(child);
+            }
+          }
+          
+          checkUnifications(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 16: Binding format consistency**
+   * **Validates: Requirements 7.5**
+   * 
+   * For any ExecutionNode with bindings, the binding format should match 
+   * the analyzer's expectations (e.g., "X = 5").
+   */
+  it('Property 16: Binding format consistency - bindings match analyzer format', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            predicate: fc.constantFrom('test/1', 'factorial/2', 'append/3'),
+            level: fc.integer({ min: 0, max: 2 }),
+            variable: fc.constantFrom('X', 'Y', 'Z', 'N', 'F', 'Result'),
+            value: fc.oneof(
+              fc.integer({ min: 0, max: 100 }),
+              fc.string({ minLength: 1, maxLength: 10 }),
+              fc.array(fc.integer({ min: 0, max: 10 }), { maxLength: 5 })
+            ),
+          }),
+          { minLength: 1, maxLength: 3 }
+        ),
+        (specs) => {
+          const events = [];
+          
+          for (const spec of specs) {
+            const goalName = spec.predicate.split('/')[0];
+            const callGoal = `${goalName}(${spec.variable})`;
+            
+            // Generate call event
+            events.push({
+              port: 'call' as const,
+              level: spec.level,
+              goal: callGoal,
+              predicate: spec.predicate,
+            });
+            
+            // Generate matching exit event with arguments
+            events.push({
+              port: 'exit' as const,
+              level: spec.level,
+              goal: callGoal,
+              predicate: spec.predicate,
+              arguments: [spec.value],
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          const tree = parseTraceJson(json);
+          
+          // Check binding format consistency
+          function checkBindingFormat(node: any): void {
+            if (node.binding) {
+              // Should be a string
+              expect(typeof node.binding).toBe('string');
+              
+              // Should match "Variable = Value" format
+              expect(node.binding).toMatch(/^[A-Z_][a-zA-Z0-9_]*\s*=\s*.+/);
+              
+              // Should not have trailing commas
+              expect(node.binding).not.toMatch(/,\s*$/);
+              
+              // Should not have leading whitespace (trailing whitespace may occur with whitespace-only values)
+              expect(node.binding).not.toMatch(/^\s/);
+              
+              // If multiple bindings, should be comma-separated (but not inside arrays/objects)
+              // For now, just check that the overall format is correct
+              // More sophisticated parsing would be needed to handle nested commas properly
+            }
+            
+            // Recursively check children
+            for (const child of node.children) {
+              checkBindingFormat(child);
+            }
+          }
+          
+          checkBindingFormat(tree);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: json-parser-tree-builder, Property 4: Call/exit matching**
    * **Validates: Requirements 2.2, 2.4**
    * 

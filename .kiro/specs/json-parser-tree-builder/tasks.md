@@ -70,7 +70,7 @@
   - Test tree structure validation
   - _Requirements: 2.2, 2.4, 7.1, 7.2_
 
-- [ ] 4. Implement unification extraction
+- [x] 4. Implement unification extraction
   - Extract arguments from exit events
   - Compare call/exit arguments to identify bindings
   - Create Unification objects with variable names and values
@@ -78,15 +78,15 @@
   - Format bindings for analyzer compatibility ("X = value")
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 7.5_
 
-- [ ] 4.1 Write property test for unification extraction
+- [x] 4.1 Write property test for unification extraction
   - **Property 6: Unification extraction**
   - **Validates: Requirements 3.1, 3.2, 3.3**
 
-- [ ] 4.2 Write property test for binding format consistency
+- [x] 4.2 Write property test for binding format consistency
   - **Property 16: Binding format consistency**
   - **Validates: Requirements 7.5**
 
-- [ ] 4.3 Write unit tests for unification extraction
+- [x] 4.3 Write unit tests for unification extraction
   - Test argument extraction from exit events
   - Test unification object creation
   - Test handling of unbound variables

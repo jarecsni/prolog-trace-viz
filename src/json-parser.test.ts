@@ -149,6 +149,153 @@ describe('JSON Parser Unit Tests', () => {
     }
   });
 
+  it('extracts multiple unifications from complex goals', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'append(X,Y,Z)',
+        predicate: 'append/3',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'append(X,Y,Z)',
+        predicate: 'append/3',
+        arguments: [[1, 2], [3, 4], [1, 2, 3, 4]],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should have multiple unifications
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      expect(tree.unifications.length).toBe(3);
+      
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      const yUnification = tree.unifications.find(u => u.variable === 'Y');
+      const zUnification = tree.unifications.find(u => u.variable === 'Z');
+      
+      expect(xUnification?.value).toBe('[1,2]');
+      expect(yUnification?.value).toBe('[3,4]');
+      expect(zUnification?.value).toBe('[1,2,3,4]');
+    }
+  });
+
+  it('handles unbound variables correctly', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'test(X,constant)',
+        predicate: 'test/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X,constant)',
+        predicate: 'test/2',
+        arguments: ['value', 'constant'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should only create unification for the variable, not the constant
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      expect(tree.unifications.length).toBe(1);
+      
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('value');
+      
+      // Should not create unification for 'constant' since it's not a variable
+      const constantUnification = tree.unifications.find(u => u.variable === 'constant');
+      expect(constantUnification).toBeUndefined();
+    }
+  });
+
+  it('creates proper binding format for analyzer compatibility', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'factorial(N,F)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'factorial(N,F)',
+        predicate: 'factorial/2',
+        arguments: [3, 6],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should have binding in correct format
+    expect(tree.binding).toBeDefined();
+    expect(tree.binding).toBe('N = 3, F = 6');
+    
+    // Should match analyzer expected format
+    expect(tree.binding).toMatch(/^[A-Z_][a-zA-Z0-9_]*\s*=\s*.+/);
+  });
+
+  it('handles complex term values in unifications', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'complex(X)',
+        predicate: 'complex/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'complex(X)',
+        predicate: 'complex/1',
+        arguments: [{ type: 'compound', functor: 'f', args: [1, 2] }],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should handle complex terms
+    expect(tree.unifications).toBeDefined();
+    if (tree.unifications) {
+      expect(tree.unifications.length).toBe(1);
+      
+      const xUnification = tree.unifications.find(u => u.variable === 'X');
+      expect(xUnification?.value).toBe('{"type":"compound","functor":"f","args":[1,2]}');
+    }
+  });
+
+  it('handles empty arguments gracefully', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'test(X)',
+        predicate: 'test/1',
+        // No arguments provided
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    // Should handle missing arguments gracefully
+    expect(tree.unifications).toBeUndefined();
+    expect(tree.binding).toBeUndefined();
+  });
+
   it('handles clause information', () => {
     const json = JSON.stringify([
       {
