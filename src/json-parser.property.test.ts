@@ -4,6 +4,92 @@ import { parseTraceJson, TraceEvent } from './parser.js';
 
 describe('JSON Parser Property Tests', () => {
   /**
+   * **Feature: json-parser-tree-builder, Property 1: JSON parsing completeness**
+   * **Validates: Requirements 1.1, 1.2**
+   * 
+   * For any valid JSON array of trace events, the parser should successfully parse 
+   * all events into TraceEvent objects with all required fields present.
+   */
+  it('Property 1: JSON parsing completeness - parses valid events with required fields', async () => {
+    await fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            port: fc.constantFrom('call', 'exit', 'redo', 'fail'),
+            level: fc.integer({ min: 0, max: 20 }),
+            goal: fc.string({ minLength: 1 }),
+            predicate: fc.string({ minLength: 3 }).filter(s => s.includes('/')),
+            arguments: fc.option(fc.array(fc.oneof(fc.integer(), fc.string())), { nil: undefined }),
+            clause: fc.option(
+              fc.record({
+                head: fc.string({ minLength: 1 }),
+                body: fc.string({ minLength: 1 }),
+                line: fc.integer({ min: 1, max: 1000 }),
+              }),
+              { nil: undefined }
+            ),
+          }),
+          { minLength: 0, maxLength: 100 }
+        ),
+        (events) => {
+          const json = JSON.stringify(events);
+          
+          // Should parse without throwing
+          const tree = parseTraceJson(json);
+          
+          // Should produce a valid ExecutionNode
+          expect(tree).toHaveProperty('id');
+          expect(tree).toHaveProperty('type');
+          expect(tree).toHaveProperty('goal');
+          expect(tree).toHaveProperty('children');
+          expect(tree).toHaveProperty('level');
+          expect(Array.isArray(tree.children)).toBe(true);
+          expect(typeof tree.id).toBe('string');
+          expect(['query', 'goal', 'success', 'failure']).toContain(tree.type);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * **Feature: json-parser-tree-builder, Property 2: Error resilience**
+   * **Validates: Requirements 1.3**
+   * 
+   * For any malformed JSON input, the parser should handle errors gracefully 
+   * and continue processing valid events without crashing.
+   */
+  it('Property 2: Error resilience - handles malformed JSON gracefully', async () => {
+    await fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.constant('invalid json'),
+          fc.constant('{"incomplete": '),
+          fc.constant('[{"port": "call", "level": "invalid"}]'),
+          fc.constant('[{"port": "invalid_port"}]'),
+          fc.constant('[{"missing_required_fields": true}]'),
+          fc.constant('null'),
+          fc.constant('42'),
+          fc.constant('[]'),
+          fc.string()
+        ),
+        (malformedJson) => {
+          // Should not throw, even with malformed input
+          expect(() => {
+            const tree = parseTraceJson(malformedJson);
+            // Should return a valid tree structure even for bad input
+            expect(tree).toHaveProperty('id');
+            expect(tree).toHaveProperty('type');
+            expect(tree).toHaveProperty('children');
+            expect(Array.isArray(tree.children)).toBe(true);
+          }).not.toThrow();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
    * **Feature: custom-tracer-integration, Property 6: JSON output validity**
    * **Validates: Requirements 2.6**
    * 

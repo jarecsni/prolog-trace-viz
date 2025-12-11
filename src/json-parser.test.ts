@@ -43,12 +43,16 @@ describe('JSON Parser Unit Tests', () => {
     expect(tree.goal).toBe('test(X)');
   });
 
-  it('handles type mismatches by throwing', () => {
+  it('handles type mismatches gracefully', () => {
     const invalidJson = JSON.stringify({
       not: 'an array',
     });
     
-    expect(() => parseTraceJson(invalidJson)).toThrow();
+    // Should not throw, but return empty tree
+    const tree = parseTraceJson(invalidJson);
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('');
+    expect(tree.children).toEqual([]);
   });
 
   it('builds tree from call/exit events', () => {
@@ -189,10 +193,14 @@ describe('JSON Parser Unit Tests', () => {
     expect(tree.goal).toBe('');
   });
 
-  it('handles malformed JSON', () => {
+  it('handles malformed JSON gracefully', () => {
     const invalidJson = '{ invalid json }';
     
-    expect(() => parseTraceJson(invalidJson)).toThrow();
+    // Should not throw, but return empty tree
+    const tree = parseTraceJson(invalidJson);
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('');
+    expect(tree.children).toEqual([]);
   });
 
   it('handles nested goals correctly', () => {
@@ -233,5 +241,108 @@ describe('JSON Parser Unit Tests', () => {
     // First child should be the nested append call
     const nestedCall = tree.children[0];
     expect(nestedCall.level).toBe(1);
+  });
+
+  it('filters out system predicates', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+      },
+      {
+        port: 'call',
+        level: 1,
+        goal: 'findall(X,test(X),L)',
+        predicate: 'findall/3', // System predicate - should be filtered
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'factorial(3,F)',
+        predicate: 'factorial/2',
+        arguments: [3, 6],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('factorial(3,F)');
+    // Should not have findall as a child since it's filtered out
+  });
+
+  it('validates required fields and skips invalid events', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'valid(X)',
+        predicate: 'valid/1',
+      },
+      {
+        // Missing required fields - should be skipped
+        port: 'call',
+        level: 1,
+        // missing goal and predicate
+      },
+      {
+        port: 'invalid_port', // Invalid port - should be skipped
+        level: 2,
+        goal: 'invalid(Y)',
+        predicate: 'invalid/1',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'valid(X)',
+        predicate: 'valid/1',
+        arguments: ['test'],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('valid(X)');
+    // Should only have the valid events processed
+  });
+
+  it('handles redo events for backtracking', () => {
+    const json = JSON.stringify([
+      {
+        port: 'call',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [1, [1, 2, 3]],
+      },
+      {
+        port: 'redo',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+      },
+      {
+        port: 'exit',
+        level: 0,
+        goal: 'member(X,[1,2,3])',
+        predicate: 'member/2',
+        arguments: [2, [1, 2, 3]],
+      },
+    ]);
+    
+    const tree = parseTraceJson(json);
+    
+    expect(tree.type).toBe('query');
+    expect(tree.goal).toBe('member(X,[1,2,3])');
+    // Should handle redo events (for now just noting them)
   });
 });

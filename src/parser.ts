@@ -441,19 +441,156 @@ function serializeNode(node: ExecutionNode): string {
  * Parses JSON trace events from the custom tracer into an execution tree.
  */
 export function parseTraceJson(json: string): ExecutionNode {
-  let events: TraceEvent[];
+  const events = parseEvents(json);
+  return buildTreeFromEvents(events);
+}
+
+/**
+ * Parses JSON array into TraceEvent objects with validation.
+ */
+function parseEvents(json: string): TraceEvent[] {
+  let rawEvents: any[];
   
   try {
-    events = JSON.parse(json);
+    rawEvents = JSON.parse(json);
   } catch (error) {
-    throw createError(ErrorCode.PARSE_ERROR, `Invalid JSON: ${error}`);
+    console.error('JSON parsing error:', error);
+    return [];
   }
   
-  if (!Array.isArray(events)) {
-    throw createError(ErrorCode.PARSE_ERROR, 'Expected JSON array of trace events');
+  if (!Array.isArray(rawEvents)) {
+    console.error('Expected JSON array of trace events');
+    return [];
   }
   
-  return buildTreeFromEvents(events);
+  const events: TraceEvent[] = [];
+  
+  for (let i = 0; i < rawEvents.length; i++) {
+    const rawEvent = rawEvents[i];
+    
+    // Validate required fields
+    if (!rawEvent || typeof rawEvent !== 'object') {
+      console.warn(`Skipping invalid event at index ${i}: not an object`);
+      continue;
+    }
+    
+    const { port, level, goal, predicate } = rawEvent;
+    
+    if (!port || !['call', 'exit', 'redo', 'fail'].includes(port)) {
+      console.warn(`Skipping event at index ${i}: invalid port "${port}"`);
+      continue;
+    }
+    
+    if (typeof level !== 'number' || level < 0) {
+      console.warn(`Skipping event at index ${i}: invalid level "${level}"`);
+      continue;
+    }
+    
+    if (!goal || typeof goal !== 'string') {
+      console.warn(`Skipping event at index ${i}: invalid goal "${goal}"`);
+      continue;
+    }
+    
+    if (!predicate || typeof predicate !== 'string') {
+      console.warn(`Skipping event at index ${i}: invalid predicate "${predicate}"`);
+      continue;
+    }
+    
+    // Filter out system predicates if needed
+    if (isSystemPredicate(predicate)) {
+      continue;
+    }
+    
+    // Build valid event
+    const event: TraceEvent = {
+      port: port as 'call' | 'exit' | 'redo' | 'fail',
+      level,
+      goal,
+      predicate,
+    };
+    
+    // Add optional fields
+    if (rawEvent.arguments && Array.isArray(rawEvent.arguments)) {
+      event.arguments = rawEvent.arguments;
+    }
+    
+    if (rawEvent.clause && typeof rawEvent.clause === 'object') {
+      const { head, body, line } = rawEvent.clause;
+      if (head && body && typeof line === 'number') {
+        event.clause = { head, body, line };
+      }
+    }
+    
+    events.push(event);
+  }
+  
+  return events;
+}
+
+/**
+ * Checks if a predicate is a system predicate that should be filtered out.
+ */
+function isSystemPredicate(predicate: string): boolean {
+  const systemPredicates = [
+    'findall/3',
+    'trace_event/1',
+    'export_trace_json/1',
+    'open/3',
+    'close/1',
+    'write/2',
+    'format/2',
+    'format/3',
+  ];
+  
+  return systemPredicates.includes(predicate);
+}
+
+/**
+ * Stack entry for call stack management.
+ */
+interface StackEntry {
+  node: ExecutionNode;
+  callEvent: TraceEvent;
+  children: ExecutionNode[];
+  isCompleted: boolean;
+  isFailed: boolean;
+}
+
+/**
+ * Call stack manager for tracking active goals by recursion level.
+ */
+class CallStack {
+  private stack: Map<number, StackEntry> = new Map();
+  
+  push(level: number, node: ExecutionNode, event: TraceEvent): void {
+    this.stack.set(level, {
+      node,
+      callEvent: event,
+      children: [],
+      isCompleted: false,
+      isFailed: false,
+    });
+  }
+  
+  pop(level: number): StackEntry | undefined {
+    const entry = this.stack.get(level);
+    if (entry) {
+      this.stack.delete(level);
+    }
+    return entry;
+  }
+  
+  peek(level: number): StackEntry | undefined {
+    return this.stack.get(level);
+  }
+  
+  isEmpty(): boolean {
+    return this.stack.size === 0;
+  }
+  
+  getParent(level: number): StackEntry | undefined {
+    return this.stack.get(level - 1);
+  }
 }
 
 /**
@@ -461,12 +598,11 @@ export function parseTraceJson(json: string): ExecutionNode {
  */
 function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   const ctx: ParseContext = { nodeIdCounter: 0 };
-  
-  // Stack to track active goals by level
-  const stack: Map<number, ExecutionNode> = new Map();
-  
-  // Root node (query)
+  const callStack = new CallStack();
   let root: ExecutionNode | null = null;
+  
+  // Find the minimum level to determine the root level
+  const minLevel = events.length > 0 ? Math.min(...events.map(e => e.level)) : 0;
   
   for (const event of events) {
     const { port, level, goal, arguments: args, clause, predicate } = event;
@@ -475,7 +611,7 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       // Create new node for this goal
       const node: ExecutionNode = {
         id: `node_${ctx.nodeIdCounter++}`,
-        type: level === 0 ? 'query' : 'goal',
+        type: level === minLevel ? 'query' : 'goal',
         goal,
         children: [],
         level,
@@ -484,69 +620,70 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       // Extract clause information if present
       if (clause) {
         node.clauseLine = clause.line;
-        // Try to extract clause number from line (assuming clauses are numbered sequentially)
-        // This is a heuristic - we'll refine it later
-        node.clauseNumber = clause.line;
+        node.clauseNumber = clause.line; // Use line number as clause number for now
       }
       
-      // Add to parent's children
-      if (level === 0) {
+      // Set as root if this is the top-level query (minimum level)
+      if (level === minLevel) {
         root = node;
+        node.type = 'query'; // Ensure root is marked as query
       } else {
-        const parent = stack.get(level - 1);
+        // Add to parent's children
+        const parent = callStack.getParent(level);
         if (parent) {
-          parent.children.push(node);
+          parent.node.children.push(node);
         }
       }
       
-      // Push onto stack
-      stack.set(level, node);
+      // Push onto call stack
+      callStack.push(level, node, event);
       
     } else if (port === 'exit') {
-      // Goal succeeded - record arguments and unifications
-      const node = stack.get(level);
-      if (node && args && args.length > 0) {
-        node.arguments = args;
+      // Goal succeeded - extract unifications and mark as completed
+      const stackEntry = callStack.peek(level);
+      if (stackEntry) {
+        const node = stackEntry.node;
         
-        // Extract unifications from arguments
-        // Parse the goal to get variable names
-        const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
-        if (goalMatch) {
-          const argString = goalMatch[2];
-          const goalArgs = parseArguments(argString);
-          
-          // Create unifications by pairing goal args with actual values
-          const unifications: Unification[] = [];
-          for (let i = 0; i < Math.min(goalArgs.length, args.length); i++) {
-            const goalArg = goalArgs[i].trim();
-            const actualValue = formatValue(args[i]);
-            
-            // Only create unification if goal arg is a variable (starts with uppercase or _)
-            if (goalArg.match(/^[A-Z_]/)) {
-              unifications.push({
-                variable: goalArg,
-                value: actualValue,
-              });
-            }
-          }
-          
-          if (unifications.length > 0) {
-            node.unifications = unifications;
-            // Also set binding for backward compatibility
-            node.binding = unifications.map(u => `${u.variable}=${u.value}`).join(', ');
-          }
+        // Store arguments from exit event
+        if (args && args.length > 0) {
+          node.arguments = args;
         }
-      }
-      
-      // Update clause info if present
-      if (node && clause) {
-        node.clauseLine = clause.line;
+        
+        // Extract unifications by comparing call and exit goals
+        const unifications = extractUnifications(stackEntry.callEvent.goal, goal, args);
+        if (unifications.length > 0) {
+          node.unifications = unifications;
+          // Format binding for analyzer compatibility
+          node.binding = unifications.map(u => `${u.variable} = ${u.value}`).join(', ');
+        }
+        
+        // Update clause info if present
+        if (clause) {
+          node.clauseLine = clause.line;
+          node.clauseNumber = clause.line;
+        }
+        
+        stackEntry.isCompleted = true;
+        
+        // Add success child if no children exist
+        if (node.children.length === 0) {
+          node.children.push({
+            id: `node_${ctx.nodeIdCounter++}`,
+            type: 'success',
+            goal: 'true',
+            children: [],
+            level: level + 1,
+          });
+        }
       }
       
     } else if (port === 'fail') {
-      // Goal failed - mark as failure
-      const node = stack.get(level);
-      if (node) {
+      // Goal failed - mark as failed and add failure child
+      const stackEntry = callStack.peek(level);
+      if (stackEntry) {
+        const node = stackEntry.node;
+        stackEntry.isFailed = true;
+        
         // Add failure child if no children exist
         if (node.children.length === 0) {
           node.children.push({
@@ -560,38 +697,19 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       }
       
       // Pop from stack
-      stack.delete(level);
+      callStack.pop(level);
       
     } else if (port === 'redo') {
-      // Backtracking - for now, just note it
-      // We might need to handle this more sophisticatedly later
+      // Backtracking - mark for alternative execution paths
+      const stackEntry = callStack.peek(level);
+      if (stackEntry) {
+        // For now, just note that backtracking occurred
+        // More sophisticated handling can be added later
+      }
     }
   }
   
-  // Add success nodes to goals that exited successfully
-  for (const [level, node] of stack.entries()) {
-    if (node.children.length === 0 && node.type !== 'query') {
-      node.children.push({
-        id: `node_${ctx.nodeIdCounter++}`,
-        type: 'success',
-        goal: 'true',
-        children: [],
-        level: level + 1,
-      });
-    }
-  }
-  
-  // If root has no children, add success
-  if (root && root.children.length === 0) {
-    root.children.push({
-      id: `node_${ctx.nodeIdCounter++}`,
-      type: 'success',
-      goal: 'true',
-      children: [],
-      level: 1,
-    });
-  }
-  
+  // Return root or create empty root if none exists
   return root || {
     id: `node_${ctx.nodeIdCounter++}`,
     type: 'query',
@@ -599,6 +717,38 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
     children: [],
     level: 0,
   };
+}
+
+/**
+ * Extracts unifications by comparing call goal with exit goal and arguments.
+ */
+function extractUnifications(callGoal: string, exitGoal: string, exitArgs?: any[]): Unification[] {
+  const unifications: Unification[] = [];
+  
+  // Parse call goal to get variable names
+  const callMatch = callGoal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+  if (!callMatch || !exitArgs) {
+    return unifications;
+  }
+  
+  const callArgString = callMatch[2];
+  const callArgs = parseArguments(callArgString);
+  
+  // Create unifications by pairing call args with exit args
+  for (let i = 0; i < Math.min(callArgs.length, exitArgs.length); i++) {
+    const callArg = callArgs[i].trim();
+    const exitValue = formatValue(exitArgs[i]);
+    
+    // Only create unification if call arg is a variable (starts with uppercase or _)
+    if (callArg.match(/^[A-Z_]/)) {
+      unifications.push({
+        variable: callArg,
+        value: exitValue,
+      });
+    }
+  }
+  
+  return unifications;
 }
 
 /**
