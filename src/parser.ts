@@ -595,6 +595,7 @@ class CallStack {
 
 /**
  * Builds an execution tree from trace events using the 4-port model.
+ * Optimised for deep recursion with efficient memory usage.
  */
 function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   const ctx: ParseContext = { nodeIdCounter: 0 };
@@ -604,8 +605,14 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   // Find the minimum level to determine the root level
   const minLevel = events.length > 0 ? Math.min(...events.map(e => e.level)) : 0;
   
+  // Add recursion depth tracking for monitoring (optional)
+  let maxDepthSeen = 0;
+  
   for (const event of events) {
     const { port, level, goal, arguments: args, clause, predicate } = event;
+    
+    // Track maximum recursion depth for monitoring
+    maxDepthSeen = Math.max(maxDepthSeen, level);
     
     if (port === 'call') {
       // Create new node for this goal

@@ -1118,5 +1118,179 @@ describe('JSON Parser Unit Tests', () => {
     const successfulChild = tree.children.find(c => c.goal === 'child2(X)');
     expect(successfulChild).toBeDefined();
   });
+
+  it('handles deep recursion without stack overflow', () => {
+    const depth = 50; // Test with significant recursion depth
+    const events = [];
+    
+    // Generate deep recursive calls
+    for (let level = 0; level < depth; level++) {
+      events.push({
+        port: 'call',
+        level,
+        goal: `factorial(${depth - level},F)`,
+        predicate: 'factorial/2',
+      });
+    }
+    
+    // Generate matching exits in reverse order
+    for (let level = depth - 1; level >= 0; level--) {
+      events.push({
+        port: 'exit',
+        level,
+        goal: `factorial(${depth - level},F)`,
+        predicate: 'factorial/2',
+        arguments: [depth - level, Math.pow(2, depth - level)], // Some result
+      });
+    }
+    
+    const json = JSON.stringify(events);
+    
+    // Should handle deep recursion without issues
+    const startTime = Date.now();
+    const tree = parseTraceJson(json);
+    const endTime = Date.now();
+    
+    // Should complete in reasonable time
+    expect(endTime - startTime).toBeLessThan(500);
+    
+    // Should produce valid tree
+    expect(tree.type).toBe('query');
+    expect(tree.level).toBe(0);
+    
+    // Should have proper depth
+    function getMaxDepth(node: any): number {
+      if (node.children.length === 0) return node.level;
+      return Math.max(...node.children.map(getMaxDepth));
+    }
+    
+    const maxDepth = getMaxDepth(tree);
+    expect(maxDepth).toBeGreaterThanOrEqual(depth - 1);
+  });
+
+  it('handles various recursion depths efficiently', () => {
+    const depths = [10, 25, 50];
+    
+    for (const depth of depths) {
+      const events = [];
+      
+      // Generate recursive sequence
+      for (let level = 0; level < depth; level++) {
+        events.push({
+          port: 'call',
+          level,
+          goal: `countdown(${depth - level})`,
+          predicate: 'countdown/1',
+        });
+      }
+      
+      for (let level = depth - 1; level >= 0; level--) {
+        events.push({
+          port: 'exit',
+          level,
+          goal: `countdown(${depth - level})`,
+          predicate: 'countdown/1',
+          arguments: [depth - level],
+        });
+      }
+      
+      const json = JSON.stringify(events);
+      const tree = parseTraceJson(json);
+      
+      // Should handle each depth correctly
+      expect(tree.type).toBe('query');
+      expect(tree.level).toBe(0);
+      
+      // Verify tree structure integrity
+      function validateTreeStructure(node: any, expectedMinLevel: number): void {
+        expect(node.level).toBeGreaterThanOrEqual(expectedMinLevel);
+        expect(node).toHaveProperty('id');
+        expect(node).toHaveProperty('type');
+        expect(node).toHaveProperty('children');
+        
+        for (const child of node.children) {
+          if (child.type !== 'success' && child.type !== 'failure') {
+            validateTreeStructure(child, node.level);
+          }
+        }
+      }
+      
+      validateTreeStructure(tree, 0);
+    }
+  });
+
+  it('optimises memory usage for deep recursion', () => {
+    const depth = 30;
+    const events = [];
+    
+    // Generate deep recursion with complex goals
+    for (let level = 0; level < depth; level++) {
+      events.push({
+        port: 'call',
+        level,
+        goal: `complex_goal(${level}, [${Array.from({length: 5}, (_, i) => i).join(',')}], result)`,
+        predicate: 'complex_goal/3',
+      });
+    }
+    
+    for (let level = depth - 1; level >= 0; level--) {
+      events.push({
+        port: 'exit',
+        level,
+        goal: `complex_goal(${level}, [${Array.from({length: 5}, (_, i) => i).join(',')}], result)`,
+        predicate: 'complex_goal/3',
+        arguments: [level, Array.from({length: 5}, (_, i) => i), 'computed_result'],
+      });
+    }
+    
+    const json = JSON.stringify(events);
+    
+    // Measure memory usage (approximate)
+    const initialMemory = process.memoryUsage().heapUsed;
+    const tree = parseTraceJson(json);
+    const finalMemory = process.memoryUsage().heapUsed;
+    
+    // Should not use excessive memory (less than 10MB for this test)
+    const memoryUsed = finalMemory - initialMemory;
+    expect(memoryUsed).toBeLessThan(10 * 1024 * 1024);
+    
+    // Should still produce valid tree
+    expect(tree.type).toBe('query');
+    expect(tree.level).toBe(0);
+  });
+
+  it('handles recursion depth limits gracefully', () => {
+    // Test with very deep recursion to ensure no stack overflow
+    const depth = 100;
+    const events = [];
+    
+    for (let level = 0; level < depth; level++) {
+      events.push({
+        port: 'call',
+        level,
+        goal: `deep(${level})`,
+        predicate: 'deep/1',
+      });
+    }
+    
+    for (let level = depth - 1; level >= 0; level--) {
+      events.push({
+        port: 'exit',
+        level,
+        goal: `deep(${level})`,
+        predicate: 'deep/1',
+        arguments: [level],
+      });
+    }
+    
+    const json = JSON.stringify(events);
+    
+    // Should not throw or crash with deep recursion
+    expect(() => {
+      const tree = parseTraceJson(json);
+      expect(tree.type).toBe('query');
+      expect(tree.level).toBe(0);
+    }).not.toThrow();
+  });
 });
 

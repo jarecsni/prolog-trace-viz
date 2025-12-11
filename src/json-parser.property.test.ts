@@ -1014,6 +1014,87 @@ describe('JSON Parser Property Tests', () => {
   });
 
   /**
+   * **Feature: json-parser-tree-builder, Property 12: Deep recursion support**
+   * **Validates: Requirements 6.4**
+   * 
+   * For any deeply nested recursive sequence, the tree builder should handle 
+   * arbitrary recursion depths without stack overflow or performance issues.
+   */
+  it('Property 12: Deep recursion support - handles arbitrary recursion depths', async () => {
+    await fc.assert(
+      fc.property(
+        fc.integer({ min: 10, max: 100 }), // Test with significant recursion depth
+        fc.constantFrom('factorial/2', 'countdown/1', 'deep/1'),
+        (depth, predicate) => {
+          const events = [];
+          const goalName = predicate.split('/')[0];
+          
+          // Generate deep recursive call sequence
+          for (let level = 0; level < depth; level++) {
+            events.push({
+              port: 'call' as const,
+              level,
+              goal: `${goalName}(${depth - level})`,
+              predicate,
+            });
+          }
+          
+          // Generate matching exits in reverse order (unwinding recursion)
+          for (let level = depth - 1; level >= 0; level--) {
+            events.push({
+              port: 'exit' as const,
+              level,
+              goal: `${goalName}(${depth - level})`,
+              predicate,
+              arguments: [depth - level, 'result'],
+            });
+          }
+          
+          const json = JSON.stringify(events);
+          
+          // Should handle deep recursion without stack overflow
+          const startTime = Date.now();
+          const tree = parseTraceJson(json);
+          const endTime = Date.now();
+          
+          // Should complete in reasonable time (less than 1 second for 100 levels)
+          expect(endTime - startTime).toBeLessThan(1000);
+          
+          // Should produce valid tree structure
+          expect(tree.type).toBe('query');
+          expect(tree.level).toBe(0);
+          
+          // Should have proper nesting depth
+          function getMaxDepth(node: any): number {
+            if (node.children.length === 0) return node.level;
+            return Math.max(...node.children.map(getMaxDepth));
+          }
+          
+          const maxDepth = getMaxDepth(tree);
+          expect(maxDepth).toBeGreaterThanOrEqual(depth - 1);
+          
+          // Should maintain tree structure integrity
+          function validateDeepTree(node: any, expectedMinLevel: number): void {
+            expect(node.level).toBeGreaterThanOrEqual(expectedMinLevel);
+            expect(node).toHaveProperty('id');
+            expect(node).toHaveProperty('type');
+            expect(node).toHaveProperty('children');
+            
+            for (const child of node.children) {
+              if (child.type !== 'success' && child.type !== 'failure') {
+                validateDeepTree(child, node.level);
+              }
+            }
+          }
+          
+          validateDeepTree(tree, 0);
+        }
+      ),
+      { numRuns: 20 } // Reduce runs for performance since we're testing deep recursion
+    );
+  });
+
+  /**
    * **Feature: custom-tracer-integration, Property 12: Analyzer interface compatibility**
    * **Validates: Requirements 4.4, 6.1**
    * 
