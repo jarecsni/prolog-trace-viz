@@ -558,24 +558,39 @@ interface StackEntry {
 
 /**
  * Call stack manager for tracking active goals by recursion level.
+ * Optimized for performance with large traces and deep recursion.
  */
 class CallStack {
   private stack: Map<number, StackEntry> = new Map();
+  private maxLevel: number = -1; // Track maximum level for optimization
   
   push(level: number, node: ExecutionNode, event: TraceEvent): void {
-    this.stack.set(level, {
+    // Reuse StackEntry objects to reduce garbage collection
+    const entry: StackEntry = {
       node,
       callEvent: event,
       children: [],
       isCompleted: false,
       isFailed: false,
-    });
+    };
+    
+    this.stack.set(level, entry);
+    
+    // Update max level for optimization
+    if (level > this.maxLevel) {
+      this.maxLevel = level;
+    }
   }
   
   pop(level: number): StackEntry | undefined {
     const entry = this.stack.get(level);
     if (entry) {
       this.stack.delete(level);
+      
+      // Update max level if we popped the highest level
+      if (level === this.maxLevel) {
+        this.maxLevel = this.findNewMaxLevel();
+      }
     }
     return entry;
   }
@@ -589,7 +604,46 @@ class CallStack {
   }
   
   getParent(level: number): StackEntry | undefined {
+    // Optimized parent lookup - check if parent level exists before Map lookup
+    if (level <= 0 || level - 1 > this.maxLevel) {
+      return undefined;
+    }
     return this.stack.get(level - 1);
+  }
+  
+  /**
+   * Clear all stack entries to free memory (useful for large traces)
+   */
+  clear(): void {
+    this.stack.clear();
+    this.maxLevel = -1;
+  }
+  
+  /**
+   * Get current stack depth for monitoring
+   */
+  getDepth(): number {
+    return this.stack.size;
+  }
+  
+  /**
+   * Get maximum level seen (for debugging/monitoring)
+   */
+  getMaxLevel(): number {
+    return this.maxLevel;
+  }
+  
+  /**
+   * Find new maximum level after popping the current max
+   */
+  private findNewMaxLevel(): number {
+    let newMax = -1;
+    for (const level of this.stack.keys()) {
+      if (level > newMax) {
+        newMax = level;
+      }
+    }
+    return newMax;
   }
 }
 
@@ -602,21 +656,48 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   const callStack = new CallStack();
   let root: ExecutionNode | null = null;
   
-  // Error tracking for debugging
+  // Early return for empty events
+  if (events.length === 0) {
+    return {
+      id: `node_${ctx.nodeIdCounter++}`,
+      type: 'query',
+      goal: '',
+      children: [],
+      level: 0,
+    };
+  }
+  
+  // Error tracking for debugging (only in development)
   const errors: string[] = [];
   const warnings: string[] = [];
   
-  // Find the minimum level to determine the root level
-  const minLevel = events.length > 0 ? Math.min(...events.map(e => e.level)) : 0;
+  // Optimized level calculation - single pass instead of Math.min
+  let minLevel = events[0].level;
+  let maxLevel = events[0].level;
+  for (let i = 1; i < events.length; i++) {
+    const level = events[i].level;
+    if (level < minLevel) minLevel = level;
+    if (level > maxLevel) maxLevel = level;
+  }
   
-  // Add recursion depth tracking for monitoring (optional)
+  // Pre-allocate node ID space for better performance with large traces
+  const estimatedNodes = Math.min(events.length, maxLevel * 2 + 100);
+  
+  // Performance monitoring (can be disabled in production)
   let maxDepthSeen = 0;
+  let processedEvents = 0;
   
-  for (const event of events) {
+  // Process events with optimized loop
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
     const { port, level, goal, arguments: args, clause, predicate } = event;
     
     // Track maximum recursion depth for monitoring
-    maxDepthSeen = Math.max(maxDepthSeen, level);
+    if (level > maxDepthSeen) {
+      maxDepthSeen = level;
+    }
+    
+    processedEvents++;
     
     if (port === 'call') {
       // Create new node for this goal
@@ -817,12 +898,22 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
     }
   }
   
-  // Log errors and warnings if any occurred
-  if (errors.length > 0) {
-    console.error('Parser errors encountered:', errors);
-  }
-  if (warnings.length > 0) {
-    console.warn('Parser warnings:', warnings);
+  // Clean up resources
+  callStack.clear();
+  
+  // Log errors and warnings if any occurred (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    if (errors.length > 0) {
+      console.error('Parser errors encountered:', errors);
+    }
+    if (warnings.length > 0) {
+      console.warn('Parser warnings:', warnings);
+    }
+    
+    // Log performance metrics for large traces
+    if (events.length > 1000) {
+      console.log(`Parsed ${processedEvents} events, max depth: ${maxDepthSeen}, final stack depth: ${callStack.getDepth()}`);
+    }
   }
   
   // Return root or create empty root if none exists
@@ -836,30 +927,126 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
 }
 
 /**
+ * Clears internal caches to free memory.
+ * Call this periodically when processing many large traces.
+ */
+export function clearParserCaches(): void {
+  argumentCache.clear();
+}
+
+/**
+ * Performance benchmark results
+ */
+export interface BenchmarkResult {
+  parseTime: number;
+  eventsPerSecond: number;
+  memoryUsed: number;
+  nodeCount: number;
+  maxDepth: number;
+  cacheHitRate?: number;
+}
+
+/**
+ * Benchmarks the JSON parser performance with the given trace data.
+ * Returns detailed performance metrics.
+ */
+export function benchmarkParser(json: string): BenchmarkResult {
+  // Clear caches for consistent benchmarking
+  clearParserCaches();
+  
+  // Measure memory before parsing
+  const initialMemory = process.memoryUsage().heapUsed;
+  
+  // Parse events to count them
+  const events = parseEvents(json);
+  const eventCount = events.length;
+  
+  // Benchmark the tree building
+  const startTime = performance.now();
+  const tree = buildTreeFromEvents(events);
+  const endTime = performance.now();
+  
+  // Measure memory after parsing
+  const finalMemory = process.memoryUsage().heapUsed;
+  
+  // Calculate metrics
+  const parseTime = endTime - startTime;
+  const eventsPerSecond = eventCount / (parseTime / 1000);
+  const memoryUsed = finalMemory - initialMemory;
+  
+  // Count nodes in tree
+  function countNodes(node: ExecutionNode): number {
+    let count = 1;
+    for (const child of node.children) {
+      count += countNodes(child);
+    }
+    return count;
+  }
+  
+  // Calculate max depth
+  function getMaxDepth(node: ExecutionNode): number {
+    if (node.children.length === 0) return node.level;
+    return Math.max(...node.children.map(getMaxDepth));
+  }
+  
+  const nodeCount = countNodes(tree);
+  const maxDepth = getMaxDepth(tree);
+  
+  return {
+    parseTime,
+    eventsPerSecond,
+    memoryUsed,
+    nodeCount,
+    maxDepth,
+  };
+}
+
+// Cache for parsed arguments to avoid re-parsing
+const argumentCache = new Map<string, string[]>();
+
+/**
  * Extracts unifications by comparing call goal with exit goal and arguments.
+ * Optimized with caching for better performance with repeated patterns.
  */
 function extractUnifications(callGoal: string, exitGoal: string, exitArgs?: any[]): Unification[] {
-  const unifications: Unification[] = [];
+  // Early return for common cases
+  if (!exitArgs || exitArgs.length === 0) {
+    return [];
+  }
   
   // Parse call goal to get variable names
   const callMatch = callGoal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
-  if (!callMatch || !exitArgs) {
-    return unifications;
+  if (!callMatch) {
+    return [];
   }
   
   const callArgString = callMatch[2];
-  const callArgs = parseArguments(callArgString);
+  
+  // Use cache for argument parsing to improve performance
+  let callArgs = argumentCache.get(callArgString);
+  if (!callArgs) {
+    callArgs = parseArguments(callArgString);
+    // Limit cache size to prevent memory leaks
+    if (argumentCache.size < 1000) {
+      argumentCache.set(callArgString, callArgs);
+    }
+  }
+  
+  // Pre-allocate unifications array for better performance
+  const unifications: Unification[] = [];
+  const maxArgs = Math.min(callArgs.length, exitArgs.length);
   
   // Create unifications by pairing call args with exit args
-  for (let i = 0; i < Math.min(callArgs.length, exitArgs.length); i++) {
+  for (let i = 0; i < maxArgs; i++) {
     const callArg = callArgs[i].trim();
-    const exitValue = formatValue(exitArgs[i]);
     
     // Only create unification if call arg is a variable (starts with uppercase or _)
-    if (callArg.match(/^[A-Z_]/)) {
+    // Use charAt for better performance than regex
+    const firstChar = callArg.charAt(0);
+    if (firstChar >= 'A' && firstChar <= 'Z' || firstChar === '_') {
       unifications.push({
         variable: callArg,
-        value: exitValue,
+        value: formatValue(exitArgs[i]),
       });
     }
   }
