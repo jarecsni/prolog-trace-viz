@@ -1411,7 +1411,14 @@ describe('JSON Parser Unit Tests', () => {
     // Should process through complete pipeline
     const analysis = analyzeTree(tree, [], { detailLevel: 'standard' });
     const mermaid = generateMermaid(analysis);
-    const markdown = renderMarkdown(analysis, mermaid, 'member(X,[1,2,3])');
+    const renderContext = {
+      query: 'member(X,[1,2,3])',
+      diagram: mermaid,
+      executionSteps: analysis.executionSteps,
+      finalAnswer: 'X = 2',
+      clausesUsed: analysis.clausesUsed,
+    };
+    const markdown = renderMarkdown(renderContext);
     
     // Should generate complete markdown output
     expect(typeof markdown).toBe('string');

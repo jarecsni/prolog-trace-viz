@@ -343,7 +343,7 @@ describe('JSON Parser Performance Tests', () => {
         choicePointsFound++;
         expect(node.unifications).toBeDefined();
         if (node.unifications) {
-          const xUnification = node.unifications.find(u => u.variable === 'X');
+          const xUnification = node.unifications.find((u: any) => u.variable === 'X');
           expect(xUnification?.value).toMatch(/solution_\d+_2/); // Last solution (index 2)
         }
       }
