@@ -43,7 +43,7 @@ const buildInfo = {
 
 // Write to TypeScript file
 const tsContent = `// This file is auto-generated during build
-// Do not edit manually
+// Do not edit manually - regenerated on each build
 
 export const BUILD_INFO = ${JSON.stringify(buildInfo, null, 2)} as const;
 
@@ -52,7 +52,7 @@ Prolog Trace Visualiser (ptv) v\${BUILD_INFO.version}
 Copyright (c) 2024 Johnny Recsni <johnny@recsni.com>
 
 Licensed under the MIT License.
-Built on \${BUILD_INFO.buildTimestamp} from commit \${BUILD_INFO.gitCommit}
+Built on \${BUILD_INFO.buildTimestamp} from commit \${BUILD_INFO.gitCommit} (\${BUILD_INFO.gitBranch})
 
 This tool generates enhanced visual trace diagrams for Prolog query execution.
 For more information, visit: https://github.com/jarecsni/prolog-trace-viz
@@ -60,4 +60,4 @@ For more information, visit: https://github.com/jarecsni/prolog-trace-viz
 `;
 
 writeFileSync('src/build-info.ts', tsContent);
-console.log('✅ Generated build info:', buildInfo);
+console.log('✅ Generated build info for commit:', gitCommit, 'on branch:', gitBranch);
