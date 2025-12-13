@@ -1,9 +1,9 @@
-# Prolog Execution Tree: t(0+1, A)
+# Prolog Execution Tree: t(0+1+1, B)
 
 ## Query
 
 ```prolog
-t(0+1, A)
+t(0+1+1, B)
 ```
 
 ## Clauses Defined
@@ -18,15 +18,30 @@ t(0+1, A)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(0+1, A₀)"]]
-B(("🎉 SUCCESS<br/>A = 1+0"))
+A[["🎯 QUERY<br/>t(0+1+1, _950)"]]
+B("✅ Solved: _950 = 1+1+0")
+C["🔄 Solve: t(0+1, _918) [clause 30]"]
+D("✅ Solved: _918 = 1+0")
+E(("🎉 SUCCESS"))
+F["🔄 Solve: t(1+0+1, _792) [clause 31]"]
+G(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① clause 1"| B
+A -->|"① _950 = 1+1+0"| B
+B -->|"② clause 30"| C
+C -->|"③ _918 = 1+0"| D
+D -->|"④ all done"| E
+B -->|"⑤ backtrack (clause 31)"| F
+F -->|"⑥"| G
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#c8e6c9,stroke:#388e3c
+style C fill:#fff9c4,stroke:#f57f17
+style D fill:#c8e6c9,stroke:#388e3c
+style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style F fill:#fff9c4,stroke:#f57f17
+style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -43,7 +58,27 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 1
+### Step 2
+
+**Goal:** `t(0+1,_918)`
+
+**Action:** Solving t(0+1,_918)
+
+**Clause matched:** `_918 = 1+0`
+
+### Step 4
+
+**Goal:** `true`
+
+**Action:** Solving true
+
+### Step 5
+
+**Goal:** `t(1+0+1,_792)`
+
+**Action:** Backtracking: t(1+0+1,_792)
+
+### Step 6
 
 **Goal:** `true`
 
@@ -52,6 +87,4 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Final Answer
 
-```prolog
-A = 1+0
-```
+Query succeeded with no bindings.

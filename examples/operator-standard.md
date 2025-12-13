@@ -1,9 +1,9 @@
-# Prolog Execution Tree: t(0+1, A)
+# Prolog Execution Tree: t(1+0+1, C)
 
 ## Query
 
 ```prolog
-t(0+1, A)
+t(1+0+1, C)
 ```
 
 ## Clauses Defined
@@ -18,15 +18,18 @@ t(0+1, A)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(0+1, A₀)"]]
-B(("🎉 SUCCESS<br/>A = 1+0"))
+A[["🎯 QUERY<br/>t(1+0+1, _636)"]]
+B("✅ Solved: _636 = 1+1+0")
+C(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① clause 1"| B
+A -->|"① _636 = 1+1+0"| B
+B -->|"② all done"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#c8e6c9,stroke:#388e3c
+style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -43,7 +46,7 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 1
+### Step 2
 
 **Goal:** `true`
 
@@ -52,6 +55,4 @@ style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Final Answer
 
-```prolog
-A = 1+0
-```
+Query succeeded with no bindings.

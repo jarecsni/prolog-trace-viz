@@ -17,27 +17,30 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>append([1, 2], [3, 4], X₀)"]]
-B["🔄 Solve: append([2], [3, 4], R₀) [clause 2]"]
-C("✅ Solved: R₀ = [2|R₁]")
-D["🔄 Solve: append([], [3, 4], R₁) [clause 2]"]
-E("✅ Solved: R₁ = [3,4]")
-F(("🎉 SUCCESS<br/>X = [1|R₀]"))
+A[["🎯 QUERY<br/>append([1, 2], [3, 4], _1056)"]]
+B("✅ Solved: _1056 = [1,2,3,4]")
+C["🔄 Solve: append([2], [3, 4], _1010) [clause 9]"]
+D("✅ Solved: _1010 = [2,3,4]")
+E["🔄 Solve: append([], [3, 4], _970) [clause 8]"]
+F("✅ Solved: _970 = [3,4]")
+G(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① clause 2"| B
-B -->|"② R₀ = [2|R₁]"| C
-C -->|"③ clause 2"| D
-D -->|"④ R₁ = [3,4]"| E
-E -->|"⑤ all done"| F
+A -->|"① _1056 = [1,2,3,4]"| B
+B -->|"② clause 9"| C
+C -->|"③ _1010 = [2,3,4]"| D
+D -->|"④ clause 8"| E
+E -->|"⑤ _970 = [3,4]"| F
+F -->|"⑥ all done"| G
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#fff9c4,stroke:#f57f17
-style C fill:#c8e6c9,stroke:#388e3c
-style D fill:#fff9c4,stroke:#f57f17
-style E fill:#c8e6c9,stroke:#388e3c
-style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#c8e6c9,stroke:#388e3c
+style C fill:#fff9c4,stroke:#f57f17
+style D fill:#c8e6c9,stroke:#388e3c
+style E fill:#fff9c4,stroke:#f57f17
+style F fill:#c8e6c9,stroke:#388e3c
+style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -54,23 +57,23 @@ style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 1
+### Step 2
 
-**Goal:** `append([2],[3,4],R₀)`
+**Goal:** `append([2],[3,4],_1010)`
 
-**Action:** Solving append([2],[3,4],R₀)
+**Action:** Solving append([2],[3,4],_1010)
 
-**Clause matched:** `R₀/[2|R₁]`
+**Clause matched:** `_1010 = [2,3,4]`
 
-### Step 3
+### Step 4
 
-**Goal:** `append([],[3,4],R₁)`
+**Goal:** `append([],[3,4],_970)`
 
-**Action:** Solving append([],[3,4],R₁)
+**Action:** Solving append([],[3,4],_970)
 
-**Clause matched:** `R₁/[3,4]`
+**Clause matched:** `_970 = [3,4]`
 
-### Step 5
+### Step 6
 
 **Goal:** `true`
 
@@ -79,6 +82,4 @@ style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Final Answer
 
-```prolog
-X = [1|R₀]
-```
+Query succeeded with no bindings.

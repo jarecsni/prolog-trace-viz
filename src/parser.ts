@@ -496,8 +496,8 @@ function parseEvents(json: string): TraceEvent[] {
       continue;
     }
     
-    // Filter out system predicates if needed
-    if (isSystemPredicate(predicate)) {
+    // Filter out system predicates and wrapper infrastructure
+    if (isSystemPredicate(predicate) || isWrapperGoal(goal)) {
       continue;
     }
     
@@ -543,6 +543,23 @@ function isSystemPredicate(predicate: string): boolean {
   ];
   
   return systemPredicates.includes(predicate);
+}
+
+/**
+ * Checks if a goal is part of the wrapper infrastructure that should be filtered out.
+ */
+function isWrapperGoal(goal: string): boolean {
+  // Filter out catch goals that contain export_trace_json (our wrapper)
+  if (goal.includes('catch(') && goal.includes('export_trace_json')) {
+    return true;
+  }
+  
+  // Filter out format goals for error handling
+  if (goal.includes('format(') && goal.includes('Error:')) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -672,12 +689,18 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
   const warnings: string[] = [];
   
   // Optimized level calculation - single pass instead of Math.min
-  let minLevel = events[0].level;
-  let maxLevel = events[0].level;
-  for (let i = 1; i < events.length; i++) {
+  let minLevel = Infinity;
+  let maxLevel = -Infinity;
+  for (let i = 0; i < events.length; i++) {
     const level = events[i].level;
     if (level < minLevel) minLevel = level;
     if (level > maxLevel) maxLevel = level;
+  }
+  
+  // Handle case where all events were filtered out
+  if (minLevel === Infinity) {
+    minLevel = 0;
+    maxLevel = 0;
   }
   
   // Pre-allocate node ID space for better performance with large traces

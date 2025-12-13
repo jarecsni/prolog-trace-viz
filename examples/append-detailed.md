@@ -17,36 +17,30 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>append([1, 2], [3, 4], X₀)"]]
-B["🔄 🔁 Recurse: append([2], [3, 4], R₀) [clause 2]"]
-C["📦 Match Clause 2<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• [2] = [H|T]<br/>• L = [3,4]<br/>• R₀ = [H|R]<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
-D("✅ Solved: R₀ = [2|R₁]")
-E["🔄 🔁 Recurse: append([], [3, 4], R₁) [clause 2]"]
-F["📦 Match Clause 2<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• [] = [H|T]<br/>• L = [3,4]<br/>• R₁ = [H|R]<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
-G("✅ Solved: R₁ = [3,4]")
-H(("🎉 SUCCESS<br/>X = [1|R₀]"))
-I["📦 Match Clause 1<br/>append([], L, L)"]
+A[["🎯 QUERY<br/>append([1, 2], [3, 4], _1056)"]]
+B("✅ Solved: _1056 = [1,2,3,4]")
+C["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 9]"]
+D("✅ Solved: _1010 = [2,3,4]")
+E["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 8]"]
+F("✅ Solved: _970 = [3,4]")
+G(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① try"| C
-C -->|"②"| B
-B -->|"③ R₀ = [2|R₁]"| D
-D -->|"④ try"| F
-F -->|"⑤"| E
-E -->|"⑥ R₁ = [3,4]"| G
-G -->|"⑦ try"| I
-I -->|"⑧"| H
+A -->|"① _1056 = [1,2,3,4]"| B
+B -->|"② clause 9"| C
+C -->|"③ _1010 = [2,3,4]"| D
+D -->|"④ clause 8"| E
+E -->|"⑤ _970 = [3,4]"| F
+F -->|"⑥ all done"| G
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#fff9c4,stroke:#f57f17
-style C fill:#ffe0b2,stroke:#e65100
+style B fill:#c8e6c9,stroke:#388e3c
+style C fill:#fff9c4,stroke:#f57f17
 style D fill:#c8e6c9,stroke:#388e3c
 style E fill:#fff9c4,stroke:#f57f17
-style F fill:#ffe0b2,stroke:#e65100
-style G fill:#c8e6c9,stroke:#388e3c
-style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style I fill:#ffe0b2,stroke:#e65100
+style F fill:#c8e6c9,stroke:#388e3c
+style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -65,21 +59,21 @@ style I fill:#ffe0b2,stroke:#e65100
 
 ### Step 2
 
-**Goal:** `append([2],[3,4],R₀)`
+**Goal:** `append([2],[3,4],_1010)`
 
-**Action:** Solving append([2],[3,4],R₀)
+**Action:** Solving append([2],[3,4],_1010)
 
-**Clause matched:** `R₀/[2|R₁]`
+**Clause matched:** `_1010 = [2,3,4]`
 
-### Step 5
+### Step 4
 
-**Goal:** `append([],[3,4],R₁)`
+**Goal:** `append([],[3,4],_970)`
 
-**Action:** Solving append([],[3,4],R₁)
+**Action:** Solving append([],[3,4],_970)
 
-**Clause matched:** `R₁/[3,4]`
+**Clause matched:** `_970 = [3,4]`
 
-### Step 8
+### Step 6
 
 **Goal:** `true`
 
@@ -88,6 +82,4 @@ style I fill:#ffe0b2,stroke:#e65100
 
 ## Final Answer
 
-```prolog
-X = [1|R₀]
-```
+Query succeeded with no bindings.

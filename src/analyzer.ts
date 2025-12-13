@@ -406,7 +406,7 @@ function processTreeNode(
   let nodeType: VisualizationNode['type'];
   let label: string;
   
-  if (node.level === 0) {
+  if (node.level === 0 || node.type === 'query') {
     nodeType = 'query';
     // Add space after commas and format with QUERY label and line break
     const formattedGoal = node.goal.replace(/,(?!\s)/g, ', ');
@@ -866,10 +866,23 @@ function renameVariablesWithLevel(text: string, level: number): string {
  * Extracts the final answer from a successful execution tree.
  */
 function extractFinalAnswer(root: ExecutionNode): string | undefined {
-  // Extract the query variable from the root goal (e.g., C from t(..., C₀))
-  // Match variable name before subscript
-  const queryVarMatch = root.goal.match(/,\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\s*\)/);
-  const queryVar = queryVarMatch ? queryVarMatch[1] : null;
+  // Extract the query variable from the root goal
+  // Try multiple patterns: member(X, ...), append(..., X), factorial(..., X), etc.
+  let queryVar: string | null = null;
+  
+  // Pattern 1: First argument is a variable (e.g., member(X, [a,b,c]))
+  const firstArgMatch = root.goal.match(/^[a-z_][a-zA-Z0-9_]*\(\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*/);
+  if (firstArgMatch) {
+    queryVar = firstArgMatch[1];
+  }
+  
+  // Pattern 2: Last argument is a variable (e.g., factorial(5, X))
+  if (!queryVar) {
+    const lastArgMatch = root.goal.match(/,\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\s*\)/);
+    if (lastArgMatch) {
+      queryVar = lastArgMatch[1];
+    }
+  }
   
   // Find the binding that matches the query variable
   let finalBinding: string | undefined;

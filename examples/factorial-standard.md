@@ -1,9 +1,9 @@
-# Prolog Execution Tree: factorial(5, X)
+# Prolog Execution Tree: factorial(3, X)
 
 ## Query
 
 ```prolog
-factorial(5, X)
+factorial(3, X)
 ```
 
 ## Clauses Defined
@@ -17,81 +17,81 @@ factorial(5, X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>factorial(5, X₀)"]]
-B["🔄 Solve: 5>0, N1₀ is 5-1"]
-C["🔄 Solve: N1₀ is 5-1"]
-D("✅ Solved: N1₀ = 4")
-E["🔄 🔁 Recurse: factorial(4, R1₀) [clause 2]"]
-F("✅ Solved: N1₀ = 4")
-G["🔄 Solve: 4>0, N1₁ is 4-1"]
-H["🔄 Solve: N1₁ is 4-1"]
-I("✅ Solved: N1₁ = 3")
-J["🔄 🔁 Recurse: factorial(3, R1₁) [clause 2]"]
-K("✅ Solved: N1₁ = 3")
-L["🔄 Solve: 3>0, N1₂ is 3-1"]
-M["🔄 Solve: N1₂ is 3-1"]
-N("✅ Solved: N1₂ = 2")
-O["🔄 🔁 Recurse: factorial(2, R1₂) [clause 2]"]
-P("✅ Solved: N1₂ = 2")
-Q["🔄 Solve: 2>0, N1₃ is 2-1"]
-R["🔄 Solve: N1₃ is 2-1"]
-S("✅ Solved: N1₃ = 1")
-T["🔄 🔁 Recurse: factorial(1, R1₃) [clause 2]"]
-U("✅ Solved: N1₃ = 1")
-V["🔄 Solve: 1>0, N1₄ is 1-1"]
-W["🔄 Solve: N1₄ is 1-1"]
-X("✅ Solved: N1₄ = 0")
+A[["🎯 QUERY<br/>factorial(3, _1632)"]]
+B("✅ Solved: _1632 = 6")
+C["🔄 Solve: 3>0"]
+D(("🎉 SUCCESS"))
+E["🔄 Solve: _1534 is 3+ -1"]
+F(("🎉 SUCCESS"))
+G["🔄 🔁 Recurse: factorial(2, _1460) [clause 9]"]
+H["🔄 Solve: 2>0"]
+I(("🎉 SUCCESS"))
+J["🔄 Solve: _1362 is 2+ -1"]
+K(("🎉 SUCCESS"))
+L["🔄 🔁 Recurse: factorial(1, _1288) [clause 9]"]
+M["🔄 Solve: 1>0"]
+N(("🎉 SUCCESS"))
+O["🔄 Solve: _1190 is 1+ -1"]
+P(("🎉 SUCCESS"))
+Q["🔄 🔁 Recurse: factorial(0, _1116) [clause 8]"]
+R(("🎉 SUCCESS"))
+S["🔄 Solve: _1030 is 1*1"]
+T(("🎉 SUCCESS"))
+U["🔄 Solve: _842 is 2*1"]
+V(("🎉 SUCCESS"))
+W["🔄 Solve: _654 is 3*2"]
+X(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① clause 2"| B
-B -->|"②"| C
-C -->|"③ N1₀ = 4"| D
-D -->|"④ clause 2"| E
-E -->|"⑤ N1₀ = 4"| F
-F -->|"⑥ clause 2"| G
+A -->|"① _1632 = 6"| B
+B -->|"② done"| C
+C -->|"③ success"| D
+B -->|"④ backtrack"| E
+E -->|"⑤"| F
+B -->|"⑥ backtrack (clause 9)"| G
 G -->|"⑦"| H
-H -->|"⑧ N1₁ = 3"| I
-I -->|"⑨ clause 2"| J
-J -->|"⑩ N1₁ = 3"| K
-K -->|"⑪ clause 2"| L
+H -->|"⑧"| I
+G -->|"⑨ backtrack"| J
+J -->|"⑩"| K
+G -->|"⑪ backtrack (clause 9)"| L
 L -->|"⑫"| M
-M -->|"⑬ N1₂ = 2"| N
-N -->|"⑭ clause 2"| O
-O -->|"⑮ N1₂ = 2"| P
-P -->|"⑯ clause 2"| Q
+M -->|"⑬"| N
+L -->|"⑭ backtrack"| O
+O -->|"⑮"| P
+L -->|"⑯ backtrack (clause 8)"| Q
 Q -->|"⑰"| R
-R -->|"⑱ N1₃ = 1"| S
-S -->|"⑲ clause 2"| T
-T -->|"⑳ N1₃ = 1"| U
-U -->|"(21) clause 2"| V
-V -->|"(22)"| W
-W -->|"(23) N1₄ = 0"| X
+L -->|"⑱ backtrack"| S
+S -->|"⑲"| T
+G -->|"⑳ backtrack"| U
+U -->|"(21)"| V
+B -->|"(22) backtrack"| W
+W -->|"(23)"| X
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#fff9c4,stroke:#f57f17
+style B fill:#c8e6c9,stroke:#388e3c
 style C fill:#fff9c4,stroke:#f57f17
-style D fill:#c8e6c9,stroke:#388e3c
+style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style E fill:#fff9c4,stroke:#f57f17
-style F fill:#c8e6c9,stroke:#388e3c
+style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style G fill:#fff9c4,stroke:#f57f17
 style H fill:#fff9c4,stroke:#f57f17
-style I fill:#c8e6c9,stroke:#388e3c
+style I fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style J fill:#fff9c4,stroke:#f57f17
-style K fill:#c8e6c9,stroke:#388e3c
+style K fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style L fill:#fff9c4,stroke:#f57f17
 style M fill:#fff9c4,stroke:#f57f17
-style N fill:#c8e6c9,stroke:#388e3c
+style N fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style O fill:#fff9c4,stroke:#f57f17
-style P fill:#c8e6c9,stroke:#388e3c
+style P fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style Q fill:#fff9c4,stroke:#f57f17
-style R fill:#fff9c4,stroke:#f57f17
-style S fill:#c8e6c9,stroke:#388e3c
-style T fill:#fff9c4,stroke:#f57f17
-style U fill:#c8e6c9,stroke:#388e3c
-style V fill:#fff9c4,stroke:#f57f17
+style R fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style S fill:#fff9c4,stroke:#f57f17
+style T fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style U fill:#fff9c4,stroke:#f57f17
+style V fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style W fill:#fff9c4,stroke:#f57f17
-style X fill:#c8e6c9,stroke:#388e3c
+style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -108,107 +108,137 @@ style X fill:#c8e6c9,stroke:#388e3c
 
 ## Step-by-Step Execution
 
-### Step 1
-
-**Goal:** `5>0,N1₀ is 5-1`
-
-**Action:** Solving 5>0,N1₀ is 5-1
-
 ### Step 2
 
-**Goal:** `N1₀ is 5-1`
+**Goal:** `3>0`
 
-**Action:** Solving N1₀ is 5-1
+**Action:** Solving 3>0
 
-**Clause matched:** `N1₀/4`
+### Step 3
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 4
 
-**Goal:** `factorial(4,R1₀)`
+**Goal:** `_1534 is 3+ -1`
 
-**Action:** Solving factorial(4,R1₀)
+**Action:** Backtracking: _1534 is 3+ -1
 
-**Clause matched:** `N1₀/4`
+### Step 5
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 6
 
-**Goal:** `4>0,N1₁ is 4-1`
+**Goal:** `factorial(2,_1460)`
 
-**Action:** Solving 4>0,N1₁ is 4-1
+**Action:** Backtracking: factorial(2,_1460)
 
 ### Step 7
 
-**Goal:** `N1₁ is 4-1`
+**Goal:** `2>0`
 
-**Action:** Solving N1₁ is 4-1
+**Action:** Solving 2>0
 
-**Clause matched:** `N1₁/3`
+### Step 8
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 9
 
-**Goal:** `factorial(3,R1₁)`
+**Goal:** `_1362 is 2+ -1`
 
-**Action:** Solving factorial(3,R1₁)
+**Action:** Solving _1362 is 2+ -1
 
-**Clause matched:** `N1₁/3`
+### Step 10
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 11
 
-**Goal:** `3>0,N1₂ is 3-1`
+**Goal:** `factorial(1,_1288)`
 
-**Action:** Solving 3>0,N1₂ is 3-1
+**Action:** Solving factorial(1,_1288)
 
 ### Step 12
 
-**Goal:** `N1₂ is 3-1`
+**Goal:** `1>0`
 
-**Action:** Solving N1₂ is 3-1
+**Action:** Solving 1>0
 
-**Clause matched:** `N1₂/2`
+### Step 13
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 14
 
-**Goal:** `factorial(2,R1₂)`
+**Goal:** `_1190 is 1+ -1`
 
-**Action:** Solving factorial(2,R1₂)
+**Action:** Solving _1190 is 1+ -1
 
-**Clause matched:** `N1₂/2`
+### Step 15
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 ### Step 16
 
-**Goal:** `2>0,N1₃ is 2-1`
+**Goal:** `factorial(0,_1116)`
 
-**Action:** Solving 2>0,N1₃ is 2-1
+**Action:** Solving factorial(0,_1116)
 
 ### Step 17
 
-**Goal:** `N1₃ is 2-1`
+**Goal:** `true`
 
-**Action:** Solving N1₃ is 2-1
+**Action:** Solving true
 
-**Clause matched:** `N1₃/1`
+### Step 18
+
+**Goal:** `_1030 is 1*1`
+
+**Action:** Solving _1030 is 1*1
 
 ### Step 19
 
-**Goal:** `factorial(1,R1₃)`
+**Goal:** `true`
 
-**Action:** Solving factorial(1,R1₃)
+**Action:** Solving true
 
-**Clause matched:** `N1₃/1`
+### Step 20
+
+**Goal:** `_842 is 2*1`
+
+**Action:** Solving _842 is 2*1
 
 ### Step 21
 
-**Goal:** `1>0,N1₄ is 1-1`
+**Goal:** `true`
 
-**Action:** Solving 1>0,N1₄ is 1-1
+**Action:** Solving true
 
 ### Step 22
 
-**Goal:** `N1₄ is 1-1`
+**Goal:** `_654 is 3*2`
 
-**Action:** Solving N1₄ is 1-1
+**Action:** Backtracking: _654 is 3*2
 
-**Clause matched:** `N1₄/0`
+### Step 23
+
+**Goal:** `true`
+
+**Action:** Solving true
 
 
 ## Final Answer
