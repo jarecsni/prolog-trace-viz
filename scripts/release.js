@@ -59,8 +59,14 @@ function main() {
   try {
     if (versionArg.match(/^\d+\.\d+\.\d+$/)) {
       // Specific version provided
-      newVersion = versionArg;
-      execSync(`npm version ${newVersion} --no-git-tag-version`, { stdio: 'inherit' });
+      const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+      if (packageJson.version === versionArg) {
+        console.log(`✅ Version already at ${versionArg}, regenerating build info...`);
+        newVersion = versionArg;
+      } else {
+        execSync(`npm version ${versionArg} --no-git-tag-version`, { stdio: 'inherit' });
+        newVersion = versionArg;
+      }
     } else {
       // Semantic version bump
       const output = execSync(`npm version ${versionArg} --no-git-tag-version`, { encoding: 'utf8' });
