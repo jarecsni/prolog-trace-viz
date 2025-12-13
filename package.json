@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "prebuild": "node scripts/generate-build-info.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.prod.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
@@ -26,10 +26,26 @@
     "trace",
     "visualization",
     "mermaid",
-    "sldnfdraw"
+    "sldnfdraw",
+    "swi-prolog",
+    "logic-programming",
+    "debugging",
+    "flowchart",
+    "cli-tool"
   ],
   "author": "Johnny Recsni <johnny@recsni.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jarecsni/prolog-trace-viz.git"
+  },
+  "homepage": "https://github.com/jarecsni/prolog-trace-viz",
+  "bugs": {
+    "url": "https://github.com/jarecsni/prolog-trace-viz/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "fast-check": "^3.14.0",
