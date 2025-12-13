@@ -1,0 +1,10 @@
+[
+  {"port": "call", "level": 29, "goal": "t(0+1+1,_15040)", "predicate": "t/2"},
+  {"port": "call", "level": 30, "goal": "t(0+1,_15008)", "predicate": "t/2"},
+  {"port": "exit", "level": 30, "goal": "t(0+1,1+0)", "predicate": "t/2", "arguments": ["0+1", "1+0"], "clause": {"head": "t(0+1,1+0)", "body": "true", "line": 8}},
+  {"port": "call", "level": 30, "goal": "t(1+0+1,_730)", "predicate": "t/2"},
+  {"port": "exit", "level": 30, "goal": "t(1+0+1,1+1+0)", "predicate": "t/2", "arguments": ["1+0+1", "1+1+0"], "clause": {"head": "t(_690+0+1,_690+1+0)", "body": "true", "line": 9}},
+  {"port": "exit", "level": 29, "goal": "t(0+1+1,1+1+0)", "predicate": "t/2", "arguments": ["0+1+1", "1+1+0"], "clause": {"head": "t(_548+1+1,_538)", "body": "t(_548+1,_562),t(_562+1,_538)", "line": 10}},
+  {"port": "call", "level": 29, "goal": "export_trace_json(debug_trace.json)", "predicate": "export_trace_json/1"},
+  {"port": "call", "level": 30, "goal": "findall(_406,trace_event(_406),_410)", "predicate": "findall/3"}
+]
