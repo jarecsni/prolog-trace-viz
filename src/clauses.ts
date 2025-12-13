@@ -60,6 +60,7 @@ export function parsePrologFile(content: string): Clause[] {
   }
   
   // Second pass: parse complete statements into clauses
+  // Use actual line numbers to match tracer output
   for (const statement of completeStatements) {
     const statementText = statement.text;
     const lineNumber = statement.lineNumber;
@@ -71,11 +72,7 @@ export function parsePrologFile(content: string): Clause[] {
       const bodyWithPeriod = parts.slice(1).join(':-').trim();
       const body = bodyWithPeriod.replace(/\.$/, '').trim();
       
-      // Only process if head looks like a predicate
-      if (!/^[a-z_][a-zA-Z0-9_]*\(/.test(head)) {
-        continue;
-      }
-      
+      // Add all rules to clauses array (using line numbers for tracer compatibility)
       clauses.push({
         number: lineNumber,
         head,
@@ -83,14 +80,10 @@ export function parsePrologFile(content: string): Clause[] {
         text: `${head} :- ${body}`,
       });
     } else {
-      // Fact
+      // Fact or other statement
       const head = statementText.replace(/\.$/, '').trim();
       
-      // Only process if it looks like a predicate
-      if (!/^[a-z_][a-zA-Z0-9_]*\(/.test(head)) {
-        continue;
-      }
-      
+      // Add all facts to clauses array (using line numbers for tracer compatibility)
       clauses.push({
         number: lineNumber,
         head,

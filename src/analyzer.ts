@@ -1,5 +1,4 @@
-import { ExecutionNode } from './parser.js';
-
+import { ExecutionNode, TraceEvent } from './parser.js';
 export interface VisualizationNode {
   id: string;
   type: 'query' | 'solving' | 'pending' | 'solved' | 'success' | 'clause-body' | 'match';
@@ -42,6 +41,37 @@ export interface ExecutionStep {
 }
 
 export type DetailLevel = 'minimal' | 'standard' | 'detailed' | 'full';
+
+/**
+ * Extracts clause definitions from raw trace events.
+ * This uses the actual clauses that SWI-Prolog worked with during execution.
+ */
+function extractClausesFromTraceEvents(traceEvents: TraceEvent[]): Clause[] {
+  const clauseMap = new Map<string, Clause>();
+  
+  traceEvents.forEach(event => {
+    if (event.clause && event.port === 'exit') {
+      const { head, body, line } = event.clause;
+      const clauseKey = `${line}-${head}`;
+      
+      if (!clauseMap.has(clauseKey)) {
+        const clauseText = body && body !== 'true' 
+          ? `${head} :- ${body}`
+          : head;
+          
+        clauseMap.set(clauseKey, {
+          number: line,
+          head,
+          body: body !== 'true' ? body : undefined,
+          text: clauseText
+        });
+      }
+    }
+  });
+  
+  // Convert to array and sort by line number
+  return Array.from(clauseMap.values()).sort((a, b) => a.number - b.number);
+}
 
 export interface AnalysisOptions {
   detailLevel?: DetailLevel;
@@ -185,9 +215,14 @@ function extractSubgoals(clause: Clause): string[] {
 export function analyzeTree(
   root: ExecutionNode,
   clauses: Clause[] = [],
-  options: AnalysisOptions = {}
+  options: AnalysisOptions = {},
+  traceEvents: TraceEvent[] = []
 ): AnalysisResult {
   const detailLevel = options.detailLevel || 'standard';
+  
+  // Extract clauses from trace events instead of using parsed clauses
+  const traceClauses = extractClausesFromTraceEvents(traceEvents);
+  const actualClauses = traceClauses.length > 0 ? traceClauses : clauses;
   const nodes: VisualizationNode[] = [];
   const edges: VisualizationEdge[] = [];
   const pendingGoalMap = new Map<string, string>(); // goal text -> node id
@@ -237,14 +272,14 @@ export function analyzeTree(
     executionSteps,
     stepCounter: () => stepCounter++,
     nextNodeId,
-    clauses,
+    clauses: actualClauses,
     detailLevel,
     finalAnswer,
   });
   
   // Clause usage tracking - since we can't reliably determine which clauses were used,
   // just list all available clauses
-  const clausesUsed: ClauseUsage[] = clauses.map(clause => ({
+  const clausesUsed: ClauseUsage[] = actualClauses.map(clause => ({
     clauseNumber: clause.number,
     clauseText: clause.text,
     usageCount: 0,
@@ -530,7 +565,24 @@ function processTreeNode(
           ? clause.text.split(':-')[0].trim() 
           : clause.text.trim();
         
-        let matchLabel = `Match Clause ${clauseNumber}<br/>${clauseHead}`;
+        // Find the clause from our trace-extracted clauses that matches the tracer's clause info
+        const matchingParsedClause = ctx.clauses.find((c: Clause) => {
+          // If we have clause line info from tracer, match by line number
+          if (node.clauseLine) {
+            return c.number === node.clauseLine;
+          }
+          // Fallback: match by predicate name and clause content
+          if (clause) {
+            return c.head === clause.head || c.text === clause.text;
+          }
+          // Final fallback: match by predicate name
+          const predicateName = node.goal.split('(')[0];
+          const clausePredicateName = c.head.split('(')[0];
+          return clausePredicateName === predicateName;
+        });
+        
+        const displayClauseNumber = matchingParsedClause ? matchingParsedClause.number : clauseNumber;
+        let matchLabel = `Match Clause ${displayClauseNumber}<br/>${clauseHead}`;
         
         if (unifications.length > 0) {
           matchLabel += '<br/><br/>Unifications:<br/>' + unifications.map(u => `• ${u}`).join('<br/>');
@@ -733,7 +785,24 @@ function processTreeNode(
             ? altClause.text.split(':-')[0].trim() 
             : altClause.text.trim();
           
-          let matchLabel = `Match Clause ${altClause.number}<br/>${clauseHead}`;
+          // Find the clause from our trace-extracted clauses that matches the tracer's clause info
+          const matchingParsedClause = ctx.clauses.find((c: Clause) => {
+            // If we have clause line info from tracer, match by line number
+            if (altChild.clauseLine) {
+              return c.number === altChild.clauseLine;
+            }
+            // Fallback: match by predicate name and clause content
+            if (altClause) {
+              return c.head === altClause.head || c.text === altClause.text;
+            }
+            // Final fallback: match by predicate name
+            const predicateName = altChild.goal.split('(')[0];
+            const clausePredicateName = c.head.split('(')[0];
+            return clausePredicateName === predicateName;
+          });
+          
+          const displayClauseNumber = matchingParsedClause ? matchingParsedClause.number : altClause.number;
+          let matchLabel = `Match Clause ${displayClauseNumber}<br/>${clauseHead}`;
           
           const altMatchNode: VisualizationNode = {
             id: altMatchNodeId,

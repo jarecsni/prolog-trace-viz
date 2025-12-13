@@ -104,9 +104,12 @@ async function run(options: CLIOptions): Promise<void> {
     logVerbose('Parsing JSON trace output...', options);
     const tree = parseTraceJson(execResult.json);
     
+    // Also parse raw events for clause extraction
+    const rawEvents = JSON.parse(execResult.json);
+    
     // Analyze tree
     logVerbose('Analyzing execution tree...', options);
-    const analysis = analyzeTree(tree, clauses, { detailLevel: options.detail });
+    const analysis = analyzeTree(tree, clauses, { detailLevel: options.detail }, rawEvents);
     
     // Generate Mermaid diagram
     logVerbose('Generating Mermaid diagram...', options);
