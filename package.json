@@ -10,9 +10,11 @@
   },
   "files": [
     "dist/",
-    "tracer.pl"
+    "tracer.pl",
+    "scripts/"
   ],
   "scripts": {
+    "prebuild": "node scripts/generate-build-info.js",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -25,7 +27,7 @@
     "mermaid",
     "sldnfdraw"
   ],
-  "author": "",
+  "author": "Johnny Recsni <johnny@recsni.com>",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.10.0",

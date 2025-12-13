@@ -1,4 +1,5 @@
 import { createError, ErrorCode, ToolError } from './errors.js';
+import { BUILD_INFO, COPYRIGHT_NOTICE } from './build-info.js';
 
 export type DetailLevel = 'minimal' | 'standard' | 'detailed' | 'full';
 
@@ -13,15 +14,13 @@ export interface CLIOptions {
 }
 
 export interface CLIResult {
-  type: 'options' | 'help' | 'version' | 'error';
+  type: 'options' | 'help' | 'version' | 'copyright' | 'error';
   options?: CLIOptions;
   error?: ToolError;
 }
 
-const VERSION = '1.0.0';
-
 const HELP_TEXT = `
-prolog-trace-viz - Generate visual trace diagrams for Prolog query execution
+${BUILD_INFO.name} v${BUILD_INFO.version} - ${BUILD_INFO.description}
 
 USAGE:
   prolog-trace-viz <prolog-file> <query> [options]
@@ -42,6 +41,7 @@ OPTIONS:
   --quiet               Suppress all non-error output except final result
   -h, --help            Show this help message
   -v, --version         Show version number
+  --copyright           Show copyright and build information
 
 EXAMPLES:
   prolog-trace-viz program.pl "append([1,2], [3,4], X)"
@@ -60,6 +60,11 @@ export function parseArgs(argv: string[]): CLIResult {
   // Check for version flag
   if (args.includes('-v') || args.includes('--version')) {
     return { type: 'version' };
+  }
+  
+  // Check for copyright flag
+  if (args.includes('--copyright')) {
+    return { type: 'copyright' };
   }
   
   const options: Partial<CLIOptions> = {
@@ -185,5 +190,13 @@ export function getHelpText(): string {
 }
 
 export function getVersion(): string {
-  return VERSION;
+  return `${BUILD_INFO.name} v${BUILD_INFO.version}`;
+}
+
+export function getCopyright(): string {
+  return COPYRIGHT_NOTICE;
+}
+
+export function getBuildInfo() {
+  return BUILD_INFO;
 }

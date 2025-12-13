@@ -30,3 +30,6 @@ coverage/
 .env
 .env.local
 .env.*.local
+
+# Auto-generated files
+src/build-info.ts

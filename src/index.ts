@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import * as fs from 'node:fs/promises';
-import { parseArgs, getHelpText, getVersion, CLIOptions } from './cli.js';
+import { parseArgs, getHelpText, getVersion, getCopyright, CLIOptions } from './cli.js';
 import { formatError } from './errors.js';
 import { createTempWrapper } from './wrapper.js';
 import { executeTracer, checkDependencies } from './executor.js';
@@ -23,6 +23,11 @@ async function main(): Promise<void> {
   
   if (result.type === 'version') {
     console.log(getVersion());
+    process.exit(0);
+  }
+  
+  if (result.type === 'copyright') {
+    console.log(getCopyright());
     process.exit(0);
   }
   
