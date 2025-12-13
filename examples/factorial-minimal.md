@@ -8,8 +8,8 @@ factorial(3, X)
 
 ## Clauses Defined
 
-1. `factorial(0, 1)`
-2. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
+4. `factorial(0, 1)`
+5. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
 
 ## Search Tree Visualization
 
@@ -19,7 +19,6 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>factorial(3, _1632)"]]
 B("✅ Solved: _1632 = 6")
-C["🔄 Solve: 3>0"]
 D(("🎉 SUCCESS"))
 E["🔄 Solve: _1534 is 3+ -1"]
 F(("🎉 SUCCESS"))
@@ -44,33 +43,31 @@ X(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① _1632 = 6"| B
-B -->|"② done"| C
-C -->|"③ success"| D
-B -->|"④ backtrack"| E
-E -->|"⑤"| F
-B -->|"⑥ backtrack (clause 9)"| G
-G -->|"⑦"| H
-H -->|"⑧"| I
-G -->|"⑨ backtrack"| J
-J -->|"⑩"| K
-G -->|"⑪ backtrack (clause 9)"| L
-L -->|"⑫"| M
-M -->|"⑬"| N
-L -->|"⑭ backtrack"| O
-O -->|"⑮"| P
-L -->|"⑯ backtrack (clause 8)"| Q
-Q -->|"⑰"| R
-L -->|"⑱ backtrack"| S
-S -->|"⑲"| T
-G -->|"⑳ backtrack"| U
-U -->|"(21)"| V
-B -->|"(22) backtrack"| W
-W -->|"(23)"| X
+B -->|"② all done"| D
+B -->|"③"| E
+E -->|"④"| F
+B -->|"⑤ clause 9"| G
+G -->|"⑥"| H
+H -->|"⑦"| I
+G -->|"⑧ backtrack"| J
+J -->|"⑨"| K
+G -->|"⑩ backtrack (clause 9)"| L
+L -->|"⑪"| M
+M -->|"⑫"| N
+L -->|"⑬ backtrack"| O
+O -->|"⑭"| P
+L -->|"⑮ backtrack (clause 8)"| Q
+Q -->|"⑯"| R
+L -->|"⑰ backtrack"| S
+S -->|"⑱"| T
+G -->|"⑲ backtrack"| U
+U -->|"⑳"| V
+B -->|"(21)"| W
+W -->|"(22)"| X
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#c8e6c9,stroke:#388e3c
-style C fill:#fff9c4,stroke:#f57f17
 style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 style E fill:#fff9c4,stroke:#f57f17
 style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
@@ -110,131 +107,125 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 2
 
-**Goal:** `3>0`
-
-**Action:** Solving 3>0
-
-### Step 3
-
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 4
+### Step 3
 
 **Goal:** `_1534 is 3+ -1`
 
 **Action:** Backtracking: _1534 is 3+ -1
 
-### Step 5
+### Step 4
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 6
+### Step 5
 
 **Goal:** `factorial(2,_1460)`
 
 **Action:** Backtracking: factorial(2,_1460)
 
-### Step 7
+### Step 6
 
 **Goal:** `2>0`
 
 **Action:** Solving 2>0
 
-### Step 8
+### Step 7
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 9
+### Step 8
 
 **Goal:** `_1362 is 2+ -1`
 
 **Action:** Solving _1362 is 2+ -1
 
-### Step 10
+### Step 9
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 11
+### Step 10
 
 **Goal:** `factorial(1,_1288)`
 
 **Action:** Solving factorial(1,_1288)
 
-### Step 12
+### Step 11
 
 **Goal:** `1>0`
 
 **Action:** Solving 1>0
 
-### Step 13
+### Step 12
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 14
+### Step 13
 
 **Goal:** `_1190 is 1+ -1`
 
 **Action:** Solving _1190 is 1+ -1
 
-### Step 15
+### Step 14
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 16
+### Step 15
 
 **Goal:** `factorial(0,_1116)`
 
 **Action:** Solving factorial(0,_1116)
 
-### Step 17
+### Step 16
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 18
+### Step 17
 
 **Goal:** `_1030 is 1*1`
 
 **Action:** Solving _1030 is 1*1
 
-### Step 19
+### Step 18
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 20
+### Step 19
 
 **Goal:** `_842 is 2*1`
 
 **Action:** Solving _842 is 2*1
 
-### Step 21
+### Step 20
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 22
+### Step 21
 
 **Goal:** `_654 is 3*2`
 
 **Action:** Backtracking: _654 is 3*2
 
-### Step 23
+### Step 22
 
 **Goal:** `true`
 

@@ -8,9 +8,9 @@ t(0+1+1, B)
 
 ## Clauses Defined
 
-1. `t(0+1, 1+0)`
-2. `t(X+0+1, X+1+0)`
-3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+26. `t(0+1, 1+0)`
+27. `t(X+0+1, X+1+0)`
+28. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
 
 ## Search Tree Visualization
 
@@ -21,27 +21,33 @@ graph TD
 A[["🎯 QUERY<br/>t(0+1+1, _950)"]]
 B("✅ Solved: _950 = 1+1+0")
 C["🔄 🔁 Recurse: t(0+1, _918) [clause 30]"]
-D("✅ Solved: _918 = 1+0")
-E(("🎉 SUCCESS"))
-F["🔄 🔁 Recurse: t(1+0+1, _792) [clause 31]"]
-G(("🎉 SUCCESS"))
+D["📦 Match Clause 30<br/>t(X+0+1, X+1+0)<br/><br/>Unifications:<br/>• _918 = 1+0"]
+E("✅ Solved: _918 = 1+0")
+F(("🎉 SUCCESS"))
+G["📦 Match Clause 27<br/>t(X+0+1, X+1+0)"]
+H["🔄 🔁 Recurse: t(1+0+1, _792) [clause 31]"]
+I(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① _950 = 1+1+0"| B
-B -->|"② clause 30"| C
-C -->|"③ _918 = 1+0"| D
-D -->|"④ all done"| E
-B -->|"⑤ backtrack (clause 31)"| F
-F -->|"⑥"| G
+B -->|"② try"| D
+D -->|"③"| C
+C -->|"④ _918 = 1+0"| E
+E -->|"⑤ all done"| F
+B -->|"⑥ backtrack"| G
+G -->|"⑦ clause 31"| H
+H -->|"⑧"| I
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#c8e6c9,stroke:#388e3c
 style C fill:#fff9c4,stroke:#f57f17
-style D fill:#c8e6c9,stroke:#388e3c
-style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style F fill:#fff9c4,stroke:#f57f17
-style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style D fill:#ffe0b2,stroke:#e65100
+style E fill:#c8e6c9,stroke:#388e3c
+style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style G fill:#ffe0b2,stroke:#e65100
+style H fill:#fff9c4,stroke:#f57f17
+style I fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -58,7 +64,7 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 2
+### Step 3
 
 **Goal:** `t(0+1,_918)`
 
@@ -66,19 +72,19 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 **Clause matched:** `_918 = 1+0`
 
-### Step 4
+### Step 5
 
 **Goal:** `true`
 
 **Action:** Solving true
 
-### Step 5
+### Step 7
 
 **Goal:** `t(1+0+1,_792)`
 
 **Action:** Backtracking: t(1+0+1,_792)
 
-### Step 6
+### Step 8
 
 **Goal:** `true`
 

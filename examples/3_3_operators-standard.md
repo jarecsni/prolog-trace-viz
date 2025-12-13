@@ -8,9 +8,9 @@ t(0+1+1, B)
 
 ## Clauses Defined
 
-1. `t(0+1, 1+0)`
-2. `t(X+0+1, X+1+0)`
-3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+26. `t(0+1, 1+0)`
+27. `t(X+0+1, X+1+0)`
+28. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
 
 ## Search Tree Visualization
 
@@ -31,7 +31,7 @@ A -->|"① _950 = 1+1+0"| B
 B -->|"② clause 30"| C
 C -->|"③ _918 = 1+0"| D
 D -->|"④ all done"| E
-B -->|"⑤ backtrack (clause 31)"| F
+B -->|"⑤ clause 31"| F
 F -->|"⑥"| G
 
 %% Styles

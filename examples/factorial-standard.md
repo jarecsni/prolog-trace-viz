@@ -8,8 +8,8 @@ factorial(3, X)
 
 ## Clauses Defined
 
-1. `factorial(0, 1)`
-2. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
+4. `factorial(0, 1)`
+5. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
 
 ## Search Tree Visualization
 
@@ -46,9 +46,9 @@ X(("🎉 SUCCESS"))
 A -->|"① _1632 = 6"| B
 B -->|"② done"| C
 C -->|"③ success"| D
-B -->|"④ backtrack"| E
+B -->|"④"| E
 E -->|"⑤"| F
-B -->|"⑥ backtrack (clause 9)"| G
+B -->|"⑥ clause 9"| G
 G -->|"⑦"| H
 H -->|"⑧"| I
 G -->|"⑨ backtrack"| J
@@ -64,7 +64,7 @@ L -->|"⑱ backtrack"| S
 S -->|"⑲"| T
 G -->|"⑳ backtrack"| U
 U -->|"(21)"| V
-B -->|"(22) backtrack"| W
+B -->|"(22)"| W
 W -->|"(23)"| X
 
 %% Styles
