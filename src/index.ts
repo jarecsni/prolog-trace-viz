@@ -67,8 +67,8 @@ async function run(options: CLIOptions): Promise<void> {
   logVerbose('Parsing Prolog clauses...', options);
   const clauses = parsePrologFile(prologContent);
   
-  // Get absolute path to tracer.pl
-  const tracerPath = path.resolve(process.cwd(), 'tracer.pl');
+  // Get absolute path to tracer.pl from package installation
+  const tracerPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'tracer.pl');
   
   // Create wrapper (no instrumentation needed)
   logVerbose('Creating tracer wrapper...', options);

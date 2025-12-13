@@ -8,6 +8,10 @@
     "prolog-trace-viz": "dist/index.js",
     "ptv": "dist/index.js"
   },
+  "files": [
+    "dist/",
+    "tracer.pl"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
