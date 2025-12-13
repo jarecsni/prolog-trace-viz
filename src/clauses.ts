@@ -15,15 +15,16 @@ export interface Clause {
  */
 export function parsePrologFile(content: string): Clause[] {
   const clauses: Clause[] = [];
-  let clauseNumber = 1;
   let inBlockComment = false;
   
   // First pass: remove comments, directives, and join multi-line statements
-  const completeStatements: string[] = [];
+  const completeStatements: { text: string; lineNumber: number }[] = [];
   const lines = content.split('\n');
   let currentStatement = '';
+  let statementStartLine = 0;
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
     
     // Handle block comments
@@ -47,20 +48,25 @@ export function parsePrologFile(content: string): Clause[] {
       currentStatement += ' ' + trimmed;
     } else {
       currentStatement = trimmed;
+      statementStartLine = i + 1; // 1-based line numbers
     }
     
     // If line ends with period, we have a complete statement
     if (trimmed.endsWith('.')) {
-      completeStatements.push(currentStatement);
+      completeStatements.push({ text: currentStatement, lineNumber: statementStartLine });
       currentStatement = '';
+      statementStartLine = 0;
     }
   }
   
   // Second pass: parse complete statements into clauses
   for (const statement of completeStatements) {
+    const statementText = statement.text;
+    const lineNumber = statement.lineNumber;
+    
     // Check if it's a rule (has :- but doesn't start with it)
-    if (statement.includes(':-') && !statement.startsWith(':-')) {
-      const parts = statement.split(':-');
+    if (statementText.includes(':-') && !statementText.startsWith(':-')) {
+      const parts = statementText.split(':-');
       const head = parts[0].trim();
       const bodyWithPeriod = parts.slice(1).join(':-').trim();
       const body = bodyWithPeriod.replace(/\.$/, '').trim();
@@ -71,14 +77,14 @@ export function parsePrologFile(content: string): Clause[] {
       }
       
       clauses.push({
-        number: clauseNumber++,
+        number: lineNumber,
         head,
         body,
         text: `${head} :- ${body}`,
       });
     } else {
       // Fact
-      const head = statement.replace(/\.$/, '').trim();
+      const head = statementText.replace(/\.$/, '').trim();
       
       // Only process if it looks like a predicate
       if (!/^[a-z_][a-zA-Z0-9_]*\(/.test(head)) {
@@ -86,7 +92,7 @@ export function parsePrologFile(content: string): Clause[] {
       }
       
       clauses.push({
-        number: clauseNumber++,
+        number: lineNumber,
         head,
         text: head,
       });

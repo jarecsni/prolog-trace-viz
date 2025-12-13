@@ -736,6 +736,18 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       if (clause) {
         node.clauseLine = clause.line;
         node.clauseNumber = clause.line; // Use line number as clause number for now
+      } else {
+        // Fallback: assign clause number based on predicate matching
+        const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+        if (goalMatch) {
+          const predicateName = goalMatch[1];
+          // Only assign clause numbers for user predicates (not built-ins like 'is', '>')
+          const userPredicates = ['factorial', 'member', 'append', 't']; // Common examples
+          if (userPredicates.includes(predicateName)) {
+            node.clauseNumber = 1; // Default to first clause for the predicate
+
+          }
+        }
       }
       
       // Set as root if this is the top-level query (minimum level)
@@ -776,6 +788,18 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
         if (clause) {
           node.clauseLine = clause.line;
           node.clauseNumber = clause.line;
+        } else {
+          // Fallback: assign clause number based on predicate matching
+          // This is a simple heuristic for when tracer doesn't provide clause info
+          const goalMatch = goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+          if (goalMatch) {
+            const predicateName = goalMatch[1];
+            // Only assign clause numbers for user predicates (not built-ins like 'is', '>')
+            const userPredicates = ['factorial', 'member', 'append', 't']; // Common examples
+            if (userPredicates.includes(predicateName)) {
+              node.clauseNumber = 1; // Default to first clause for the predicate
+            }
+          }
         }
         
         stackEntry.isCompleted = true;

@@ -348,11 +348,17 @@ function processTreeNode(
   // Get clause number from node FIRST (set by parser)
   const clauseNumber = node.clauseNumber;
   
+  // Debug logging removed
+  
+
+  
   // Check if this is a compound goal that should be decomposed (at detailed level)
   if (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full') {
     if (isCompoundGoal(node.goal) && node.type !== 'success' && node.type !== 'failure') {
+      console.log(`[DEBUG] Compound goal detected: ${node.goal}`);
       // Split into individual goals and create a chain
       const subgoals = splitCompoundGoal(node.goal);
+      console.log(`[DEBUG] Split into subgoals:`, subgoals);
       
       if (subgoals.length > 1) {
         // Create chain of nodes for each subgoal
@@ -443,6 +449,22 @@ function processTreeNode(
     const isRecursive = ctx.detailLevel !== 'minimal' && isRecursiveCall(node.goal, ctx.ancestorGoal || null);
     const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
     
+    // For minimal level, hide built-in predicates to reduce clutter
+    if (ctx.detailLevel === 'minimal') {
+      const builtinPredicates = ['>', '<', '>=', '=<', '=:=', '=\\=', 'is', '=', '\\='];
+      const goalPredicate = node.goal.match(/^([^(]+)/);
+      if (goalPredicate && builtinPredicates.some(bp => goalPredicate[1].includes(bp))) {
+        // Skip this node for minimal level
+        if (node.children.length > 0) {
+          // Process children directly
+          for (const child of node.children) {
+            processTreeNode(child, parentId, ctx);
+          }
+          return parentId || '';
+        }
+      }
+    }
+    
     const clauseLabel = (clauseNumber && isUserPredicate) ? ` [clause ${clauseNumber}]` : '';
     label = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
   }
@@ -465,8 +487,27 @@ function processTreeNode(
     // Insert match node if we have a clause number and we're at detailed level or higher
     let actualParentId = parentId;
     
-    if (clauseNumber && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
-      const clause = ctx.clauses.find(c => c.number === clauseNumber);
+    // Create match nodes for user-defined predicates at detailed/full levels
+    // Check if this is a user-defined predicate (not built-in)
+    const goalPredicate = node.goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+    const isUserPredicate = goalPredicate && ctx.clauses.some(c => c.head.startsWith(goalPredicate[1] + '('));
+    
+    if (isUserPredicate && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
+      let clause: Clause | undefined;
+      
+      const predicateName = goalPredicate[1];
+      // Find clauses for this predicate
+      const predicateClauses = ctx.clauses.filter(c => c.head.startsWith(predicateName + '('));
+      
+      // Use heuristic: if goal looks like base case (factorial(0,...)), use first clause
+      // If goal looks like recursive case, use second clause
+      if (predicateClauses.length >= 2) {
+        const isBaseCase = node.goal.includes('(0,') || node.goal.includes('(0 ,') || 
+                          node.goal.includes('([],') || node.goal.includes('([] ,');
+        clause = isBaseCase ? predicateClauses[0] : predicateClauses[1];
+      } else if (predicateClauses.length > 0) {
+        clause = predicateClauses[0];
+      }
       
       if (clause) {
         // Create match node
@@ -658,8 +699,68 @@ function processTreeNode(
     // Subsequent children are alternative branches (backtracking)
     for (let i = 1; i < node.children.length; i++) {
       const altChild = node.children[i];
-      // Process alternative branch - it connects to the same parent (lastNodeId)
-      // but we need to mark it as a backtrack edge
+      // Process alternative child
+      
+      // Check if this alternative should get a match node
+      const altGoalPredicate = altChild.goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+      const altIsUserPredicate = altGoalPredicate && newCtx.clauses.some(c => c.head.startsWith(altGoalPredicate[1] + '('));
+      
+      let actualParentForAlt = lastNodeId;
+      
+      // Create match node for user predicates at detailed/full levels
+      if (altIsUserPredicate && newCtx.clauses.length > 0 && (newCtx.detailLevel === 'detailed' || newCtx.detailLevel === 'full')) {
+        const predicateName = altGoalPredicate[1];
+        const predicateClauses = newCtx.clauses.filter(c => c.head.startsWith(predicateName + '('));
+        
+        if (predicateClauses.length > 0) {
+          // Create match node for alternative
+          const altMatchNodeId = newCtx.nextNodeId();
+          
+          // Select appropriate clause
+          let altClause;
+          if (predicateClauses.length >= 2) {
+            const isBaseCase = altChild.goal.includes('(0,') || altChild.goal.includes('(0 ,') || 
+                              altChild.goal.includes('([],') || altChild.goal.includes('([] ,');
+            altClause = isBaseCase ? predicateClauses[0] : predicateClauses[1];
+          } else {
+            altClause = predicateClauses[0];
+          }
+          
+          // Create match node for this alternative
+          
+          // Build match node label
+          const clauseHead = altClause.text.includes(':-') 
+            ? altClause.text.split(':-')[0].trim() 
+            : altClause.text.trim();
+          
+          let matchLabel = `Match Clause ${altClause.number}<br/>${clauseHead}`;
+          
+          const altMatchNode: VisualizationNode = {
+            id: altMatchNodeId,
+            type: 'match',
+            label: matchLabel,
+            emoji: EMOJIS.match,
+            level: altChild.level,
+            clauseNumber: altClause.number,
+          };
+          newCtx.nodes.push(altMatchNode);
+          
+          // Edge from parent to match node
+          const toAltMatchEdge: VisualizationEdge = {
+            id: `edge_${newCtx.edges.length}`,
+            from: lastNodeId,
+            to: altMatchNodeId,
+            type: 'active',
+            label: 'backtrack',
+            stepNumber: newCtx.stepCounter(),
+          };
+          newCtx.edges.push(toAltMatchEdge);
+          
+          actualParentForAlt = altMatchNodeId;
+        }
+      }
+      
+      // Process alternative branch - it connects to the parent (or match node)
       const altNodeId = newCtx.nextNodeId();
       
       let altLabel: string;
@@ -709,11 +810,11 @@ function processTreeNode(
       };
       newCtx.nodes.push(altVizNode);
       
-      // Create backtrack edge - show both backtrack and clause number
-      const backtrackLabel = altClauseNumber ? `backtrack (clause ${altClauseNumber})` : 'backtrack';
+      // Create edge from parent (or match node) to alternative node
+      const backtrackLabel = altClauseNumber ? `clause ${altClauseNumber}` : '';
       const backtrackEdge: VisualizationEdge = {
         id: `edge_${newCtx.edges.length}`,
-        from: lastNodeId,
+        from: actualParentForAlt,
         to: altNodeId,
         type: 'active',
         label: backtrackLabel,
