@@ -49,7 +49,7 @@ export const BUILD_INFO = ${JSON.stringify(buildInfo, null, 2)} as const;
 
 export const COPYRIGHT_NOTICE = \`
 Prolog Trace Visualiser (ptv) v\${BUILD_INFO.version}
-Copyright (c) 2024 Johnny Jarecsni <johnny@recsni.com>
+Copyright (c) 2024 Johnny Jarecsni <johnny.jarecsni@icloud.com>
 
 Licensed under the MIT License.
 Built on \${BUILD_INFO.buildTimestamp} from commit \${BUILD_INFO.gitCommit} (\${BUILD_INFO.gitBranch})
