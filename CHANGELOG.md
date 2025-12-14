@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.1] - 2025-12-14
+## [1.0.2] - 2025-12-13
+
+### Fixed
+- Correct copyright year from 2024 to 2025
+- Remove extra newline at start of copyright notice
 
 ## [1.0.1] - 2025-12-13
 
