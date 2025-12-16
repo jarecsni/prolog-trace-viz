@@ -8,8 +8,8 @@ member(X, [a,b,c])
 
 ## Clauses Defined
 
-4. `member(X, [X|_])`
-5. `member(X, [_|T]) :- member(X, T)`
+**Line 4:** `member(X, [X|_])`
+**Line 5:** `member(X, [_|T]) :- member(X, T)`
 
 ## Search Tree Visualization
 
@@ -17,18 +17,21 @@ member(X, [a,b,c])
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>member(_598, [a, b, c])"]]
-B("✅ Solved: _598 = a")
-C(("🎉 SUCCESS"))
+A[["🎯 QUERY<br/>member(X, [a, b, c])"]]
+B["📦 Match Clause 5<br/>member(X, [_|T])<br/><br/>Unifications:<br/>• X = a"]
+C("✅ Solved: X = a")
+D(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _598 = a"| B
-B -->|"② all done"| C
+A -->|"① try"| B
+A -->|"② X = a"| C
+C -->|"③ all done"| D
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#388e3c
-style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#ffe0b2,stroke:#e65100
+style C fill:#c8e6c9,stroke:#388e3c
+style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -45,7 +48,7 @@ style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 2
+### Step 3
 
 **Goal:** `true`
 

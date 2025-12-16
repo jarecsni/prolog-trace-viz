@@ -8,9 +8,9 @@ t(1+0+1, C)
 
 ## Clauses Defined
 
-1. `t(0+1, 1+0)`
-2. `t(X+0+1, X+1+0)`
-3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+**Line 1:** `t(0+1, 1+0)`
+**Line 2:** `t(X+0+1, X+1+0)`
+**Line 3:** `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
 
 ## Search Tree Visualization
 
@@ -18,12 +18,12 @@ t(1+0+1, C)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(1+0+1, _636)"]]
-B("✅ Solved: _636 = 1+1+0")
+A[["🎯 QUERY<br/>t(1+0+1, C)"]]
+B("✅ Solved: C = 1+1+0")
 C(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _636 = 1+1+0"| B
+A -->|"① C = 1+1+0"| B
 B -->|"② all done"| C
 
 %% Styles

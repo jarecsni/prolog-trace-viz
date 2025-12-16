@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-12-16
+
+### Fixed
+- Fixed Markdown auto-numbering issue in "Clauses Defined" section
+- Clause numbers now display as "**Line X:**" format to prevent Markdown renderers from renumbering them
+- Maintains original source file line numbers in documentation output
+
+## [1.1.0] - 2025-12-14
+
+### Fixed
+- Fixed missing clause matching visualisation for simple facts in detailed and full modes
+- Fixed identical output between detailed and full detail levels - full now shows additional clause type information
+- Improved match node creation for direct fact matches (e.g., `t(0+1, A)`)
+
+### Added
+- Comprehensive test coverage for simple fact matching scenarios
+- Enhanced unification display in match nodes for simple facts
+- Additional clause type information in full detail mode
+
 ## [1.0.2] - 2025-12-14
 
 ## [1.0.2] - 2025-12-13

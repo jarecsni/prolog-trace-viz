@@ -8,9 +8,13 @@ t(0+1+1, B)
 
 ## Clauses Defined
 
-26. `t(0+1, 1+0)`
-27. `t(X+0+1, X+1+0)`
-28. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+**Line 5:** `test1 :- Term = (jimmy plays football and squash), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
+**Line 10:** `test2 :- Term = (susan plays tennis and basketball and volleyball), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
+**Line 19:** `diana was the secretary of the department`
+**Line 20:** `test3 :- Term = (diana was the secretary of the department), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
+**Line 26:** `t(0+1, 1+0)`
+**Line 27:** `t(X+0+1, X+1+0)`
+**Line 28:** `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
 
 ## Search Tree Visualization
 
@@ -18,18 +22,18 @@ t(0+1+1, B)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(0+1+1, _950)"]]
-B("✅ Solved: _950 = 1+1+0")
-C["🔄 Solve: t(0+1, _918) [clause 30]"]
-D("✅ Solved: _918 = 1+0")
+A[["🎯 QUERY<br/>t(0+1+1, B)"]]
+B("✅ Solved: B = 1+1+0")
+C["🔄 Solve: t(0+1, _918) [clause 26]"]
+D("✅ Solved: B = 1+0")
 E(("🎉 SUCCESS"))
-F["🔄 Solve: t(1+0+1, _792) [clause 31]"]
+F["🔄 Solve: t(1+0+1, _792) [clause 28]"]
 G(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _950 = 1+1+0"| B
+A -->|"① B = 1+1+0"| B
 B -->|"② clause 30"| C
-C -->|"③ _918 = 1+0"| D
+C -->|"③ B = 1+0"| D
 D -->|"④ all done"| E
 B -->|"⑤ clause 31"| F
 F -->|"⑥"| G

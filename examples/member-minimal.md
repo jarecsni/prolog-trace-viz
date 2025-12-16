@@ -8,8 +8,8 @@ member(X, [a,b,c])
 
 ## Clauses Defined
 
-4. `member(X, [X|_])`
-5. `member(X, [_|T]) :- member(X, T)`
+**Line 4:** `member(X, [X|_])`
+**Line 5:** `member(X, [_|T]) :- member(X, T)`
 
 ## Search Tree Visualization
 
@@ -17,12 +17,12 @@ member(X, [a,b,c])
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>member(_598, [a, b, c])"]]
-B("✅ Solved: _598 = a")
+A[["🎯 QUERY<br/>member(X, [a, b, c])"]]
+B("✅ Solved: X = a")
 C(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _598 = a"| B
+A -->|"① X = a"| B
 B -->|"② all done"| C
 
 %% Styles

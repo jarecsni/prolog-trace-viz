@@ -3,7 +3,7 @@ import { analyzeTree } from './analyzer.js';
 import { TraceEvent } from './parser.js';
 
 describe('Trace Clause Extraction', () => {
-  it('should extract clauses from trace events instead of parsed clauses', () => {
+  it('should prefer parsed clauses over trace clauses to preserve source variables', () => {
     const traceEvents: TraceEvent[] = [
       {
         port: 'call',
@@ -46,18 +46,18 @@ describe('Trace Clause Extraction', () => {
     };
 
     const parsedClauses = [
-      { number: 1, head: 'wrong(clause)', text: 'wrong(clause)' },
-      { number: 2, head: 'also_wrong(X)', text: 'also_wrong(X)' }
+      { number: 26, head: 't(0+1, 1+0)', text: 't(0+1, 1+0)' },
+      { number: 27, head: 't(X+0+1, X+1+0)', text: 't(X+0+1, X+1+0)' }
     ];
 
     const result = analyzeTree(mockTree, parsedClauses, { detailLevel: 'standard' }, traceEvents);
 
-    // Should use trace clauses, not parsed clauses
+    // Should use parsed clauses to preserve source variable names
     expect(result.clausesUsed).toHaveLength(2);
     expect(result.clausesUsed[0].clauseNumber).toBe(26);
-    expect(result.clausesUsed[0].clauseText).toBe('t(0+1,1+0)');
+    expect(result.clausesUsed[0].clauseText).toBe('t(0+1, 1+0)');
     expect(result.clausesUsed[1].clauseNumber).toBe(27);
-    expect(result.clausesUsed[1].clauseText).toBe('t(_690+0+1,_690+1+0)');
+    expect(result.clausesUsed[1].clauseText).toBe('t(X+0+1, X+1+0)'); // Source variables preserved
   });
 
   it('should handle clauses with bodies correctly', () => {

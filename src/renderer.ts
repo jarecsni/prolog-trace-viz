@@ -140,7 +140,7 @@ function renderClausesUsed(clauses: ClauseUsage[]): string {
   const lines: string[] = [];
   
   for (const clause of clauses) {
-    lines.push(`${clause.clauseNumber}. \`${clause.clauseText}\``);
+    lines.push(`**Line ${clause.clauseNumber}:** \`${clause.clauseText}\``);
   }
   
   return lines.join('\n');

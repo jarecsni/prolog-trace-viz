@@ -8,8 +8,8 @@ append([1,2], [3,4], X)
 
 ## Clauses Defined
 
-4. `append([], L, L)`
-5. `append([H|T], L, [H|R]) :- append(T, L, R)`
+**Line 4:** `append([], L, L)`
+**Line 5:** `append([H|T], L, [H|R]) :- append(T, L, R)`
 
 ## Search Tree Visualization
 
@@ -17,20 +17,20 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>append([1, 2], [3, 4], _1056)"]]
-B("✅ Solved: _1056 = [1,2,3,4]")
-C["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 9]"]
-D("✅ Solved: _1010 = [2,3,4]")
-E["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 8]"]
-F("✅ Solved: _970 = [3,4]")
+A[["🎯 QUERY<br/>append([1, 2], [3, 4], X)"]]
+B("✅ Solved: X = [1,2,3,4]")
+C["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 5]"]
+D("✅ Solved: X = [2,3,4]")
+E["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 4]"]
+F("✅ Solved: X = [3,4]")
 G(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _1056 = [1,2,3,4]"| B
+A -->|"① X = [1,2,3,4]"| B
 B -->|"② clause 9"| C
-C -->|"③ _1010 = [2,3,4]"| D
+C -->|"③ X = [2,3,4]"| D
 D -->|"④ clause 8"| E
-E -->|"⑤ _970 = [3,4]"| F
+E -->|"⑤ X = [3,4]"| F
 F -->|"⑥ all done"| G
 
 %% Styles

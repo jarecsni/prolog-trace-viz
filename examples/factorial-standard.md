@@ -8,8 +8,8 @@ factorial(3, X)
 
 ## Clauses Defined
 
-4. `factorial(0, 1)`
-5. `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
+**Line 4:** `factorial(0, 1)`
+**Line 5:** `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
 
 ## Search Tree Visualization
 
@@ -17,23 +17,23 @@ factorial(3, X)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>factorial(3, _1632)"]]
-B("✅ Solved: _1632 = 6")
+A[["🎯 QUERY<br/>factorial(3, X)"]]
+B("✅ Solved: X = 6")
 C["🔄 Solve: 3>0"]
 D(("🎉 SUCCESS"))
 E["🔄 Solve: _1534 is 3+ -1"]
 F(("🎉 SUCCESS"))
-G["🔄 🔁 Recurse: factorial(2, _1460) [clause 9]"]
+G["🔄 🔁 Recurse: factorial(2, _1460) [clause 5]"]
 H["🔄 Solve: 2>0"]
 I(("🎉 SUCCESS"))
 J["🔄 Solve: _1362 is 2+ -1"]
 K(("🎉 SUCCESS"))
-L["🔄 🔁 Recurse: factorial(1, _1288) [clause 9]"]
+L["🔄 🔁 Recurse: factorial(1, _1288) [clause 5]"]
 M["🔄 Solve: 1>0"]
 N(("🎉 SUCCESS"))
 O["🔄 Solve: _1190 is 1+ -1"]
 P(("🎉 SUCCESS"))
-Q["🔄 🔁 Recurse: factorial(0, _1116) [clause 8]"]
+Q["🔄 🔁 Recurse: factorial(0, _1116) [clause 4]"]
 R(("🎉 SUCCESS"))
 S["🔄 Solve: _1030 is 1*1"]
 T(("🎉 SUCCESS"))
@@ -43,7 +43,7 @@ W["🔄 Solve: _654 is 3*2"]
 X(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _1632 = 6"| B
+A -->|"① X = 6"| B
 B -->|"② done"| C
 C -->|"③ success"| D
 B -->|"④"| E

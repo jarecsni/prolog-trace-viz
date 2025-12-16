@@ -8,9 +8,9 @@ t(1+0+1, C)
 
 ## Clauses Defined
 
-1. `t(0+1, 1+0)`
-2. `t(X+0+1, X+1+0)`
-3. `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+**Line 1:** `t(0+1, 1+0)`
+**Line 2:** `t(X+0+1, X+1+0)`
+**Line 3:** `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
 
 ## Search Tree Visualization
 
@@ -18,18 +18,21 @@ t(1+0+1, C)
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(1+0+1, _636)"]]
-B("✅ Solved: _636 = 1+1+0")
-C(("🎉 SUCCESS"))
+A[["🎯 QUERY<br/>t(1+0+1, C)"]]
+B["📦 Match Clause 3<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• C = 1+1+0<br/><br/>Subgoals:<br/>1. t(X+1, X1)<br/>2. t(X1+1, Z)"]
+C("✅ Solved: C = 1+1+0")
+D(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① _636 = 1+1+0"| B
-B -->|"② all done"| C
+A -->|"① try"| B
+A -->|"② C = 1+1+0"| C
+C -->|"③ all done"| D
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#388e3c
-style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#ffe0b2,stroke:#e65100
+style C fill:#c8e6c9,stroke:#388e3c
+style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -46,7 +49,7 @@ style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 2
+### Step 3
 
 **Goal:** `true`
 

@@ -45,6 +45,8 @@ export type DetailLevel = 'minimal' | 'standard' | 'detailed' | 'full';
 /**
  * Extracts clause definitions from raw trace events.
  * This uses the actual clauses that SWI-Prolog worked with during execution.
+ * Note: These clauses contain runtime variable names and should only be used
+ * as a fallback when original parsed clauses are not available.
  */
 function extractClausesFromTraceEvents(traceEvents: TraceEvent[]): Clause[] {
   const clauseMap = new Map<string, Clause>();
@@ -98,6 +100,95 @@ const EMOJIS = {
 };
 
 import { Clause } from './clauses.js';
+
+/**
+ * Maps runtime variable names back to source variable names based on the original query.
+ */
+function mapRuntimeVariablesToSource(unifications: { variable: string; value: string }[], originalQuery: string): string[] {
+  // Extract variables from the original query
+  const queryVars = extractVariablesFromGoal(originalQuery);
+  
+  return unifications.map(u => {
+    // Try to find a corresponding source variable
+    // For now, use a simple heuristic: if there's only one variable in the query, map to it
+    if (queryVars.length === 1) {
+      return `${queryVars[0]} = ${u.value}`;
+    }
+    
+    // For multiple variables, we'd need more sophisticated mapping
+    // For now, just use the runtime variable name
+    return `${u.variable} = ${u.value}`;
+  });
+}
+
+/**
+ * Maps runtime variables in a goal string to source variables.
+ */
+function mapGoalVariablesToSource(goal: string, originalQuery: string): string {
+  const queryVars = extractVariablesFromGoal(originalQuery);
+  
+  if (queryVars.length === 1) {
+    // Replace any runtime variable with the source variable
+    return goal.replace(/_\d+/g, queryVars[0]);
+  }
+  
+  // For multiple variables, return as-is for now
+  return goal;
+}
+
+/**
+ * Finds a matching clause from the parsed clauses based on predicate structure.
+ * This helps match trace events (which have runtime variables and different line numbers)
+ * with the original source clauses (which have source variables and correct line numbers).
+ */
+function findMatchingClause(goal: string, parsedClauses: Clause[], traceClause?: { head: string; body?: string; line: number }): Clause | undefined {
+  const goalPredicate = goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+  if (!goalPredicate) return undefined;
+  
+  const predicateName = goalPredicate[1];
+  
+  // Find all clauses for this predicate
+  const predicateClauses = parsedClauses.filter(c => c.head.startsWith(predicateName + '('));
+  
+  if (predicateClauses.length === 0) return undefined;
+  if (predicateClauses.length === 1) return predicateClauses[0];
+  
+  // For multiple clauses, use heuristics to pick the right one
+  // If we have trace clause info, try to match by structure
+  if (traceClause) {
+    // Check if it's a fact (no body) vs rule (has body)
+    const traceIsRule = traceClause.body && traceClause.body !== 'true';
+    
+    for (const clause of predicateClauses) {
+      const clauseIsRule = clause.body !== undefined;
+      if (traceIsRule === clauseIsRule) {
+        return clause;
+      }
+    }
+  }
+  
+  // Fallback: use goal structure heuristics
+  const isBaseCase = goal.includes('(0,') || goal.includes('(0 ,') || 
+                    goal.includes('([],') || goal.includes('([] ,') ||
+                    goal.includes('(0+') || goal.includes('(0 +');
+  
+  // For base cases, prefer the first clause (usually the base case)
+  // For recursive cases, prefer later clauses
+  return isBaseCase ? predicateClauses[0] : predicateClauses[predicateClauses.length - 1];
+}
+
+/**
+ * Extracts variable names from a Prolog goal.
+ */
+function extractVariablesFromGoal(goal: string): string[] {
+  const variables: string[] = [];
+  const matches = goal.match(/\b[A-Z][A-Za-z0-9_]*\b/g);
+  if (matches) {
+    // Remove duplicates
+    return [...new Set(matches)];
+  }
+  return variables;
+}
 
 /**
  * Extracts unification details by matching a goal against a clause.
@@ -216,13 +307,15 @@ export function analyzeTree(
   root: ExecutionNode,
   clauses: Clause[] = [],
   options: AnalysisOptions = {},
-  traceEvents: TraceEvent[] = []
+  traceEvents: TraceEvent[] = [],
+  originalQuery?: string
 ): AnalysisResult {
   const detailLevel = options.detailLevel || 'standard';
   
-  // Extract clauses from trace events instead of using parsed clauses
+  // Always prefer original parsed clauses to preserve source variable names
+  // Only use trace-extracted clauses as a fallback if no parsed clauses are available
   const traceClauses = extractClausesFromTraceEvents(traceEvents);
-  const actualClauses = traceClauses.length > 0 ? traceClauses : clauses;
+  const actualClauses = clauses.length > 0 ? clauses : traceClauses;
   const nodes: VisualizationNode[] = [];
   const edges: VisualizationEdge[] = [];
   const pendingGoalMap = new Map<string, string>(); // goal text -> node id
@@ -275,6 +368,7 @@ export function analyzeTree(
     clauses: actualClauses,
     detailLevel,
     finalAnswer,
+    originalQuery,
   });
   
   // Clause usage tracking - since we can't reliably determine which clauses were used,
@@ -308,6 +402,7 @@ interface ProcessContext {
   ancestorGoal?: string; // Track parent goal for recursion detection
   detailLevel: DetailLevel;
   finalAnswer?: string; // Final answer to show in success node
+  originalQuery?: string; // Original query for variable mapping
 }
 
 /**
@@ -378,7 +473,8 @@ function matchesPendingGoal(goal: string, pendingGoal: string, fuzzy: boolean = 
 function processTreeNode(
   node: ExecutionNode,
   parentId: string | null,
-  ctx: ProcessContext
+  ctx: ProcessContext,
+  parentExecutionNode?: ExecutionNode
 ): string {
   // Get clause number from node FIRST (set by parser)
   const clauseNumber = node.clauseNumber;
@@ -431,7 +527,7 @@ function processTreeNode(
         // Process children from the last subgoal node
         if (node.children.length > 0) {
           for (const child of node.children) {
-            processTreeNode(child, currentParentId, ctx);
+            processTreeNode(child, currentParentId, ctx, node);
           }
         }
         
@@ -449,8 +545,9 @@ function processTreeNode(
   
   if (node.level === 0 || node.type === 'query') {
     nodeType = 'query';
-    // Add space after commas and format with QUERY label and line break
-    const formattedGoal = node.goal.replace(/,(?!\s)/g, ', ');
+    // Use original query for display to show source variables
+    const displayGoal = ctx.originalQuery || node.goal;
+    const formattedGoal = displayGoal.replace(/,(?!\s)/g, ', ');
     label = `QUERY<br/>${formattedGoal}`;
   } else if (node.type === 'success') {
     nodeType = 'success';
@@ -493,14 +590,23 @@ function processTreeNode(
         if (node.children.length > 0) {
           // Process children directly
           for (const child of node.children) {
-            processTreeNode(child, parentId, ctx);
+            processTreeNode(child, parentId, ctx, node);
           }
           return parentId || '';
         }
       }
     }
     
-    const clauseLabel = (clauseNumber && isUserPredicate) ? ` [clause ${clauseNumber}]` : '';
+    // Map trace clause number to parsed clause number for display
+    let displayClauseNumber = clauseNumber;
+    if (clauseNumber && isUserPredicate && ctx.clauses.length > 0) {
+      const matchedClause = findMatchingClause(node.goal, ctx.clauses);
+      if (matchedClause) {
+        displayClauseNumber = matchedClause.number;
+      }
+    }
+    
+    const clauseLabel = (displayClauseNumber && isUserPredicate) ? ` [clause ${displayClauseNumber}]` : '';
     label = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
   }
   
@@ -524,25 +630,33 @@ function processTreeNode(
     
     // Create match nodes for user-defined predicates at detailed/full levels
     // Check if this is a user-defined predicate (not built-in)
-    const goalPredicate = node.goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+    // For simple facts, we need to check the parent's goal, not the current node's goal
+    let goalToCheck = node.goal;
+    let clauseNumberToUse = clauseNumber;
+    let unificationsSource = node;
+    
+    // If this is a success node and parent is query, use parent's goal for matching
+    if (node.type === 'success' && parentNode?.type === 'query') {
+      goalToCheck = parentNode.label.replace('QUERY<br/>', '');
+      clauseNumberToUse = clauseNumber || parentNode.clauseNumber;
+      // For unifications, we need to find the original ExecutionNode, not the VisualizationNode
+      // We'll handle this in the unification extraction below
+    }
+    
+    // Also handle the case where we'll create a solved node from a query node with binding
+    if (node.binding && node.type !== 'success' && node.level > 0 && parentNode?.type === 'query') {
+      goalToCheck = parentNode.label.replace('QUERY<br/>', '');
+      clauseNumberToUse = clauseNumber || parentNode.clauseNumber;
+    }
+    
+    const goalPredicate = goalToCheck.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
     const isUserPredicate = goalPredicate && ctx.clauses.some(c => c.head.startsWith(goalPredicate[1] + '('));
     
-    if (isUserPredicate && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full')) {
+    if (isUserPredicate && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full') && clauseNumberToUse) {
       let clause: Clause | undefined;
       
-      const predicateName = goalPredicate[1];
-      // Find clauses for this predicate
-      const predicateClauses = ctx.clauses.filter(c => c.head.startsWith(predicateName + '('));
-      
-      // Use heuristic: if goal looks like base case (factorial(0,...)), use first clause
-      // If goal looks like recursive case, use second clause
-      if (predicateClauses.length >= 2) {
-        const isBaseCase = node.goal.includes('(0,') || node.goal.includes('(0 ,') || 
-                          node.goal.includes('([],') || node.goal.includes('([] ,');
-        clause = isBaseCase ? predicateClauses[0] : predicateClauses[1];
-      } else if (predicateClauses.length > 0) {
-        clause = predicateClauses[0];
-      }
+      // Find matching clause using improved matching logic
+      clause = findMatchingClause(goalToCheck, ctx.clauses);
       
       if (clause) {
         // Create match node
@@ -550,12 +664,22 @@ function processTreeNode(
         
         // Use unifications from node if available, otherwise try to extract them
         let unifications: string[];
-        if (node.unifications && node.unifications.length > 0) {
-          // Use accurate unifications from tracer
-          unifications = node.unifications.map(u => `${u.variable} = ${u.value}`);
+        
+        // For simple facts where success/solved node connects to query node, 
+        // we need to get unifications from the parent ExecutionNode
+        if ((node.type === 'success' || node.binding) && parentNode?.type === 'query' && parentExecutionNode?.unifications) {
+          // Use unifications from the parent ExecutionNode and map to source variables
+          unifications = ctx.originalQuery ? 
+            mapRuntimeVariablesToSource(parentExecutionNode.unifications, ctx.originalQuery) :
+            parentExecutionNode.unifications.map(u => `${u.variable} = ${u.value}`);
+        } else if (node.unifications && node.unifications.length > 0) {
+          // Use accurate unifications from tracer and map to source variables
+          unifications = ctx.originalQuery ?
+            mapRuntimeVariablesToSource(node.unifications, ctx.originalQuery) :
+            node.unifications.map(u => `${u.variable} = ${u.value}`);
         } else {
           // Fallback to extraction (for backward compatibility)
-          unifications = extractUnifications(node.goal, clause);
+          unifications = extractUnifications(goalToCheck, clause);
         }
         
         const subgoals = extractSubgoals(clause);
@@ -565,23 +689,8 @@ function processTreeNode(
           ? clause.text.split(':-')[0].trim() 
           : clause.text.trim();
         
-        // Find the clause from our trace-extracted clauses that matches the tracer's clause info
-        const matchingParsedClause = ctx.clauses.find((c: Clause) => {
-          // If we have clause line info from tracer, match by line number
-          if (node.clauseLine) {
-            return c.number === node.clauseLine;
-          }
-          // Fallback: match by predicate name and clause content
-          if (clause) {
-            return c.head === clause.head || c.text === clause.text;
-          }
-          // Final fallback: match by predicate name
-          const predicateName = node.goal.split('(')[0];
-          const clausePredicateName = c.head.split('(')[0];
-          return clausePredicateName === predicateName;
-        });
-        
-        const displayClauseNumber = matchingParsedClause ? matchingParsedClause.number : clauseNumber;
+        // Use the clause number from the matched parsed clause
+        const displayClauseNumber = clause.number;
         let matchLabel = `Match Clause ${displayClauseNumber}<br/>${clauseHead}`;
         
         if (unifications.length > 0) {
@@ -708,10 +817,85 @@ function processTreeNode(
   
   // If this node has a binding (and it's not a success node), create a solved node FIRST
   // The solved node goes BETWEEN this solving node and its child
-  if (node.binding && node.type !== 'success' && node.level > 0) {
+  if (node.binding && node.type !== 'success' && node.level >= 0) {
+    
+    // Before creating the solved node, check if we need a match node for simple facts
+    // This handles the case where query -> solved (no intermediate solving node)
+    if (node.type === 'query') {
+      const goalPredicate = node.goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
+      const isUserPredicate = goalPredicate && ctx.clauses.some(c => c.head.startsWith(goalPredicate[1] + '('));
+      
+      if (isUserPredicate && ctx.clauses.length > 0 && (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full') && node.clauseNumber) {
+        // Find matching clause using improved matching logic
+        const clause = findMatchingClause(node.goal, ctx.clauses);
+        
+        if (clause) {
+          // Create match node
+          const matchNodeId = ctx.nextNodeId();
+          
+          // Use unifications from the query node
+          let unifications: string[] = [];
+          if (node.unifications && node.unifications.length > 0) {
+            unifications = ctx.originalQuery ?
+              mapRuntimeVariablesToSource(node.unifications, ctx.originalQuery) :
+              node.unifications.map(u => `${u.variable} = ${u.value}`);
+          } else {
+            unifications = extractUnifications(node.goal, clause);
+          }
+          
+          const clauseHead = clause.text.includes(':-') 
+            ? clause.text.split(':-')[0].trim() 
+            : clause.text.trim();
+          
+          let matchLabel = `Match Clause ${clause.number}<br/>${clauseHead}`;
+          
+          if (unifications.length > 0) {
+            matchLabel += '<br/><br/>Unifications:<br/>' + unifications.map(u => `• ${u}`).join('<br/>');
+          }
+          
+          // Add extra information for full level
+          if (ctx.detailLevel === 'full') {
+            const subgoals = extractSubgoals(clause);
+            if (subgoals.length > 0) {
+              matchLabel += '<br/><br/>Subgoals:<br/>' + subgoals.map((sg, i) => `${i + 1}. ${sg}`).join('<br/>');
+            } else {
+              // For facts (no subgoals), show clause type information
+              matchLabel += '<br/><br/>Clause Type: Fact (no body)';
+            }
+          }
+          
+          const matchNode: VisualizationNode = {
+            id: matchNodeId,
+            type: 'match',
+            label: matchLabel,
+            emoji: EMOJIS.match,
+            level: node.level,
+            clauseNumber: node.clauseNumber || clause.number,
+          };
+          ctx.nodes.push(matchNode);
+          
+          // Edge from query to match node
+          const toMatchEdge: VisualizationEdge = {
+            id: `edge_${ctx.edges.length}`,
+            from: nodeId,
+            to: matchNodeId,
+            type: 'active',
+            label: 'try',
+            stepNumber: ctx.stepCounter(),
+          };
+          ctx.edges.push(toMatchEdge);
+          
+          // Update lastNodeId to point to match node
+          lastNodeId = matchNodeId;
+        }
+      }
+    }
     const solvedId = ctx.nextNodeId();
-    // Convert binding from X/value to X = value format
-    const formattedBinding = node.binding.replace(/([^/]+)\/(.+)/, '$1 = $2');
+    // Convert binding from X/value to X = value format and map variables to source
+    let formattedBinding = node.binding.replace(/([^/]+)\/(.+)/, '$1 = $2');
+    if (ctx.originalQuery) {
+      formattedBinding = mapGoalVariablesToSource(formattedBinding, ctx.originalQuery);
+    }
     const solvedNode: VisualizationNode = {
       id: solvedId,
       type: 'solved',
@@ -746,7 +930,7 @@ function processTreeNode(
   // The first child is the path taken, subsequent children are backtrack alternatives
   if (node.children.length > 1) {
     // First child is the main execution path
-    const mainChildId = processTreeNode(node.children[0], lastNodeId, newCtx);
+    const mainChildId = processTreeNode(node.children[0], lastNodeId, newCtx, node);
     
     // Subsequent children are alternative branches (backtracking)
     for (let i = 1; i < node.children.length; i++) {
@@ -761,22 +945,12 @@ function processTreeNode(
       
       // Create match node for user predicates at detailed/full levels
       if (altIsUserPredicate && newCtx.clauses.length > 0 && (newCtx.detailLevel === 'detailed' || newCtx.detailLevel === 'full')) {
-        const predicateName = altGoalPredicate[1];
-        const predicateClauses = newCtx.clauses.filter(c => c.head.startsWith(predicateName + '('));
+        // Find matching clause using improved matching logic
+        const altClause = findMatchingClause(altChild.goal, newCtx.clauses);
         
-        if (predicateClauses.length > 0) {
+        if (altClause) {
           // Create match node for alternative
           const altMatchNodeId = newCtx.nextNodeId();
-          
-          // Select appropriate clause
-          let altClause;
-          if (predicateClauses.length >= 2) {
-            const isBaseCase = altChild.goal.includes('(0,') || altChild.goal.includes('(0 ,') || 
-                              altChild.goal.includes('([],') || altChild.goal.includes('([] ,');
-            altClause = isBaseCase ? predicateClauses[0] : predicateClauses[1];
-          } else {
-            altClause = predicateClauses[0];
-          }
           
           // Create match node for this alternative
           
@@ -785,23 +959,8 @@ function processTreeNode(
             ? altClause.text.split(':-')[0].trim() 
             : altClause.text.trim();
           
-          // Find the clause from our trace-extracted clauses that matches the tracer's clause info
-          const matchingParsedClause = ctx.clauses.find((c: Clause) => {
-            // If we have clause line info from tracer, match by line number
-            if (altChild.clauseLine) {
-              return c.number === altChild.clauseLine;
-            }
-            // Fallback: match by predicate name and clause content
-            if (altClause) {
-              return c.head === altClause.head || c.text === altClause.text;
-            }
-            // Final fallback: match by predicate name
-            const predicateName = altChild.goal.split('(')[0];
-            const clausePredicateName = c.head.split('(')[0];
-            return clausePredicateName === predicateName;
-          });
-          
-          const displayClauseNumber = matchingParsedClause ? matchingParsedClause.number : altClause.number;
+          // Use the clause number from the matched parsed clause
+          const displayClauseNumber = altClause.number;
           let matchLabel = `Match Clause ${displayClauseNumber}<br/>${clauseHead}`;
           
           const altMatchNode: VisualizationNode = {
@@ -865,7 +1024,16 @@ function processTreeNode(
         const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(altChild.goal) && !hasTopLevelComma;
         const isRecursive = newCtx.detailLevel !== 'minimal' && isRecursiveCall(altChild.goal, newCtx.ancestorGoal || null);
         const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
-        const clauseLabel = (altClauseNumber && isUserPredicate) ? ` [clause ${altClauseNumber}]` : '';
+        // Map trace clause number to parsed clause number for display
+        let displayAltClauseNumber = altClauseNumber;
+        if (altClauseNumber && isUserPredicate && newCtx.clauses.length > 0) {
+          const matchedAltClause = findMatchingClause(altChild.goal, newCtx.clauses);
+          if (matchedAltClause) {
+            displayAltClauseNumber = matchedAltClause.number;
+          }
+        }
+        
+        const clauseLabel = (displayAltClauseNumber && isUserPredicate) ? ` [clause ${displayAltClauseNumber}]` : '';
         altLabel = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
       }
       
@@ -906,7 +1074,7 @@ function processTreeNode(
     return mainChildId;
   } else if (node.children.length === 1) {
     // Single child - sequential execution
-    const childId = processTreeNode(node.children[0], lastNodeId, newCtx);
+    const childId = processTreeNode(node.children[0], lastNodeId, newCtx, node);
     return childId;
   }
   
@@ -953,7 +1121,16 @@ function processAlternativeBranch(
       childType = 'solving';
       const isRecursive = newCtx.detailLevel !== 'minimal' && isRecursiveCall(child.goal, newCtx.ancestorGoal || null);
       const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
-      const clauseLabel = childClauseNumber ? ` [clause ${childClauseNumber}]` : '';
+      // Map trace clause number to parsed clause number for display
+      let displayChildClauseNumber = childClauseNumber;
+      if (childClauseNumber && newCtx.clauses.length > 0) {
+        const matchedChildClause = findMatchingClause(child.goal, newCtx.clauses);
+        if (matchedChildClause) {
+          displayChildClauseNumber = matchedChildClause.number;
+        }
+      }
+      
+      const clauseLabel = displayChildClauseNumber ? ` [clause ${displayChildClauseNumber}]` : '';
       childLabel = `${recursivePrefix}${child.goal.replace(/,(?!\s)/g, ', ')}${clauseLabel}`;
     }
     
