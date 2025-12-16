@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.1] - 2025-12-16
 
+## [1.1.1] - 2025-12-16
+
 ### Fixed
 - Fixed Markdown auto-numbering issue in "Clauses Defined" section
 - Clause numbers now display as "**Line X:**" format to prevent Markdown renderers from renumbering them
