@@ -26,6 +26,9 @@ clear_trace :-
 %  Hook predicate that intercepts trace events
 user:prolog_trace_interception(Port, Frame, _Choice, continue) :-
     trace_active,
+    % Don't trace our own operations
+    prolog_frame_attribute(Frame, goal, Goal),
+    \+ is_tracer_goal(Goal),
     !,
     catch(
         capture_trace_event(Port, Frame),
@@ -33,6 +36,23 @@ user:prolog_trace_interception(Port, Frame, _Choice, continue) :-
         handle_trace_error(Error, Port, Frame)
     ).
 user:prolog_trace_interception(_, _, _, continue).
+
+%% is_tracer_goal(+Goal)
+%  Check if a goal is part of the tracer infrastructure
+is_tracer_goal(Goal) :-
+    functor(Goal, Functor, _),
+    tracer_predicate(Functor).
+
+tracer_predicate(trace_event).
+tracer_predicate(call_goal).
+tracer_predicate(assertz).
+tracer_predicate(retract).
+tracer_predicate(retractall).
+tracer_predicate(findall).
+tracer_predicate(format).
+tracer_predicate(write).
+tracer_predicate(open).
+tracer_predicate(close).
 
 %% handle_trace_error(+Error, +Port, +Frame)
 %  Handle errors during trace event capture
@@ -64,7 +84,7 @@ capture_trace_event(Port, Frame) :-
     % Extract clause information
     extract_clause_info(Frame, Goal, ClauseInfo),
     
-    % Record the event
+    % Record the event - keep it simple for now
     assertz(trace_event(event(Port, Level, Goal, Arguments, ClauseInfo, Predicate))).
 
 %% extract_frame_arguments(+Frame, +Arity, -Arguments)
@@ -152,6 +172,31 @@ write_json_event(Stream, event(Port, Level, Goal, Arguments, ClauseInfo, Predica
     ),
     
     format(Stream, '}', []).
+
+%% write_json_unifications(+Stream, +Unifications)
+%  Write unifications as JSON array
+write_json_unifications(Stream, Unifications) :-
+    write(Stream, '['),
+    write_json_unification_items(Stream, Unifications),
+    write(Stream, ']').
+
+%% write_json_unification_items(+Stream, +Items)
+%  Write unification items with comma separation
+write_json_unification_items(_, []).
+write_json_unification_items(Stream, [unification(Var, Value)]) :-
+    !,
+    format(Stream, '{"variable": ', []),
+    write_json_string(Stream, Var),
+    format(Stream, ', "value": ', []),
+    write_json_string(Stream, Value),
+    format(Stream, '}', []).
+write_json_unification_items(Stream, [unification(Var, Value)|Rest]) :-
+    format(Stream, '{"variable": ', []),
+    write_json_string(Stream, Var),
+    format(Stream, ', "value": ', []),
+    write_json_string(Stream, Value),
+    format(Stream, '}, ', []),
+    write_json_unification_items(Stream, Rest).
 
 %% write_json_term(+Stream, +Term)
 %  Write a Prolog term as JSON string

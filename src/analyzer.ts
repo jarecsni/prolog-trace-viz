@@ -108,15 +108,41 @@ function mapRuntimeVariablesToSource(unifications: { variable: string; value: st
   // Extract variables from the original query
   const queryVars = extractVariablesFromGoal(originalQuery);
   
-  return unifications.map(u => {
-    // Try to find a corresponding source variable
-    // For now, use a simple heuristic: if there's only one variable in the query, map to it
+  return unifications.map((u, index) => {
+    // For single variable queries, map the first unification to the query variable
     if (queryVars.length === 1) {
       return `${queryVars[0]} = ${u.value}`;
     }
     
-    // For multiple variables, we'd need more sophisticated mapping
-    // For now, just use the runtime variable name
+    // For multiple variables, try to map by position
+    if (index < queryVars.length) {
+      return `${queryVars[index]} = ${u.value}`;
+    }
+    
+    // Fallback: use the runtime variable name
+    return `${u.variable} = ${u.value}`;
+  });
+}
+
+/**
+ * Maps runtime variable names back to the variables in the specific goal being matched.
+ */
+function mapRuntimeVariablesToGoal(unifications: { variable: string; value: string }[], goal: string): string[] {
+  // Extract variables from the specific goal
+  const goalVars = extractVariablesFromGoal(goal);
+  
+  return unifications.map((u, index) => {
+    // For single variable goals, map the first unification to the goal variable
+    if (goalVars.length === 1) {
+      return `${goalVars[0]} = ${u.value}`;
+    }
+    
+    // For multiple variables, try to map by position
+    if (index < goalVars.length) {
+      return `${goalVars[index]} = ${u.value}`;
+    }
+    
+    // Fallback: use the runtime variable name
     return `${u.variable} = ${u.value}`;
   });
 }
@@ -311,14 +337,56 @@ function extractUnifications(goal: string, clause: Clause): string[] {
     
     // If clause arg is a variable (starts with uppercase or _)
     if (/^[A-Z_]/.test(clauseArg)) {
-      unifications.push(`${clauseArg} = ${goalArg}`);
+      // For runtime variables like _918, try to map back to original query variables
+      let displayValue = goalArg;
+      if (goalArg.match(/^_\d+$/)) {
+        // This is a runtime variable, try to find the original query variable
+        // For now, keep the runtime variable as it shows what actually happened
+        displayValue = goalArg;
+      }
+      unifications.push(`${clauseArg} = ${displayValue}`);
     } else if (goalArg !== clauseArg) {
-      // If they're different, show the unification
-      unifications.push(`${goalArg} = ${clauseArg}`);
+      // For complex expressions, try to extract the variable part
+      // E.g., from "0+1+1" vs "X+1+1", extract "X = 0"
+      const varMatch = extractVariableFromExpression(goalArg, clauseArg);
+      if (varMatch) {
+        unifications.push(varMatch);
+      } else {
+        // Fallback: show the full expression
+        unifications.push(`${clauseArg} = ${goalArg}`);
+      }
     }
   }
   
   return unifications;
+}
+
+/**
+ * Extracts variable unification from two expressions.
+ * E.g., from "0+1+1" and "X+1+1", extracts "X = 0"
+ */
+function extractVariableFromExpression(goalExpr: string, clauseExpr: string): string | null {
+  // Handle the specific case of arithmetic expressions
+  // Pattern: "0+1+1" vs "X+1+1" should give "X = 0"
+  
+  // Check if both expressions have the same structure with one variable difference
+  if (goalExpr.includes('+') && clauseExpr.includes('+')) {
+    // For expressions like "0+1+1" vs "X+1+1"
+    const goalMatch = goalExpr.match(/^(\w+)\+(.+)$/);
+    const clauseMatch = clauseExpr.match(/^([A-Z_]\w*)\+(.+)$/);
+    
+    if (goalMatch && clauseMatch) {
+      const [, goalFirst, goalRest] = goalMatch;
+      const [, clauseVar, clauseRest] = clauseMatch;
+      
+      // If the rest matches and clause has a variable, goal has a value
+      if (goalRest === clauseRest && /^[A-Z_]/.test(clauseVar)) {
+        return `${clauseVar} = ${goalFirst}`;
+      }
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -773,7 +841,7 @@ function processTreeNode(
     // Create match nodes for user-defined predicates at detailed/full levels
     // Check if this is a user-defined predicate (not built-in)
     // For simple facts, we need to check the parent's goal, not the current node's goal
-    let goalToCheck = node.goal;
+    let goalToCheck = node.goal;  // Use the ACTUAL goal being processed, not the original query
     let clauseNumberToUse = clauseNumber;
     let unificationsSource = node;
     
@@ -804,25 +872,11 @@ function processTreeNode(
         // Create match node
         const matchNodeId = ctx.nextNodeId();
         
-        // Use unifications from node if available, otherwise try to extract them
+        // Extract unifications by matching goal against clause head
         let unifications: string[];
         
-        // For simple facts where success/solved node connects to query node, 
-        // we need to get unifications from the parent ExecutionNode
-        if ((node.type === 'success' || node.binding) && parentNode?.type === 'query' && parentExecutionNode?.unifications) {
-          // Use unifications from the parent ExecutionNode and map to source variables
-          unifications = ctx.originalQuery ? 
-            mapRuntimeVariablesToSource(parentExecutionNode.unifications, ctx.originalQuery) :
-            parentExecutionNode.unifications.map(u => `${u.variable} = ${u.value}`);
-        } else if (node.unifications && node.unifications.length > 0) {
-          // Use accurate unifications from tracer and map to source variables
-          unifications = ctx.originalQuery ?
-            mapRuntimeVariablesToSource(node.unifications, ctx.originalQuery) :
-            node.unifications.map(u => `${u.variable} = ${u.value}`);
-        } else {
-          // Fallback to extraction (for backward compatibility)
-          unifications = extractUnifications(goalToCheck, clause);
-        }
+        // Always extract unifications from goal-clause matching for accuracy
+        unifications = extractUnifications(goalToCheck, clause);
         
         const subgoals = extractSubgoals(clause);
         
@@ -995,15 +1049,9 @@ function processTreeNode(
           // Create match node
           const matchNodeId = ctx.nextNodeId();
           
-          // Use unifications from the query node
+          // Extract unifications by matching goal against clause head
           let unifications: string[] = [];
-          if (node.unifications && node.unifications.length > 0) {
-            unifications = ctx.originalQuery ?
-              mapRuntimeVariablesToSource(node.unifications, ctx.originalQuery) :
-              node.unifications.map(u => `${u.variable} = ${u.value}`);
-          } else {
-            unifications = extractUnifications(node.goal, clause);
-          }
+          unifications = extractUnifications(node.goal, clause);
           
           const clauseHead = clause.text.includes(':-') 
             ? clause.text.split(':-')[0].trim() 

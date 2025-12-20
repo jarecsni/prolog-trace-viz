@@ -21,12 +21,12 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(0+1+1, B)"]]
-B["📦 Match Clause 28<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• B = 1+1+0"]
-C["🔄 🔁 Recurse: t(0+1, _918) [clause 26]"]
-D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• B = 1+0"]
+B["📦 Match Clause 28<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• X+1+1 = 0+1+1<br/>• Z = _918"]
+C["🔄 🔁 Recurse: t(0+1, _886) [clause 26]"]
+D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• _886 = 1+0"]
 E(("🎉 SUCCESS"))
 F["📦 Match Clause 27<br/>t(X+0+1, X+1+0)"]
-G["🔄 🔁 Recurse: t(1+0+1, _792) [clause 27]"]
+G["🔄 🔁 Recurse: t(1+0+1, _760) [clause 27]"]
 H(("🎉 SUCCESS"))
 
 %% Edges
@@ -65,11 +65,11 @@ style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 3
 
-**Goal:** `t(0+1,_918)`
+**Goal:** `t(0+1,_886)`
 
-**Action:** Solving t(0+1,_918)
+**Action:** Solving t(0+1,_886)
 
-**Clause matched:** `_918 = 1+0`
+**Clause matched:** `_886 = 1+0`
 
 ### Step 4
 
@@ -79,9 +79,9 @@ style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 6
 
-**Goal:** `t(1+0+1,_792)`
+**Goal:** `t(1+0+1,_760)`
 
-**Action:** Backtracking: t(1+0+1,_792)
+**Action:** Backtracking: t(1+0+1,_760)
 
 ### Step 7
 

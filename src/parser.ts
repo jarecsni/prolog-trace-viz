@@ -11,6 +11,7 @@ export interface TraceEvent {
   level: number;
   goal: string;
   arguments?: any[];
+  unifications?: Unification[];
   clause?: {
     head: string;
     body: string;
@@ -526,6 +527,14 @@ function parseEvents(json: string, prologContent?: string): TraceEvent[] {
       }
     }
     
+    // Add unifications if present
+    if (rawEvent.unifications && Array.isArray(rawEvent.unifications)) {
+      event.unifications = rawEvent.unifications.map((u: any) => ({
+        variable: u.variable || '',
+        value: u.value || ''
+      }));
+    }
+    
     events.push(event);
   }
   
@@ -773,7 +782,7 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       callStack.push(level, node, event);
       
     } else if (port === 'exit') {
-      // Goal succeeded - extract unifications and mark as completed
+      // Goal succeeded - use unifications from trace if available
       const stackEntry = callStack.peek(level);
       if (stackEntry) {
         const node = stackEntry.node;
@@ -783,12 +792,19 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
           node.arguments = args;
         }
         
-        // Extract unifications by comparing call and exit goals
-        const unifications = extractUnifications(stackEntry.callEvent.goal, goal, args);
-        if (unifications.length > 0) {
-          node.unifications = unifications;
+        // Use unifications from trace event if available, otherwise extract them
+        if (event.unifications && event.unifications.length > 0) {
+          node.unifications = event.unifications;
           // Format binding for analyzer compatibility
-          node.binding = unifications.map(u => `${u.variable} = ${u.value}`).join(', ');
+          node.binding = event.unifications.map(u => `${u.variable} = ${u.value}`).join(', ');
+        } else {
+          // Fallback: extract unifications by comparing call and exit goals
+          const unifications = extractUnifications(stackEntry.callEvent.goal, goal, args);
+          if (unifications.length > 0) {
+            node.unifications = unifications;
+            // Format binding for analyzer compatibility
+            node.binding = unifications.map(u => `${u.variable} = ${u.value}`).join(', ');
+          }
         }
         
         // Update clause info if present
@@ -1062,52 +1078,59 @@ const argumentCache = new Map<string, string[]>();
 
 /**
  * Extracts unifications by comparing call goal with exit goal and arguments.
- * Optimized with caching for better performance with repeated patterns.
+ * This is the key function that determines what variables got unified during execution.
  */
-function extractUnifications(callGoal: string, exitGoal: string, exitArgs?: any[]): Unification[] {
-  // Early return for common cases
-  if (!exitArgs || exitArgs.length === 0) {
-    return [];
-  }
-  
-  // Parse call goal to get variable names
+function extractUnifications(callGoal: string, exitGoal: string, exitArguments?: any[]): Unification[] {
+  // Parse both goals to extract their arguments
   const callMatch = callGoal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
-  if (!callMatch) {
+  const exitMatch = exitGoal.match(/^([a-z_][a-zA-Z0-9_]*)\((.*)\)$/);
+  
+  if (!callMatch || !exitMatch) {
     return [];
   }
   
-  const callArgString = callMatch[2];
+  const [, callPred, callArgsStr] = callMatch;
+  const [, exitPred, exitArgsStr] = exitMatch;
   
-  // Use cache for argument parsing to improve performance
-  let callArgs = argumentCache.get(callArgString);
-  if (!callArgs) {
-    callArgs = parseArguments(callArgString);
-    // Limit cache size to prevent memory leaks
-    if (argumentCache.size < 1000) {
-      argumentCache.set(callArgString, callArgs);
-    }
+  // Must be same predicate
+  if (callPred !== exitPred) {
+    return [];
   }
   
-  // Pre-allocate unifications array for better performance
-  const unifications: Unification[] = [];
-  const maxArgs = Math.min(callArgs.length, exitArgs.length);
+  // Parse arguments
+  const callArgs = parseArguments(callArgsStr);
+  const exitArgs = parseArguments(exitArgsStr);
   
-  // Create unifications by pairing call args with exit args
-  for (let i = 0; i < maxArgs; i++) {
+  if (callArgs.length !== exitArgs.length) {
+    return [];
+  }
+  
+  const unifications: Unification[] = [];
+  
+  // Compare each argument pair
+  for (let i = 0; i < callArgs.length; i++) {
     const callArg = callArgs[i].trim();
+    const exitArg = exitArgs[i].trim();
     
-    // Only create unification if call arg is a variable (starts with uppercase or _)
-    // Use charAt for better performance than regex
-    const firstChar = callArg.charAt(0);
-    if (firstChar >= 'A' && firstChar <= 'Z' || firstChar === '_') {
+    // If call arg is a variable (starts with uppercase or _) and different from exit arg
+    if (isVariable(callArg) && callArg !== exitArg) {
       unifications.push({
         variable: callArg,
-        value: formatValue(exitArgs[i]),
+        value: exitArg,
       });
     }
   }
   
   return unifications;
+}
+
+/**
+ * Checks if a string represents a Prolog variable.
+ */
+function isVariable(arg: string): boolean {
+  if (!arg) return false;
+  const firstChar = arg.charAt(0);
+  return firstChar === '_' || (firstChar >= 'A' && firstChar <= 'Z');
 }
 
 /**
