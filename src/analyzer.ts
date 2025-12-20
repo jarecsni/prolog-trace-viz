@@ -335,8 +335,8 @@ function extractUnifications(goal: string, clause: Clause): string[] {
     const goalArg = goalArgs[i].trim();
     const clauseArg = clauseArgs[i].trim();
     
-    // If clause arg is a variable (starts with uppercase or _)
-    if (/^[A-Z_]/.test(clauseArg)) {
+    // If clause arg is a simple variable (not a complex expression)
+    if (/^[A-Z_][a-zA-Z0-9_]*$/.test(clauseArg)) {
       // For runtime variables like _918, try to map back to original query variables
       let displayValue = goalArg;
       if (goalArg.match(/^_\d+$/)) {
@@ -352,8 +352,15 @@ function extractUnifications(goal: string, clause: Clause): string[] {
       if (varMatch) {
         unifications.push(varMatch);
       } else {
-        // Fallback: show the full expression
-        unifications.push(`${clauseArg} = ${goalArg}`);
+        // Fallback: if clause has a variable at the start, extract it
+        const clauseVarMatch = clauseArg.match(/^([A-Z_][a-zA-Z0-9_]*)/);
+        const goalValueMatch = goalArg.match(/^([^+\-*/,\s]+)/);
+        if (clauseVarMatch && goalValueMatch && clauseVarMatch[1] !== goalValueMatch[1]) {
+          unifications.push(`${clauseVarMatch[1]} = ${goalValueMatch[1]}`);
+        } else {
+          // Last resort: show the full expression
+          unifications.push(`${clauseArg} = ${goalArg}`);
+        }
       }
     }
   }
@@ -875,8 +882,13 @@ function processTreeNode(
         // Extract unifications by matching goal against clause head
         let unifications: string[];
         
+        // For match nodes whose parent is the query, use originalQuery to preserve source variable names
+        // This ensures we show "Z = B" instead of "Z = _918"
+        const parentNode = ctx.nodes.find(n => n.id === parentId);
+        const goalForUnification = (ctx.originalQuery && parentNode?.type === 'query') ? ctx.originalQuery : goalToCheck;
+        
         // Always extract unifications from goal-clause matching for accuracy
-        unifications = extractUnifications(goalToCheck, clause);
+        unifications = extractUnifications(goalForUnification, clause);
         
         const subgoals = extractSubgoals(clause);
         
@@ -1051,7 +1063,9 @@ function processTreeNode(
           
           // Extract unifications by matching goal against clause head
           let unifications: string[] = [];
-          unifications = extractUnifications(node.goal, clause);
+          // Use originalQuery if available to preserve source variable names
+          const goalForUnification = ctx.originalQuery || node.goal;
+          unifications = extractUnifications(goalForUnification, clause);
           
           const clauseHead = clause.text.includes(':-') 
             ? clause.text.split(':-')[0].trim() 

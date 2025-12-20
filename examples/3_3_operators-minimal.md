@@ -22,10 +22,10 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>t(0+1+1, B)"]]
 B("✅ Solved: B = 1+1+0")
-C["🔄 Solve: t(0+1, _918) [clause 26]"]
+C["🔄 Solve: t(0+1, _886) [clause 26]"]
 D("✅ Solved: B = 1+0")
 E(("🎉 SUCCESS"))
-F["🔄 Solve: t(1+0+1, _792) [clause 27]"]
+F["🔄 Solve: t(1+0+1, _760) [clause 27]"]
 G(("🎉 SUCCESS"))
 
 %% Edges
@@ -62,11 +62,11 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 2
 
-**Goal:** `t(0+1,_918)`
+**Goal:** `t(0+1,_886)`
 
-**Action:** Solving t(0+1,_918)
+**Action:** Solving t(0+1,_886)
 
-**Clause matched:** `_918 = 1+0`
+**Clause matched:** `_886 = 1+0`
 
 ### Step 4
 
@@ -76,9 +76,9 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 5
 
-**Goal:** `t(1+0+1,_792)`
+**Goal:** `t(1+0+1,_760)`
 
-**Action:** Backtracking: t(1+0+1,_792)
+**Action:** Backtracking: t(1+0+1,_760)
 
 ### Step 6
 

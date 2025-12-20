@@ -21,9 +21,9 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>append([1, 2], [3, 4], X)"]]
 B("✅ Solved: X = [1,2,3,4]")
-C["🔄 Solve: append([2], [3, 4], _1010) [clause 5]"]
+C["🔄 Solve: append([2], [3, 4], _978) [clause 5]"]
 D("✅ Solved: X = [2,3,4]")
-E["🔄 Solve: append([], [3, 4], _970) [clause 4]"]
+E["🔄 Solve: append([], [3, 4], _938) [clause 4]"]
 F("✅ Solved: X = [3,4]")
 G(("🎉 SUCCESS"))
 
@@ -61,19 +61,19 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 2
 
-**Goal:** `append([2],[3,4],_1010)`
+**Goal:** `append([2],[3,4],_978)`
 
-**Action:** Solving append([2],[3,4],_1010)
+**Action:** Solving append([2],[3,4],_978)
 
-**Clause matched:** `_1010 = [2,3,4]`
+**Clause matched:** `_978 = [2,3,4]`
 
 ### Step 4
 
-**Goal:** `append([],[3,4],_970)`
+**Goal:** `append([],[3,4],_938)`
 
-**Action:** Solving append([],[3,4],_970)
+**Action:** Solving append([],[3,4],_938)
 
-**Clause matched:** `_970 = [3,4]`
+**Clause matched:** `_938 = [3,4]`
 
 ### Step 6
 

@@ -21,7 +21,7 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(1+0+1, C)"]]
-B["📦 Match Clause 2<br/>t(X+0+1, X+1+0)<br/><br/>Unifications:<br/>• C = 1+1+0"]
+B["📦 Match Clause 2<br/>t(X+0+1, X+1+0)<br/><br/>Unifications:<br/>• X = 1<br/>• X = C"]
 C(("🎉 SUCCESS"))
 
 %% Edges

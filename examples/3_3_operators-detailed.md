@@ -21,9 +21,9 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(0+1+1, B)"]]
-B["📦 Match Clause 28<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• X+1+1 = 0+1+1<br/>• Z = _918"]
+B["📦 Match Clause 28<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• X = 0<br/>• Z = B"]
 C["🔄 🔁 Recurse: t(0+1, _886) [clause 26]"]
-D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• _886 = 1+0"]
+D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• 1+0 = _886"]
 E(("🎉 SUCCESS"))
 F["📦 Match Clause 27<br/>t(X+0+1, X+1+0)"]
 G["🔄 🔁 Recurse: t(1+0+1, _760) [clause 27]"]

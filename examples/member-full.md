@@ -20,7 +20,7 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>member(X, [a, b, c])"]]
-B["📦 Match Clause 5<br/>member(X, [_|T])<br/><br/>Unifications:<br/>• X = a<br/><br/>Subgoals:<br/>1. member(X, T)"]
+B["📦 Match Clause 5<br/>member(X, [_|T])<br/><br/>Unifications:<br/>• X = X<br/>• [_|T] = [a,b,c]<br/><br/>Subgoals:<br/>1. member(X, T)"]
 C(("🎉 SUCCESS"))
 
 %% Edges

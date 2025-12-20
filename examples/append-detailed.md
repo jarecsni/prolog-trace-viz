@@ -20,11 +20,11 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>append([1, 2], [3, 4], X)"]]
-B["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• X = [1,2,3,4]"]
-C["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 5]"]
-D["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• X = [2,3,4]<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
-E["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 4]"]
-F["📦 Match Clause 4<br/>append([], L, L)<br/><br/>Unifications:<br/>• X = [3,4]"]
+B["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• [H|T] = [1,2]<br/>• L = [3,4]<br/>• [H|R] = X"]
+C["🔄 🔁 Recurse: append([2], [3, 4], _978) [clause 5]"]
+D["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• [H|T] = [2]<br/>• L = [3,4]<br/>• [H|R] = _978<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
+E["🔄 🔁 Recurse: append([], [3, 4], _938) [clause 4]"]
+F["📦 Match Clause 4<br/>append([], L, L)<br/><br/>Unifications:<br/>• L = [3,4]<br/>• L = _938"]
 G(("🎉 SUCCESS"))
 
 %% Edges
@@ -61,19 +61,19 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 3
 
-**Goal:** `append([2],[3,4],_1010)`
+**Goal:** `append([2],[3,4],_978)`
 
-**Action:** Solving append([2],[3,4],_1010)
+**Action:** Solving append([2],[3,4],_978)
 
-**Clause matched:** `_1010 = [2,3,4]`
+**Clause matched:** `_978 = [2,3,4]`
 
 ### Step 5
 
-**Goal:** `append([],[3,4],_970)`
+**Goal:** `append([],[3,4],_938)`
 
-**Action:** Solving append([],[3,4],_970)
+**Action:** Solving append([],[3,4],_938)
 
-**Clause matched:** `_970 = [3,4]`
+**Clause matched:** `_938 = [3,4]`
 
 ### Step 6
 

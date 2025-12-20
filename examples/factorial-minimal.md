@@ -22,25 +22,25 @@ graph TD
 A[["🎯 QUERY<br/>factorial(3, X)"]]
 B("✅ Solved: X = 6")
 D(("🎉 SUCCESS"))
-E["🔄 Solve: _1534 is 3+ -1"]
+E["🔄 Solve: _1502 is 3+ -1"]
 F(("🎉 SUCCESS"))
-G["🔄 Solve: factorial(2, _1460) [clause 5]"]
+G["🔄 Solve: factorial(2, _1428) [clause 5]"]
 H["🔄 Solve: 2>0"]
 I(("🎉 SUCCESS"))
-J["🔄 Solve: _1362 is 2+ -1"]
+J["🔄 Solve: _1330 is 2+ -1"]
 K(("🎉 SUCCESS"))
-L["🔄 Solve: factorial(1, _1288) [clause 5]"]
+L["🔄 Solve: factorial(1, _1256) [clause 5]"]
 M["🔄 Solve: 1>0"]
 N(("🎉 SUCCESS"))
-O["🔄 Solve: _1190 is 1+ -1"]
+O["🔄 Solve: _1158 is 1+ -1"]
 P(("🎉 SUCCESS"))
-Q["🔄 Solve: factorial(0, _1116) [clause 4]"]
+Q["🔄 Solve: factorial(0, _1084) [clause 4]"]
 R(("🎉 SUCCESS"))
-S["🔄 Solve: _1030 is 1*1"]
+S["🔄 Solve: _998 is 1*1"]
 T(("🎉 SUCCESS"))
-U["🔄 Solve: _842 is 2*1"]
+U["🔄 Solve: _810 is 2*1"]
 V(("🎉 SUCCESS"))
-W["🔄 Solve: _654 is 3*2"]
+W["🔄 Solve: _622 is 3*2"]
 X(("🎉 SUCCESS"))
 
 %% Edges
@@ -53,12 +53,12 @@ G -->|"⑥"| H
 H -->|"⑦"| I
 G -->|"⑧ backtrack"| J
 J -->|"⑨"| K
-G -->|"⑩ backtrack (clause 9)"| L
+G -->|"⑩ backtrack (clause 8)"| L
 L -->|"⑪"| M
 M -->|"⑫"| N
 L -->|"⑬ backtrack"| O
 O -->|"⑭"| P
-L -->|"⑮ backtrack (clause 8)"| Q
+L -->|"⑮ backtrack (clause 7)"| Q
 Q -->|"⑯"| R
 L -->|"⑰ backtrack"| S
 S -->|"⑱"| T
@@ -115,9 +115,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 3
 
-**Goal:** `_1534 is 3+ -1`
+**Goal:** `_1502 is 3+ -1`
 
-**Action:** Backtracking: _1534 is 3+ -1
+**Action:** Backtracking: _1502 is 3+ -1
 
 ### Step 4
 
@@ -127,9 +127,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 5
 
-**Goal:** `factorial(2,_1460)`
+**Goal:** `factorial(2,_1428)`
 
-**Action:** Backtracking: factorial(2,_1460)
+**Action:** Backtracking: factorial(2,_1428)
 
 ### Step 6
 
@@ -145,9 +145,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 8
 
-**Goal:** `_1362 is 2+ -1`
+**Goal:** `_1330 is 2+ -1`
 
-**Action:** Solving _1362 is 2+ -1
+**Action:** Solving _1330 is 2+ -1
 
 ### Step 9
 
@@ -157,9 +157,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 10
 
-**Goal:** `factorial(1,_1288)`
+**Goal:** `factorial(1,_1256)`
 
-**Action:** Solving factorial(1,_1288)
+**Action:** Solving factorial(1,_1256)
 
 ### Step 11
 
@@ -175,9 +175,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 13
 
-**Goal:** `_1190 is 1+ -1`
+**Goal:** `_1158 is 1+ -1`
 
-**Action:** Solving _1190 is 1+ -1
+**Action:** Solving _1158 is 1+ -1
 
 ### Step 14
 
@@ -187,9 +187,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 15
 
-**Goal:** `factorial(0,_1116)`
+**Goal:** `factorial(0,_1084)`
 
-**Action:** Solving factorial(0,_1116)
+**Action:** Solving factorial(0,_1084)
 
 ### Step 16
 
@@ -199,9 +199,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 17
 
-**Goal:** `_1030 is 1*1`
+**Goal:** `_998 is 1*1`
 
-**Action:** Solving _1030 is 1*1
+**Action:** Solving _998 is 1*1
 
 ### Step 18
 
@@ -211,9 +211,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 19
 
-**Goal:** `_842 is 2*1`
+**Goal:** `_810 is 2*1`
 
-**Action:** Solving _842 is 2*1
+**Action:** Solving _810 is 2*1
 
 ### Step 20
 
@@ -223,9 +223,9 @@ style X fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ### Step 21
 
-**Goal:** `_654 is 3*2`
+**Goal:** `_622 is 3*2`
 
-**Action:** Backtracking: _654 is 3*2
+**Action:** Backtracking: _622 is 3*2
 
 ### Step 22
 
