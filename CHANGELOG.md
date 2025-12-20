@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.3] - 2025-12-20
 
+## [1.1.3] - 2025-12-20
+
 ### Fixed
 - Fixed clause numbering inconsistency between tracer and display output
 - Clause numbers now correctly map from wrapper file line numbers to source file line numbers
