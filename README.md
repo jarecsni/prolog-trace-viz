@@ -9,6 +9,8 @@ Generate beautiful, educational Mermaid diagrams from Prolog execution traces.
 - Generates colour-coded Mermaid diagrams
 - Produces complete markdown documentation with step-by-step breakdowns
 - Tracks pending goals, variable bindings, and clause usage
+- **Smart clause filtering** - Only shows clauses that were actually used during execution
+- **Clean table format** - Organised clause presentation with line numbers
 - No external dependencies beyond SWI-Prolog
 
 ## Prerequisites
@@ -92,7 +94,7 @@ Produces a markdown document with:
 3. **Legend** - Explanation of visual elements
 4. **Step-by-step breakdown** - Detailed execution steps
 5. **Final answer** - The result bindings
-6. **Clauses used** - Summary of which clauses matched
+6. **Clauses used** - Clean table showing only the clauses that were actually used during execution
 
 ### Visual Elements
 

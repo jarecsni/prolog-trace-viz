@@ -139,8 +139,13 @@ function renderClausesUsed(clauses: ClauseUsage[]): string {
   
   const lines: string[] = [];
   
+  // Table header
+  lines.push('| Line # | Clause |');
+  lines.push('|--------|--------|');
+  
+  // Table rows
   for (const clause of clauses) {
-    lines.push(`**Line ${clause.clauseNumber}:** \`${clause.clauseText}\``);
+    lines.push(`| ${clause.clauseNumber} | \`${clause.clauseText}\` |`);
   }
   
   return lines.join('\n');

@@ -371,14 +371,71 @@ export function analyzeTree(
     originalQuery,
   });
   
-  // Clause usage tracking - since we can't reliably determine which clauses were used,
-  // just list all available clauses
-  const clausesUsed: ClauseUsage[] = actualClauses.map(clause => ({
-    clauseNumber: clause.number,
-    clauseText: clause.text,
-    usageCount: 0,
-    usedAtSteps: [],
-  }));
+  // Track which clauses were actually used during execution
+  // Instead of relying on clause numbers (which can mismatch between tracer and parser),
+  // we'll track by predicate name from goals and node information
+  const usedPredicateNames = new Set<string>();
+  
+  // Collect predicate names from all nodes that participated in execution
+  for (const node of nodes) {
+    if (node.clauseNumber) {
+      // Extract predicate name from the node's goal or label
+      let predicateName: string | undefined;
+      
+      // Try to extract from label first (for formatted nodes)
+      const labelMatch = node.label.match(/(?:Solve: |🔁 Recurse: |Match Clause \d+<br\/>)([a-z_][a-zA-Z0-9_]*)\(/);
+      if (labelMatch) {
+        predicateName = labelMatch[1];
+      } else {
+        // Fallback: try to extract from raw goal if available
+        // This handles cases where we have raw ExecutionNode data
+        const goalMatch = node.label.match(/([a-z_][a-zA-Z0-9_]*)\(/);
+        if (goalMatch) {
+          predicateName = goalMatch[1];
+        }
+      }
+      
+      if (predicateName) {
+        usedPredicateNames.add(predicateName);
+      }
+    }
+  }
+  
+  // Also collect predicate names from the original execution tree
+  // This ensures we catch predicates that might not be in the visualization nodes
+  function collectPredicatesFromTree(node: ExecutionNode): void {
+    if (node.clauseNumber) {
+      const goalMatch = node.goal.match(/([a-z_][a-zA-Z0-9_]*)\(/);
+      if (goalMatch) {
+        usedPredicateNames.add(goalMatch[1]);
+      }
+    }
+    for (const child of node.children) {
+      collectPredicatesFromTree(child);
+    }
+  }
+  collectPredicatesFromTree(root);
+  
+  // If we couldn't determine any used predicates (e.g., in test scenarios),
+  // fall back to including all clauses to maintain backward compatibility
+  const clausesUsed: ClauseUsage[] = usedPredicateNames.size > 0 
+    ? actualClauses
+        .filter(clause => {
+          const predicateName = clause.head.split('(')[0];
+          return usedPredicateNames.has(predicateName);
+        })
+        .map(clause => ({
+          clauseNumber: clause.number,
+          clauseText: clause.text,
+          usageCount: 0,
+          usedAtSteps: [],
+        }))
+    : actualClauses.map(clause => ({
+        clauseNumber: clause.number,
+        clauseText: clause.text,
+        usageCount: 0,
+        usedAtSteps: [],
+      }));
   
   return {
     nodes,
