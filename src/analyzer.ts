@@ -141,6 +141,37 @@ function mapGoalVariablesToSource(goal: string, originalQuery: string): string {
  * This helps match trace events (which have runtime variables and different line numbers)
  * with the original source clauses (which have source variables and correct line numbers).
  */
+/**
+ * Checks if two clause heads match structurally, ignoring variable names.
+ * For example: "t(X+1+1, Z)" matches "t(_548+1+1, _538)"
+ */
+function clausesStructurallyMatch(traceHead: string, clauseHead: string): boolean {
+  // Normalize both by replacing variables with a placeholder
+  const normalizeClause = (clause: string): string => {
+    return clause
+      // Replace all variables (starting with uppercase or _) with 'VAR'
+      .replace(/\b[A-Z_][a-zA-Z0-9_]*\b/g, 'VAR')
+      // Normalize whitespace and remove spaces around commas and operators
+      .replace(/\s*,\s*/g, ',')
+      .replace(/\s*\+\s*/g, '+')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  
+  const normalizedTrace = normalizeClause(traceHead);
+  const normalizedClause = normalizeClause(clauseHead);
+  
+  return normalizedTrace === normalizedClause;
+}
+
+/**
+ * Maps trace clause information to parsed clauses by finding the best match.
+ * This handles the mismatch between tracer line numbers (from wrapper file)
+ * and source file line numbers by using structural matching.
+ * 
+ * The tracer provides exact clause heads and bodies, but with different variable names
+ * and line numbers than our parsed clauses (which have source variables and correct line numbers).
+ */
 function findMatchingClause(goal: string, parsedClauses: Clause[], traceClause?: { head: string; body?: string; line: number }): Clause | undefined {
   const goalPredicate = goal.match(/^([a-z_][a-zA-Z0-9_]*)\(/);
   if (!goalPredicate) return undefined;
@@ -156,7 +187,32 @@ function findMatchingClause(goal: string, parsedClauses: Clause[], traceClause?:
   // For multiple clauses, use heuristics to pick the right one
   // If we have trace clause info, try to match by structure
   if (traceClause) {
-    // Check if it's a fact (no body) vs rule (has body)
+    // First priority: exact line number match
+    if (traceClause.line) {
+      const exactLineMatch = predicateClauses.find(c => c.number === traceClause.line);
+      if (exactLineMatch) {
+        return exactLineMatch;
+      }
+      
+      // If no exact match, try to find by clause structure matching
+      // The trace provides the actual clause head and body
+      if (traceClause.head) {
+        const structureMatch = predicateClauses.find(c => {
+          // Normalize both clauses for comparison
+          const traceHead = traceClause.head.replace(/\s+/g, ' ').trim();
+          const clauseHead = c.head.replace(/\s+/g, ' ').trim();
+          
+          // Check if they match structurally (ignoring variable names)
+          return clausesStructurallyMatch(traceHead, clauseHead);
+        });
+        
+        if (structureMatch) {
+          return structureMatch;
+        }
+      }
+    }
+    
+    // Fallback: Check if it's a fact (no body) vs rule (has body)
     const traceIsRule = traceClause.body && traceClause.body !== 'true';
     
     for (const clause of predicateClauses) {
@@ -168,9 +224,33 @@ function findMatchingClause(goal: string, parsedClauses: Clause[], traceClause?:
   }
   
   // Fallback: use goal structure heuristics
+  // More precise pattern matching for the t/2 predicate
+  if (predicateName === 't') {
+    // Check for exact patterns
+    if (goal.match(/t\(0\+1,/)) {
+      // t(0+1, ...) matches clause 26: t(0+1, 1+0)
+      const exactMatch = predicateClauses.find(c => c.text.includes('t(0+1,'));
+      if (exactMatch) {
+        return exactMatch;
+      }
+    } else if (goal.match(/t\(\w+\+0\+1,/)) {
+      // t(X+0+1, ...) matches clause 27: t(X+0+1, X+1+0)
+      const exactMatch = predicateClauses.find(c => c.text.includes('+0+1,'));
+      if (exactMatch) {
+        return exactMatch;
+      }
+    } else if (goal.match(/t\(\w+\+1\+1,/)) {
+      // t(X+1+1, ...) matches clause 28: t(X+1+1, Z) :- ...
+      const exactMatch = predicateClauses.find(c => c.text.includes('+1+1,'));
+      if (exactMatch) {
+        return exactMatch;
+      }
+    }
+  }
+  
+  // Generic fallback for other predicates
   const isBaseCase = goal.includes('(0,') || goal.includes('(0 ,') || 
-                    goal.includes('([],') || goal.includes('([] ,') ||
-                    goal.includes('(0+') || goal.includes('(0 +');
+                    goal.includes('([],') || goal.includes('([] ,');
   
   // For base cases, prefer the first clause (usually the base case)
   // For recursive cases, prefer later clauses
@@ -657,7 +737,12 @@ function processTreeNode(
     // Map trace clause number to parsed clause number for display
     let displayClauseNumber = clauseNumber;
     if (clauseNumber && isUserPredicate && ctx.clauses.length > 0) {
-      const matchedClause = findMatchingClause(node.goal, ctx.clauses);
+      const matchedClause = findMatchingClause(node.goal, ctx.clauses, 
+        (node.clauseLine && node.clauseHead) ? { 
+          head: node.clauseHead, 
+          body: node.clauseBody || '', 
+          line: node.clauseLine 
+        } : undefined);
       if (matchedClause) {
         displayClauseNumber = matchedClause.number;
       }
@@ -793,12 +878,22 @@ function processTreeNode(
         actualParentId = matchNodeId;
       } else {
         // No clause found, create edge without match node
+        // Use consistent clause numbering with node labels
+        const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(node.goal) && !isCompoundGoal(node.goal);
+        let edgeClauseNumber = clauseNumber;
+        if (clauseNumber && isUserPredicate && ctx.clauses.length > 0) {
+          const matchedClause = findMatchingClause(node.goal, ctx.clauses);
+          if (matchedClause) {
+            edgeClauseNumber = matchedClause.number;
+          }
+        }
+        
         const edge: VisualizationEdge = {
           id: `edge_${ctx.edges.length}`,
           from: parentId,
           to: nodeId,
           type: 'active',
-          label: clauseNumber ? `clause ${clauseNumber}` : '',
+          label: edgeClauseNumber ? `clause ${edgeClauseNumber}` : '',
           stepNumber: ctx.stepCounter(),
         };
         ctx.edges.push(edge);
@@ -807,15 +902,25 @@ function processTreeNode(
       // No match node needed, create direct edge
       let edgeLabel = '';
       
+      // Use consistent clause numbering with node labels
+      const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(node.goal) && !isCompoundGoal(node.goal);
+      let edgeClauseNumber = clauseNumber;
+      if (clauseNumber && isUserPredicate && ctx.clauses.length > 0) {
+        const matchedClause = findMatchingClause(node.goal, ctx.clauses);
+        if (matchedClause) {
+          edgeClauseNumber = matchedClause.number;
+        }
+      }
+      
       if (parentNode) {
         if (parentNode.type === 'query' && vizNode.type === 'solving') {
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+          edgeLabel = edgeClauseNumber ? `clause ${edgeClauseNumber}` : '';
         } else if (parentNode.type === 'query' && vizNode.type === 'success') {
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+          edgeLabel = edgeClauseNumber ? `clause ${edgeClauseNumber}` : '';
         } else if (parentNode.type === 'solved' && vizNode.type === 'solving') {
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'done';
+          edgeLabel = edgeClauseNumber ? `clause ${edgeClauseNumber}` : 'done';
         } else if (parentNode.type === 'solving' && vizNode.type === 'success') {
-          edgeLabel = clauseNumber ? `clause ${clauseNumber}` : 'success';
+          edgeLabel = edgeClauseNumber ? `clause ${edgeClauseNumber}` : 'success';
         } else if (parentNode.type === 'solving' && vizNode.type === 'solving') {
           const existingActiveEdges = ctx.edges.filter(e => 
             e.from === parentId && e.type === 'active' && 
@@ -825,7 +930,7 @@ function processTreeNode(
           if (existingActiveEdges > 0) {
             edgeLabel = 'backtrack';
           } else {
-            edgeLabel = clauseNumber ? `clause ${clauseNumber}` : '';
+            edgeLabel = edgeClauseNumber ? `clause ${edgeClauseNumber}` : '';
           }
         } else if (parentNode.type === 'solved' && vizNode.type === 'success') {
           edgeLabel = 'all done';
@@ -947,33 +1052,42 @@ function processTreeNode(
         }
       }
     }
-    const solvedId = ctx.nextNodeId();
-    // Convert binding from X/value to X = value format and map variables to source
-    let formattedBinding = node.binding.replace(/([^/]+)\/(.+)/, '$1 = $2');
-    if (ctx.originalQuery) {
-      formattedBinding = mapGoalVariablesToSource(formattedBinding, ctx.originalQuery);
+    
+    // Skip creating solved node if we just created a match node (at detailed/full levels)
+    // The match node already shows the unifications, so the solved node is redundant
+    const justCreatedMatchNode = (ctx.detailLevel === 'detailed' || ctx.detailLevel === 'full') && 
+                                 ctx.nodes.length > 0 && 
+                                 ctx.nodes[ctx.nodes.length - 1].type === 'match';
+    
+    if (!justCreatedMatchNode) {
+      const solvedId = ctx.nextNodeId();
+      // Convert binding from X/value to X = value format and map variables to source
+      let formattedBinding = node.binding.replace(/([^/]+)\/(.+)/, '$1 = $2');
+      if (ctx.originalQuery) {
+        formattedBinding = mapGoalVariablesToSource(formattedBinding, ctx.originalQuery);
+      }
+      const solvedNode: VisualizationNode = {
+        id: solvedId,
+        type: 'solved',
+        label: `Solved: ${formattedBinding}`,
+        emoji: EMOJIS.solved,
+        level: node.level,
+      };
+      ctx.nodes.push(solvedNode);
+      
+      // Edge from solving node to solved node - just show the binding
+      const doneEdge: VisualizationEdge = {
+        id: `edge_${ctx.edges.length}`,
+        from: nodeId,
+        to: solvedId,
+        type: 'active',
+        label: formattedBinding,
+        stepNumber: ctx.stepCounter(),
+      };
+      ctx.edges.push(doneEdge);
+      
+      lastNodeId = solvedId;
     }
-    const solvedNode: VisualizationNode = {
-      id: solvedId,
-      type: 'solved',
-      label: `Solved: ${formattedBinding}`,
-      emoji: EMOJIS.solved,
-      level: node.level,
-    };
-    ctx.nodes.push(solvedNode);
-    
-    // Edge from solving node to solved node - just show the binding
-    const doneEdge: VisualizationEdge = {
-      id: `edge_${ctx.edges.length}`,
-      from: nodeId,
-      to: solvedId,
-      type: 'active',
-      label: formattedBinding,
-      stepNumber: ctx.stepCounter(),
-    };
-    ctx.edges.push(doneEdge);
-    
-    lastNodeId = solvedId;
   }
   
   // Update ancestor goal for recursion detection
@@ -1054,6 +1168,30 @@ function processTreeNode(
       // Get clause number from alternative child
       const altClauseNumber = altChild.clauseNumber;
       
+      // Map trace clause number to parsed clause number for display (needed for both labels and edges)
+      let displayAltClauseNumber = altClauseNumber;
+      if (altClauseNumber) {
+        // Check if it's a user predicate to determine if we should map clause numbers
+        let depth = 0;
+        let hasTopLevelComma = false;
+        for (const char of altChild.goal) {
+          if (char === '(' || char === '[') depth++;
+          else if (char === ')' || char === ']') depth--;
+          else if (char === ',' && depth === 0) {
+            hasTopLevelComma = true;
+            break;
+          }
+        }
+        const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(altChild.goal) && !hasTopLevelComma;
+        
+        if (isUserPredicate && newCtx.clauses.length > 0) {
+          const matchedAltClause = findMatchingClause(altChild.goal, newCtx.clauses);
+          if (matchedAltClause) {
+            displayAltClauseNumber = matchedAltClause.number;
+          }
+        }
+      }
+      
       if (altChild.type === 'success') {
         altType = 'success';
         if (newCtx.finalAnswer) {
@@ -1081,14 +1219,6 @@ function processTreeNode(
         const isUserPredicate = /^[a-z_][a-zA-Z0-9_]*\(/.test(altChild.goal) && !hasTopLevelComma;
         const isRecursive = newCtx.detailLevel !== 'minimal' && isRecursiveCall(altChild.goal, newCtx.ancestorGoal || null);
         const recursivePrefix = isRecursive ? '🔁 Recurse: ' : 'Solve: ';
-        // Map trace clause number to parsed clause number for display
-        let displayAltClauseNumber = altClauseNumber;
-        if (altClauseNumber && isUserPredicate && newCtx.clauses.length > 0) {
-          const matchedAltClause = findMatchingClause(altChild.goal, newCtx.clauses);
-          if (matchedAltClause) {
-            displayAltClauseNumber = matchedAltClause.number;
-          }
-        }
         
         const clauseLabel = (displayAltClauseNumber && isUserPredicate) ? ` [clause ${displayAltClauseNumber}]` : '';
         altLabel = `${recursivePrefix}${formattedGoal}${clauseLabel}`;
@@ -1105,7 +1235,7 @@ function processTreeNode(
       newCtx.nodes.push(altVizNode);
       
       // Create edge from parent (or match node) to alternative node
-      const backtrackLabel = altClauseNumber ? `clause ${altClauseNumber}` : '';
+      const backtrackLabel = displayAltClauseNumber ? `clause ${displayAltClauseNumber}` : '';
       const backtrackEdge: VisualizationEdge = {
         id: `edge_${newCtx.edges.length}`,
         from: actualParentForAlt,

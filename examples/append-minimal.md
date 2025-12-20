@@ -29,9 +29,9 @@ G(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① X = [1,2,3,4]"| B
-B -->|"② clause 9"| C
+B -->|"② clause 5"| C
 C -->|"③ X = [2,3,4]"| D
-D -->|"④ clause 8"| E
+D -->|"④ clause 4"| E
 E -->|"⑤ X = [3,4]"| F
 F -->|"⑥ all done"| G
 

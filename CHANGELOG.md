@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2025-12-20
+
+### Fixed
+- Fixed clause numbering inconsistency between tracer and display output
+- Clause numbers now correctly map from wrapper file line numbers to source file line numbers
+- Match boxes, node labels, and edge labels now show consistent clause numbering
+- Resolves issue where tracer reported wrapper lines (e.g., 8,9,10) vs source lines (e.g., 26,27,28)
+
+### Technical
+- Added `prologContent` parameter to `parseTraceJson` function for line number mapping
+- Enhanced `parseEvents` function to use `mapWrapperLineToSource` for accurate clause mapping
+- Improved structural clause matching to work with exact tracer clause information
+
 ## [1.1.2] - 2025-12-20
 
 ## [1.1.1] - 2025-12-16

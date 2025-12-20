@@ -21,20 +21,17 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(1+0+1, C)"]]
-B["📦 Match Clause 3<br/>t(X+1+1, Z)<br/><br/>Unifications:<br/>• C = 1+1+0"]
-C("✅ Solved: C = 1+1+0")
-D(("🎉 SUCCESS"))
+B["📦 Match Clause 2<br/>t(X+0+1, X+1+0)<br/><br/>Unifications:<br/>• C = 1+1+0"]
+C(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① try"| B
-A -->|"② C = 1+1+0"| C
-C -->|"③ all done"| D
+B -->|"②"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#ffe0b2,stroke:#e65100
-style C fill:#c8e6c9,stroke:#388e3c
-style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -51,7 +48,7 @@ style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 3
+### Step 2
 
 **Goal:** `true`
 

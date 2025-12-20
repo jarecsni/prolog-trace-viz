@@ -1,4 +1,5 @@
 import { createError, ErrorCode, ToolError } from './errors.js';
+import { mapWrapperLineToSource } from './wrapper.js';
 
 export interface Unification {
   variable: string;
@@ -26,6 +27,8 @@ export interface ExecutionNode {
   unifications?: Unification[];
   clauseNumber?: number;
   clauseLine?: number;
+  clauseHead?: string;
+  clauseBody?: string;
   children: ExecutionNode[];
   subgoals?: string[];
   level: number;
@@ -440,15 +443,15 @@ function serializeNode(node: ExecutionNode): string {
 /**
  * Parses JSON trace events from the custom tracer into an execution tree.
  */
-export function parseTraceJson(json: string): ExecutionNode {
-  const events = parseEvents(json);
+export function parseTraceJson(json: string, prologContent?: string): ExecutionNode {
+  const events = parseEvents(json, prologContent);
   return buildTreeFromEvents(events);
 }
 
 /**
  * Parses JSON array into TraceEvent objects with validation.
  */
-function parseEvents(json: string): TraceEvent[] {
+function parseEvents(json: string, prologContent?: string): TraceEvent[] {
   let rawEvents: any[];
   
   try {
@@ -517,7 +520,9 @@ function parseEvents(json: string): TraceEvent[] {
     if (rawEvent.clause && typeof rawEvent.clause === 'object') {
       const { head, body, line } = rawEvent.clause;
       if (head && body && typeof line === 'number') {
-        event.clause = { head, body, line };
+        // Map wrapper file line number back to source file line number
+        const sourceLine = prologContent ? mapWrapperLineToSource(line, prologContent) : line;
+        event.clause = { head, body, line: sourceLine };
       }
     }
     
@@ -735,6 +740,8 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
       // Extract clause information if present
       if (clause) {
         node.clauseLine = clause.line;
+        node.clauseHead = clause.head;
+        node.clauseBody = clause.body;
         node.clauseNumber = clause.line; // Use line number as clause number for now
       } else {
         // Fallback: assign clause number based on predicate matching
@@ -787,6 +794,8 @@ function buildTreeFromEvents(events: TraceEvent[]): ExecutionNode {
         // Update clause info if present
         if (clause) {
           node.clauseLine = clause.line;
+          node.clauseHead = clause.head;
+          node.clauseBody = clause.body;
           node.clauseNumber = clause.line;
         } else {
           // Fallback: assign clause number based on predicate matching

@@ -21,29 +21,32 @@ graph TD
 
 %% Nodes
 A[["🎯 QUERY<br/>t(0+1+1, B)"]]
-B("✅ Solved: B = 1+1+0")
+B["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• B = 1+1+0"]
 C["🔄 🔁 Recurse: t(0+1, _918) [clause 26]"]
-D("✅ Solved: B = 1+0")
+D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• B = 1+0"]
 E(("🎉 SUCCESS"))
-F["🔄 🔁 Recurse: t(1+0+1, _792) [clause 28]"]
-G(("🎉 SUCCESS"))
+F["📦 Match Clause 28<br/>t(X+1+1, Z)"]
+G["🔄 🔁 Recurse: t(1+0+1, _792) [clause 28]"]
+H(("🎉 SUCCESS"))
 
 %% Edges
-A -->|"① B = 1+1+0"| B
-B -->|"② clause 30"| C
-C -->|"③ B = 1+0"| D
-D -->|"④ all done"| E
-B -->|"⑤ clause 31"| F
-F -->|"⑥"| G
+A -->|"① try"| B
+B -->|"② try"| D
+D -->|"③"| C
+C -->|"④ success"| E
+B -->|"⑤ backtrack"| F
+F -->|"⑥ clause 28"| G
+G -->|"⑦"| H
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#c8e6c9,stroke:#388e3c
+style B fill:#ffe0b2,stroke:#e65100
 style C fill:#fff9c4,stroke:#f57f17
-style D fill:#c8e6c9,stroke:#388e3c
+style D fill:#ffe0b2,stroke:#e65100
 style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style F fill:#fff9c4,stroke:#f57f17
-style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style F fill:#ffe0b2,stroke:#e65100
+style G fill:#fff9c4,stroke:#f57f17
+style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -60,7 +63,7 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 2
+### Step 3
 
 **Goal:** `t(0+1,_918)`
 
@@ -74,13 +77,13 @@ style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 **Action:** Solving true
 
-### Step 5
+### Step 6
 
 **Goal:** `t(1+0+1,_792)`
 
 **Action:** Backtracking: t(1+0+1,_792)
 
-### Step 6
+### Step 7
 
 **Goal:** `true`
 

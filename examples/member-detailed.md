@@ -21,19 +21,16 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>member(X, [a, b, c])"]]
 B["📦 Match Clause 5<br/>member(X, [_|T])<br/><br/>Unifications:<br/>• X = a"]
-C("✅ Solved: X = a")
-D(("🎉 SUCCESS"))
+C(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① try"| B
-A -->|"② X = a"| C
-C -->|"③ all done"| D
+B -->|"②"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#ffe0b2,stroke:#e65100
-style C fill:#c8e6c9,stroke:#388e3c
-style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -50,7 +47,7 @@ style D fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 3
+### Step 2
 
 **Goal:** `true`
 

@@ -107,7 +107,7 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Parse JSON trace output
     logVerbose('Parsing JSON trace output...', options);
-    const tree = parseTraceJson(execResult.json);
+    const tree = parseTraceJson(execResult.json, prologContent);
     
     // Also parse raw events for clause extraction
     const rawEvents = JSON.parse(execResult.json);

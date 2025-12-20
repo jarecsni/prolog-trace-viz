@@ -25,15 +25,15 @@ B("✅ Solved: B = 1+1+0")
 C["🔄 Solve: t(0+1, _918) [clause 26]"]
 D("✅ Solved: B = 1+0")
 E(("🎉 SUCCESS"))
-F["🔄 Solve: t(1+0+1, _792) [clause 28]"]
+F["🔄 Solve: t(1+0+1, _792) [clause 27]"]
 G(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① B = 1+1+0"| B
-B -->|"② clause 30"| C
+B -->|"② clause 26"| C
 C -->|"③ B = 1+0"| D
 D -->|"④ all done"| E
-B -->|"⑤ clause 31"| F
+B -->|"⑤ clause 27"| F
 F -->|"⑥"| G
 
 %% Styles

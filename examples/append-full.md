@@ -21,37 +21,28 @@ graph TD
 %% Nodes
 A[["🎯 QUERY<br/>append([1, 2], [3, 4], X)"]]
 B["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• X = [1,2,3,4]<br/><br/>Subgoals:<br/>1. append(T, L, R)"]
-C("✅ Solved: X = [1,2,3,4]")
-D["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 5]"]
-E["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• X = [2,3,4]<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
-F("✅ Solved: X = [2,3,4]")
-G["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 4]"]
-H["📦 Match Clause 4<br/>append([], L, L)<br/><br/>Unifications:<br/>• X = [3,4]"]
-I("✅ Solved: X = [3,4]")
-J(("🎉 SUCCESS"))
+C["🔄 🔁 Recurse: append([2], [3, 4], _1010) [clause 5]"]
+D["📦 Match Clause 5<br/>append([H|T], L, [H|R])<br/><br/>Unifications:<br/>• X = [2,3,4]<br/><br/>Subgoals (solve left-to-right):<br/>1. append(T, L, R)"]
+E["🔄 🔁 Recurse: append([], [3, 4], _970) [clause 4]"]
+F["📦 Match Clause 4<br/>append([], L, L)<br/><br/>Unifications:<br/>• X = [3,4]"]
+G(("🎉 SUCCESS"))
 
 %% Edges
 A -->|"① try"| B
-A -->|"② X = [1,2,3,4]"| C
-C -->|"③ try"| E
-E -->|"④"| D
-D -->|"⑤ X = [2,3,4]"| F
-F -->|"⑥ try"| H
-H -->|"⑦"| G
-G -->|"⑧ X = [3,4]"| I
-I -->|"⑨ all done"| J
+B -->|"② try"| D
+D -->|"③"| C
+C -->|"④ try"| F
+F -->|"⑤"| E
+E -->|"⑥ success"| G
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#ffe0b2,stroke:#e65100
-style C fill:#c8e6c9,stroke:#388e3c
-style D fill:#fff9c4,stroke:#f57f17
-style E fill:#ffe0b2,stroke:#e65100
-style F fill:#c8e6c9,stroke:#388e3c
-style G fill:#fff9c4,stroke:#f57f17
-style H fill:#ffe0b2,stroke:#e65100
-style I fill:#c8e6c9,stroke:#388e3c
-style J fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style C fill:#fff9c4,stroke:#f57f17
+style D fill:#ffe0b2,stroke:#e65100
+style E fill:#fff9c4,stroke:#f57f17
+style F fill:#ffe0b2,stroke:#e65100
+style G fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 ### Legend
@@ -68,7 +59,7 @@ style J fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 ## Step-by-Step Execution
 
-### Step 4
+### Step 3
 
 **Goal:** `append([2],[3,4],_1010)`
 
@@ -76,7 +67,7 @@ style J fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 **Clause matched:** `_1010 = [2,3,4]`
 
-### Step 7
+### Step 5
 
 **Goal:** `append([],[3,4],_970)`
 
@@ -84,7 +75,7 @@ style J fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 
 **Clause matched:** `_970 = [3,4]`
 
-### Step 9
+### Step 6
 
 **Goal:** `true`
 

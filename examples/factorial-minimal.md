@@ -48,7 +48,7 @@ A -->|"① X = 6"| B
 B -->|"② all done"| D
 B -->|"③"| E
 E -->|"④"| F
-B -->|"⑤ clause 9"| G
+B -->|"⑤ clause 5"| G
 G -->|"⑥"| H
 H -->|"⑦"| I
 G -->|"⑧ backtrack"| J

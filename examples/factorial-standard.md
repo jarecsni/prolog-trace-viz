@@ -50,7 +50,7 @@ B -->|"② done"| C
 C -->|"③ success"| D
 B -->|"④"| E
 E -->|"⑤"| F
-B -->|"⑥ clause 9"| G
+B -->|"⑥ clause 5"| G
 G -->|"⑦"| H
 H -->|"⑧"| I
 G -->|"⑨ backtrack"| J
