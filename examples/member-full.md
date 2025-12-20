@@ -8,8 +8,10 @@ member(X, [a,b,c])
 
 ## Clauses Defined
 
-**Line 4:** `member(X, [X|_])`
-**Line 5:** `member(X, [_|T]) :- member(X, T)`
+| Line # | Clause |
+|--------|--------|
+| 4 | `member(X, [X|_])` |
+| 5 | `member(X, [_|T]) :- member(X, T)` |
 
 ## Search Tree Visualization
 

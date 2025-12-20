@@ -8,9 +8,11 @@ t(1+0+1, C)
 
 ## Clauses Defined
 
-**Line 1:** `t(0+1, 1+0)`
-**Line 2:** `t(X+0+1, X+1+0)`
-**Line 3:** `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+| Line # | Clause |
+|--------|--------|
+| 1 | `t(0+1, 1+0)` |
+| 2 | `t(X+0+1, X+1+0)` |
+| 3 | `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)` |
 
 ## Search Tree Visualization
 

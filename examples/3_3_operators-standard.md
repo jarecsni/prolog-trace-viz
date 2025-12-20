@@ -8,13 +8,11 @@ t(0+1+1, B)
 
 ## Clauses Defined
 
-**Line 5:** `test1 :- Term = (jimmy plays football and squash), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
-**Line 10:** `test2 :- Term = (susan plays tennis and basketball and volleyball), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
-**Line 19:** `diana was the secretary of the department`
-**Line 20:** `test3 :- Term = (diana was the secretary of the department), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl`
-**Line 26:** `t(0+1, 1+0)`
-**Line 27:** `t(X+0+1, X+1+0)`
-**Line 28:** `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)`
+| Line # | Clause |
+|--------|--------|
+| 26 | `t(0+1, 1+0)` |
+| 27 | `t(X+0+1, X+1+0)` |
+| 28 | `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)` |
 
 ## Search Tree Visualization
 

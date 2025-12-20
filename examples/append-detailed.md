@@ -8,8 +8,10 @@ append([1,2], [3,4], X)
 
 ## Clauses Defined
 
-**Line 4:** `append([], L, L)`
-**Line 5:** `append([H|T], L, [H|R]) :- append(T, L, R)`
+| Line # | Clause |
+|--------|--------|
+| 4 | `append([], L, L)` |
+| 5 | `append([H|T], L, [H|R]) :- append(T, L, R)` |
 
 ## Search Tree Visualization
 

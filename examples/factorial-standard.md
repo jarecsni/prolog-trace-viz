@@ -8,8 +8,10 @@ factorial(3, X)
 
 ## Clauses Defined
 
-**Line 4:** `factorial(0, 1)`
-**Line 5:** `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1`
+| Line # | Clause |
+|--------|--------|
+| 4 | `factorial(0, 1)` |
+| 5 | `factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1` |
 
 ## Search Tree Visualization
 
