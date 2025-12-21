@@ -1,9 +1,9 @@
-# Prolog Execution Trace: factorial(3, F)
+# Prolog Execution Trace: factorial(3, X)
 
 ## Query
 
 ```
-factorial(3, F)
+factorial(3, X)
 ```
 
 ## Clause Definitions
@@ -213,7 +213,7 @@ style M fill:#c8e6c9,stroke:#388e3c
 ## Final Answer
 
 ```
-F = 6
+X = 6
 ```
 
 _Showing first solution only._
