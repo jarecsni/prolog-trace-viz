@@ -70,13 +70,72 @@ export class TimelineBuilder {
    * Build the complete timeline from trace events
    */
   build(): TimelineStep[] {
+    // First pass: process all events
     for (const event of this.events) {
       // Filter out tracer infrastructure
       if (!this.isTracerPredicate(event.predicate)) {
         this.processEvent(event);
       }
     }
+    
+    // Second pass: backfill clause info from EXIT to CALL steps
+    this.backfillClauseInfo();
+    
     return this.steps;
+  }
+  
+  /**
+   * Backfill clause information from EXIT events to their corresponding CALL events
+   */
+  private backfillClauseInfo(): void {
+    // For each CALL step without clause info, find its matching EXIT
+    for (let i = 0; i < this.steps.length; i++) {
+      const callStep = this.steps[i];
+      
+      if (callStep.port === 'call' && !callStep.clause) {
+        // Find the matching EXIT for this CALL
+        // It should be at the same level and have the same predicate
+        const exitStep = this.findMatchingExit(callStep, i);
+        
+        if (exitStep && exitStep.clause) {
+          callStep.clause = exitStep.clause;
+          
+          // Re-extract subgoals now that we have clause info
+          if (exitStep.clause.body && exitStep.clause.body !== 'true') {
+            const subgoalGoals = this.extractSubgoals(exitStep.clause.body);
+            callStep.subgoals = subgoalGoals.map((goal, index) => ({
+              label: `[${callStep.stepNumber}.${index + 1}]`,
+              goal,
+            }));
+            
+            // Update parent subgoals map
+            if (callStep.subgoals.length > 0) {
+              this.parentSubgoals.set(callStep.stepNumber, callStep.subgoals);
+              this.completedSubgoals.set(callStep.stepNumber, 0);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Find the matching EXIT step for a CALL step
+   */
+  private findMatchingExit(callStep: TimelineStep, startIndex: number): TimelineStep | null {
+    // Look forward from the CALL to find the matching EXIT
+    // The EXIT should be at the same level and return to this CALL
+    for (let i = startIndex + 1; i < this.steps.length; i++) {
+      const step = this.steps[i];
+      
+      if (step.port === 'exit' && 
+          step.level === callStep.level && 
+          step.returnsTo === callStep.stepNumber) {
+        return step;
+      }
+    }
+    
+    return null;
   }
 
   /**
