@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2025-12-21
 
+## [2.0.0] - 2025-12-21
+
 ### Added
 - **Variable Flow Tracking**: Shows how variables bind and flow across execution steps
 - Variable binding notes at EXIT steps (e.g., "R from Step 11 is now bound to 1")
