@@ -476,7 +476,7 @@ After initial implementation, a review against requirements revealed significant
     - Extend to all unification displays
     - _Requirements: 2.8_
 
-- [-] 23. Testing and Validation
+- [x] 23. Testing and Validation
   - [x] 23.1 Test with factorial example
     - Verify all subgoals shown
     - Check variable flow tracking
@@ -498,7 +498,7 @@ After initial implementation, a review against requirements revealed significant
     - Check variable flow across multiple levels
     - _Requirements: 10.1-10.7_
   
-  - [ ] 23.5 Update or remove old parser tests
+  - [x] 23.5 Update or remove old parser tests
     - Old tests reference removed code
     - Either update to test new pipeline or remove
     - _Requirements: 14.1-14.3_
