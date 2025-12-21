@@ -47,6 +47,8 @@ export class TimelineBuilder {
   private stepCounter = 0;
   private callStack: Map<number, number> = new Map(); // level -> step number
   private subgoalMap: Map<number, { parentStep: number; subgoalIndex: number }> = new Map(); // level -> subgoal info
+  private parentSubgoals: Map<number, Array<{ label: string; goal: string }>> = new Map(); // step number -> subgoals
+  private completedSubgoals: Map<number, number> = new Map(); // parent step -> count of completed subgoals
 
   constructor(private events: TraceEvent[]) {}
 
@@ -151,12 +153,19 @@ export class TimelineBuilder {
           label: `[${stepNumber}.${index + 1}]`,
           goal,
         });
-        // Track which subgoal will be solved at the next level
+      });
+      
+      // Store subgoals for this step
+      if (subgoals.length > 0) {
+        this.parentSubgoals.set(stepNumber, subgoals);
+        this.completedSubgoals.set(stepNumber, 0);
+        
+        // Map the FIRST subgoal to the next level
         this.subgoalMap.set(event.level + 1, {
           parentStep: stepNumber,
-          subgoalIndex: index + 1,
+          subgoalIndex: 1,
         });
-      });
+      }
     }
     
     // Determine if this call is solving a subgoal
@@ -270,15 +279,28 @@ export class TimelineBuilder {
     if (subgoalInfo) {
       subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
       
-      // Check if there's a next subgoal
-      const parentStepData = this.steps.find(s => s.stepNumber === subgoalInfo.parentStep);
-      if (parentStepData && parentStepData.subgoals.length > subgoalInfo.subgoalIndex) {
-        const nextSubgoalData = parentStepData.subgoals[subgoalInfo.subgoalIndex];
-        nextSubgoal = `Subgoal ${nextSubgoalData.label}`;
-      }
+      // Mark this subgoal as completed
+      const parentStep = subgoalInfo.parentStep;
+      const currentCompleted = this.completedSubgoals.get(parentStep) || 0;
+      this.completedSubgoals.set(parentStep, currentCompleted + 1);
       
-      // Clear this subgoal mapping
-      this.subgoalMap.delete(event.level);
+      // Check if there's a next subgoal
+      const parentSubgoals = this.parentSubgoals.get(parentStep);
+      if (parentSubgoals && subgoalInfo.subgoalIndex < parentSubgoals.length) {
+        // There's a next subgoal - update the mapping
+        const nextSubgoalIndex = subgoalInfo.subgoalIndex + 1;
+        const nextSubgoalData = parentSubgoals[nextSubgoalIndex - 1];
+        nextSubgoal = `Subgoal ${nextSubgoalData.label}`;
+        
+        // Update the subgoal map for the next subgoal at the same level
+        this.subgoalMap.set(event.level, {
+          parentStep,
+          subgoalIndex: nextSubgoalIndex,
+        });
+      } else {
+        // All subgoals completed - clear the mapping
+        this.subgoalMap.delete(event.level);
+      }
     }
     
     const step: TimelineStep = {

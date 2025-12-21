@@ -382,23 +382,23 @@ After initial implementation, a review against requirements revealed significant
     - Display list of spawned subgoals in CALL step
     - _Requirements: 3.2, 7.1, 7.2, 7.9_
 
-- [ ] 18. Implement Subgoal Tracking in Timeline
-  - [ ] 18.1 Add subgoal label tracking
+- [x] 18. Implement Subgoal Tracking in Timeline
+  - [x] 18.1 Add subgoal label tracking
     - Track which subgoal each CALL is solving
     - Map subgoal labels to step numbers
     - _Requirements: 7.2, 7.9_
   
-  - [ ] 18.2 Add "Solving subgoal" markers
+  - [x] 18.2 Add "Solving subgoal" markers
     - Display "◀── Solving subgoal [X.Y]" in CALL steps
     - Reference parent step that spawned this subgoal
     - _Requirements: 7.4, 7.10_
   
-  - [ ] 18.3 Add "Completed subgoal" markers
+  - [x] 18.3 Add "Completed subgoal" markers
     - Display "◀── Completed subgoal [X.Y]" in EXIT steps
     - Show which subgoal was completed
     - _Requirements: 7.4, 7.11_
   
-  - [ ] 18.4 Add "Next subgoal" indicators
+  - [x] 18.4 Add "Next subgoal" indicators
     - Show which subgoal comes next after EXIT
     - Reference the next subgoal label
     - _Requirements: 7.12_
