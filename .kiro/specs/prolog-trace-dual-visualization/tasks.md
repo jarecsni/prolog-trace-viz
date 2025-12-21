@@ -360,3 +360,162 @@ This plan implements a dual-format Prolog trace visualization system with an exe
 - Property tests should run minimum 100 iterations
 - Reuse existing: tracer.pl, CLI infrastructure, clause parsing, wrapper generation
 - Replace completely: LaTeX parsing, tree building, analyzer, Mermaid generation
+
+## Phase 2: Implementation Gap Fixes
+
+After initial implementation, a review against requirements revealed significant gaps in the educational detail. These tasks address missing functionality to meet the full specification.
+
+- [ ] 17. Enhance Timeline Formatter with Clause Information
+  - [ ] 17.1 Display clause head in CALL steps
+    - Show matched clause head with pattern
+    - Include clause line number
+    - _Requirements: 3.2, 6.1, 6.2_
+  
+  - [ ] 17.2 Display clause body in CALL steps
+    - Show the body goals that will be spawned
+    - Format body readably
+    - _Requirements: 3.2, 6.4_
+  
+  - [ ] 17.3 Extract and display spawned subgoals
+    - Parse clause body to extract subgoals
+    - Assign labels [N.M] to each subgoal
+    - Display list of spawned subgoals in CALL step
+    - _Requirements: 3.2, 7.1, 7.2, 7.9_
+
+- [ ] 18. Implement Subgoal Tracking in Timeline
+  - [ ] 18.1 Add subgoal label tracking
+    - Track which subgoal each CALL is solving
+    - Map subgoal labels to step numbers
+    - _Requirements: 7.2, 7.9_
+  
+  - [ ] 18.2 Add "Solving subgoal" markers
+    - Display "◀── Solving subgoal [X.Y]" in CALL steps
+    - Reference parent step that spawned this subgoal
+    - _Requirements: 7.4, 7.10_
+  
+  - [ ] 18.3 Add "Completed subgoal" markers
+    - Display "◀── Completed subgoal [X.Y]" in EXIT steps
+    - Show which subgoal was completed
+    - _Requirements: 7.4, 7.11_
+  
+  - [ ] 18.4 Add "Next subgoal" indicators
+    - Show which subgoal comes next after EXIT
+    - Reference the next subgoal label
+    - _Requirements: 7.12_
+
+- [ ] 19. Implement Variable Flow Tracking
+  - [ ] 19.1 Track variable bindings across subgoals
+    - Identify shared variables between subgoals
+    - Track when variables get bound
+    - _Requirements: 10.1, 10.4_
+  
+  - [ ] 19.2 Show variable substitutions
+    - Display how bound variables affect subsequent subgoals
+    - Show substituted values in subgoal calls
+    - _Requirements: 10.2, 10.3_
+  
+  - [ ] 19.3 Add variable flow notes
+    - Add notes indicating where values came from
+    - Show which previous step bound a variable
+    - _Requirements: 10.5, 10.7_
+  
+  - [ ] 19.4 Display clause variables consistently
+    - Use consistent naming for clause-local variables (e.g., X1)
+    - Show same variable name across all subgoals
+    - _Requirements: 7.7, 7.8, 10.6_
+
+- [ ] 20. Enhance Tree Formatter with Missing Details
+  - [ ] 20.1 Add clause numbers to tree nodes
+    - Extract clause line numbers from trace
+    - Display in node label
+    - Use dot notation for multiple clauses on same line
+    - _Requirements: 4.2, 6.2, 6.3_
+  
+  - [ ] 20.2 Improve edge labels with subgoal content
+    - Show actual subgoal instead of generic "subgoal N"
+    - Extract subgoal text from clause body
+    - Keep labels concise but meaningful
+    - _Requirements: 4.3, 7.1_
+  
+  - [ ] 20.3 Add clause head to node display
+    - Show matched clause head in node
+    - Format compactly for readability
+    - _Requirements: 4.2, 6.1_
+
+- [ ] 21. Improve Subgoal Extraction Logic
+  - [ ] 21.1 Parse clause bodies correctly
+    - Split on commas respecting parentheses
+    - Handle nested structures
+    - Preserve operator precedence
+    - _Requirements: 7.1, 7.3_
+  
+  - [ ] 21.2 Extract subgoals with proper formatting
+    - Maintain variable names from clause
+    - Handle complex terms correctly
+    - _Requirements: 7.1, 7.5_
+  
+  - [ ] 21.3 Map subgoals to execution steps
+    - Track which step solves which subgoal
+    - Handle recursive calls correctly
+    - _Requirements: 7.2, 7.4_
+
+- [ ] 22. Enhance Unification Display
+  - [ ] 22.1 Show pattern match bindings
+    - Extract bindings from clause head match
+    - Display in CALL step
+    - _Requirements: 5.5, 6.1_
+  
+  - [ ] 22.2 Improve complex unification formatting
+    - Handle list structures clearly
+    - Show compound terms properly
+    - Preserve arithmetic expressions
+    - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  
+  - [ ] 22.3 Map internal variables to original query
+    - Already implemented for final answer
+    - Extend to all unification displays
+    - _Requirements: 2.8_
+
+- [ ] 23. Testing and Validation
+  - [ ] 23.1 Test with factorial example
+    - Verify all subgoals shown
+    - Check variable flow tracking
+    - Validate clause information display
+    - _Requirements: 15.8_
+  
+  - [ ] 23.2 Test with append example
+    - Verify list unification display
+    - Check recursive subgoal tracking
+    - _Requirements: 15.9_
+  
+  - [ ] 23.3 Test with member example (backtracking)
+    - Verify REDO/FAIL handling
+    - Check alternative clause attempts
+    - _Requirements: 15.6_
+  
+  - [ ] 23.4 Test with complex nested example
+    - Verify deep subgoal nesting
+    - Check variable flow across multiple levels
+    - _Requirements: 10.1-10.7_
+  
+  - [ ] 23.5 Update or remove old parser tests
+    - Old tests reference removed code
+    - Either update to test new pipeline or remove
+    - _Requirements: 14.1-14.3_
+
+- [ ] 24. Documentation Updates
+  - [ ] 24.1 Update README with example output
+    - Show actual timeline format
+    - Show actual tree format
+    - Highlight educational features
+    - _Requirements: 13.1-13.9_
+  
+  - [ ] 24.2 Document subgoal tracking feature
+    - Explain [N.M] notation
+    - Show how to read subgoal markers
+    - _Requirements: 7.9, 7.10, 7.11_
+  
+  - [ ] 24.3 Document variable flow visualization
+    - Explain how to follow variable bindings
+    - Show examples of flow notes
+    - _Requirements: 10.1-10.7_
