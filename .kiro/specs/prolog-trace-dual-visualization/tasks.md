@@ -12,342 +12,342 @@ This plan implements a dual-format Prolog trace visualization system with an exe
   - Update help text to reflect changes
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11_
 
-- [ ] 2. Preserve original query before tracer execution
-  - [ ] 2.1 Capture original query string from CLI arguments
+- [x] 2. Preserve original query before tracer execution
+  - [x] 2.1 Capture original query string from CLI arguments
     - Store query before passing to Prolog
     - Extract variable names from original query
     - _Requirements: 2.8_
   
-  - [ ] 2.2 Pass original query through to formatter
+  - [x] 2.2 Pass original query through to formatter
     - Add originalQuery parameter to analysis pipeline
     - Use for first match box and final answer display
     - _Requirements: 2.8_
 
-- [ ] 3. Implement depth limiting in tracer wrapper
-  - [ ] 3.1 Add depth parameter to wrapper generation
+- [x] 3. Implement depth limiting in tracer wrapper
+  - [x] 3.1 Add depth parameter to wrapper generation
     - Pass depth limit to Prolog tracer
     - Default to 100 if not specified
     - _Requirements: 1.7, 1.8, 15.6_
   
-  - [ ] 3.2 Handle depth limit in trace events
+  - [x] 3.2 Handle depth limit in trace events
     - Stop capturing events at depth limit
     - Add truncation marker to JSON output
     - _Requirements: 15.7, 15.8_
 
-- [ ] 4. Build Timeline Builder component
-  - [ ] 4.1 Create TimelineStep interface and builder class
+- [x] 4. Build Timeline Builder component
+  - [x] 4.1 Create TimelineStep interface and builder class
     - Define TimelineStep structure with all fields
     - Initialize builder with trace events
     - _Requirements: 3.1, 3.2_
   
-  - [ ] 4.2 Process CALL events into timeline steps
+  - [x] 4.2 Process CALL events into timeline steps
     - Extract goal, clause, unifications
     - Generate subgoal labels [N.M]
     - Track which subgoal is being solved
     - _Requirements: 3.2, 7.1, 7.2, 7.9, 7.10_
   
-  - [ ] 4.3 Process EXIT events into timeline steps
+  - [x] 4.3 Process EXIT events into timeline steps
     - Extract final bindings
     - Reference return-to step
     - Mark completed subgoal
     - Indicate next subgoal
     - _Requirements: 3.3, 7.3, 7.7, 7.11, 7.12_
   
-  - [ ] 4.4 Process REDO events into timeline steps
+  - [x] 4.4 Process REDO events into timeline steps
     - Show backtracking indicator
     - Reference step being retried
     - _Requirements: 3.4, 9.1, 9.3_
   
-  - [ ] 4.5 Process FAIL events into timeline steps
+  - [x] 4.5 Process FAIL events into timeline steps
     - Show failure indicator
     - Reference parent step
     - _Requirements: 3.5, 9.2, 9.5_
 
-- [ ] 5. Build Tree Builder component
-  - [ ] 5.1 Create TreeNode interface and builder class
+- [x] 5. Build Tree Builder component
+  - [x] 5.1 Create TreeNode interface and builder class
     - Define TreeNode structure
     - Implement node ID generation (A-Z, AA-AZ, etc.)
     - _Requirements: 4.1, 4.4_
   
-  - [ ] 5.2 Build tree structure from trace events
+  - [x] 5.2 Build tree structure from trace events
     - Track call stack by level
     - Create parent-child relationships
     - Assign CALL and EXIT step numbers to nodes
     - _Requirements: 4.3, 4.5, 4.6_
   
-  - [ ] 5.3 Determine node status (success/failure)
+  - [x] 5.3 Determine node status (success/failure)
     - Mark successful paths green
     - Mark failed attempts red
     - Mark root query blue
     - _Requirements: 4.5, 4.6, 4.7_
 
-- [ ] 6. Implement Unification Extractor
-  - [ ] 6.1 Create structural goal comparison
+- [x] 6. Implement Unification Extractor
+  - [x] 6.1 Create structural goal comparison
     - Parse goals into predicate + arguments
     - Match arguments positionally
     - Handle nested structures recursively
     - _Requirements: 5.1, 5.2, 5.3_
   
-  - [ ] 6.2 Extract CALL vs EXIT unifications
+  - [x] 6.2 Extract CALL vs EXIT unifications
     - Compare CALL goal with EXIT goal
     - Identify variable bindings
     - Format as "variable = value"
     - _Requirements: 5.1, 5.4_
   
-  - [ ] 6.3 Extract clause head pattern matches
+  - [x] 6.3 Extract clause head pattern matches
     - Compare goal with clause head
     - Extract pattern match bindings
     - _Requirements: 5.5_
   
-  - [ ] 6.4 Handle complex unifications
+  - [x] 6.4 Handle complex unifications
     - Lists: [H|T] patterns
     - Compound terms
     - Arithmetic expressions
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
 
-- [ ] 7. Implement Subgoal Extractor
-  - [ ] 7.1 Parse clause body into subgoals
+- [x] 7. Implement Subgoal Extractor
+  - [x] 7.1 Parse clause body into subgoals
     - Split on commas respecting parentheses
     - Handle nested structures
     - _Requirements: 7.1, 7.3_
   
-  - [ ] 7.2 Generate subgoal labels
+  - [x] 7.2 Generate subgoal labels
     - Format as [StepNumber.SubgoalIndex]
     - Track subgoal-to-step mapping
     - _Requirements: 7.2, 7.9_
   
-  - [ ] 7.3 Track variable flow between subgoals
+  - [x] 7.3 Track variable flow between subgoals
     - Identify shared variables
     - Show substitutions
     - Add flow notes
     - _Requirements: 7.5, 7.6, 7.7, 7.8, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
-- [ ] 8. Implement Clause Numbering
-  - [ ] 8.1 Parse source file to identify clauses
+- [x] 8. Implement Clause Numbering
+  - [x] 8.1 Parse source file to identify clauses
     - Group clauses by line number
     - Assign sequential indices within each line
     - _Requirements: 6.2, 6.3_
   
-  - [ ] 8.2 Format clause numbers with dot notation
+  - [x] 8.2 Format clause numbers with dot notation
     - Single clause: "26"
     - Multiple clauses: "26.1", "26.2", "26.3"
     - _Requirements: 6.3_
 
-- [ ] 9. Build Timeline Formatter
-  - [ ] 9.1 Format CALL steps
+- [x] 9. Build Timeline Formatter
+  - [x] 9.1 Format CALL steps
     - Show goal, pattern match, clause info
     - Display spawned subgoals with labels
     - Add "◀── Solving subgoal [X.Y]" marker
     - _Requirements: 3.2, 3.6, 3.7, 3.8, 3.9, 7.10_
   
-  - [ ] 9.2 Format EXIT steps
+  - [x] 9.2 Format EXIT steps
     - Show bindings, return-to reference
     - Add "◀── Completed subgoal [X.Y]" marker
     - Indicate next subgoal
     - Add variable flow notes
     - _Requirements: 3.3, 3.10, 7.11, 7.12, 10.5_
   
-  - [ ] 9.3 Format REDO steps
+  - [x] 9.3 Format REDO steps
     - Show "◀── Retrying Step N" marker
     - Indicate which clause being tried
     - _Requirements: 3.4, 9.1, 9.3, 9.4_
   
-  - [ ] 9.4 Format FAIL steps
+  - [x] 9.4 Format FAIL steps
     - Show failure reason
     - Reference parent step
     - _Requirements: 3.5, 9.2, 9.5_
   
-  - [ ] 9.5 Handle built-in predicates concisely
+  - [x] 9.5 Handle built-in predicates concisely
     - Show evaluation for arithmetic
     - Minimize visual noise for `true`
     - _Requirements: 17.1, 17.2, 17.3, 17.4_
 
-- [ ] 10. Build Tree Formatter (Mermaid)
-  - [ ] 10.1 Generate Mermaid node definitions
+- [x] 10. Build Tree Formatter (Mermaid)
+  - [x] 10.1 Generate Mermaid node definitions
     - Format: `ID["① goal<br/>clause N<br/>⑥ EXIT: binding"]`
     - Use circled numbers for steps
     - Include clause numbers
     - _Requirements: 4.2, 4.4_
   
-  - [ ] 10.2 Generate Mermaid edges
+  - [x] 10.2 Generate Mermaid edges
     - Format: `A -->|subgoal 1| B`
     - Label with relationship type
     - _Requirements: 4.3_
   
-  - [ ] 10.3 Apply node styling
+  - [x] 10.3 Apply node styling
     - Blue for root query
     - Green for success
     - Red for failure
     - _Requirements: 4.5, 4.6, 4.7_
   
-  - [ ] 10.4 Handle backtracking in tree
+  - [x] 10.4 Handle backtracking in tree
     - Show failed attempts
     - Show alternative clause tries
     - _Requirements: 9.6, 9.7_
 
-- [ ] 11. Build Markdown Output Generator
-  - [ ] 11.1 Generate document header
+- [x] 11. Build Markdown Output Generator
+  - [x] 11.1 Generate document header
     - Title with query
     - Original query code block
     - Clause definitions table
     - _Requirements: 13.1, 13.2, 13.3, 13.4_
   
-  - [ ] 11.2 Generate timeline section
+  - [x] 11.2 Generate timeline section
     - Format all timeline steps
     - Use box drawing characters
     - Add step numbers prominently
     - _Requirements: 13.5_
   
-  - [ ] 11.3 Generate tree section
+  - [x] 11.3 Generate tree section
     - Embed Mermaid diagram
     - Add legend if needed
     - _Requirements: 13.6_
   
-  - [ ] 11.4 Generate final answer section
+  - [x] 11.4 Generate final answer section
     - Show query result
     - Use original query variables
     - Note if truncated or first solution only
     - _Requirements: 13.7, 2.7, 15.8_
   
-  - [ ] 11.5 Apply formatting rules
+  - [x] 11.5 Apply formatting rules
     - Plain code blocks (no syntax highlighting)
     - No `?-` prompt in queries
     - British English spelling
     - _Requirements: 13.8, 13.9_
 
-- [ ] 12. Handle multiple solutions
+- [x] 12. Handle multiple solutions
   - Stop processing after first successful EXIT of root query
   - Add note: "Showing first solution only"
   - _Requirements: 2.7_
 
-- [ ] 13. Integrate all components
-  - [ ] 13.1 Wire event parser to timeline builder
+- [x] 13. Integrate all components
+  - [x] 13.1 Wire event parser to timeline builder
     - Pass trace events to timeline builder
     - Pass original query context
     - _Requirements: 3.1_
   
-  - [ ] 13.2 Wire event parser to tree builder
+  - [x] 13.2 Wire event parser to tree builder
     - Pass trace events to tree builder
     - Build tree in parallel with timeline
     - _Requirements: 4.1_
   
-  - [ ] 13.3 Wire builders to markdown formatter
+  - [x] 13.3 Wire builders to markdown formatter
     - Pass timeline steps to formatter
     - Pass tree nodes to formatter
     - Pass clause definitions to formatter
     - _Requirements: 13.1_
   
-  - [ ] 13.4 Update main execution flow
+  - [x] 13.4 Update main execution flow
     - Remove old LaTeX parsing
     - Remove old analyzer
     - Use new builders and formatters
     - _Requirements: 2.1, 3.1, 4.1_
 
-- [ ] 14. Error handling
-  - [ ] 14.1 Handle missing trace data gracefully
+- [x] 14. Error handling
+  - [x] 14.1 Handle missing trace data gracefully
     - Omit missing information
     - Add notes about unavailable data
     - Continue processing
     - _Requirements: 12.7_
   
-  - [ ] 14.2 Handle malformed events
+  - [x] 14.2 Handle malformed events
     - Log error with context
     - Skip malformed event
     - Continue processing
     - _Requirements: 14.4_
   
-  - [ ] 14.3 Handle stack inconsistencies
+  - [x] 14.3 Handle stack inconsistencies
     - Create placeholder entries
     - Mark as "recovered"
     - Note inconsistency
     - _Requirements: 14.4_
 
 - [ ] 15. Testing and validation
-  - [ ] 15.1 Write unit tests for unification extraction
+  - [x] 15.1 Write unit tests for unification extraction
     - Test simple variable bindings
     - Test complex structures (lists, compounds)
     - Test arithmetic expressions
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
   
-  - [ ] 15.2 Write unit tests for subgoal extraction
+  - [x] 15.2 Write unit tests for subgoal extraction
     - Test clause body parsing
     - Test subgoal labelling
     - Test variable flow tracking
     - _Requirements: 7.1, 7.2, 7.3, 7.5, 7.6_
   
-  - [ ] 15.3 Write unit tests for timeline builder
+  - [x] 15.3 Write unit tests for timeline builder
     - Test CALL/EXIT/REDO/FAIL processing
     - Test step numbering
     - Test subgoal markers
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   
-  - [ ] 15.4 Write unit tests for tree builder
+  - [x] 15.4 Write unit tests for tree builder
     - Test node creation
     - Test parent-child relationships
     - Test node ID generation
     - _Requirements: 4.1, 4.3, 4.4_
   
-  - [ ] 15.5 Write integration test for simple recursion (t/2)
+  - [x] 15.5 Write integration test for simple recursion (t/2)
     - Run tracer on t/2 example
     - Verify timeline format
     - Verify tree structure
     - Check cross-references
     - _Requirements: 2.1, 3.1, 4.1, 8.1_
   
-  - [ ] 15.6 Write integration test for backtracking (member/2)
+  - [x] 15.6 Write integration test for backtracking (member/2)
     - Run tracer on member/2 example
     - Verify REDO/FAIL handling
     - Verify clause retry visualization
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
   
-  - [ ] 15.7 Write integration test for cut (max/3)
+  - [x] 15.7 Write integration test for cut (max/3)
     - Run tracer on max/3 example
     - Verify cut visualization
     - Verify subgoal tracking
     - _Requirements: 18.1, 18.2, 18.3_
   
-  - [ ] 15.8 Write integration test for arithmetic (factorial/2)
+  - [x] 15.8 Write integration test for arithmetic (factorial/2)
     - Run tracer on factorial/2 example
     - Verify deep recursion handling
     - Verify variable flow between subgoals
     - Check all 26 steps formatted correctly
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 15.9 Write integration test for lists (append/3)
+  - [x] 15.9 Write integration test for lists (append/3)
     - Run tracer on append/3 example
     - Verify list unification display
     - Verify nested subgoal tracking
     - _Requirements: 16.1, 16.2_
   
-  - [ ] 15.10 Write property test for timeline completeness
+  - [x] 15.10 Write property test for timeline completeness
     - **Property 1: Timeline Completeness**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
   
-  - [ ] 15.11 Write property test for step number consistency
+  - [x] 15.11 Write property test for step number consistency
     - **Property 2: Step Number Consistency**
     - **Validates: Requirements 8.1, 8.2, 8.3, 8.7**
   
-  - [ ] 15.12 Write property test for tree structure validity
+  - [x] 15.12 Write property test for tree structure validity
     - **Property 3: Tree Structure Validity**
     - **Validates: Requirements 4.1, 4.3, 2.6**
   
-  - [ ] 15.13 Write property test for unification correctness
+  - [x] 15.13 Write property test for unification correctness
     - **Property 4: Unification Correctness**
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4**
   
-  - [ ] 15.14 Write property test for subgoal ordering
+  - [x] 15.14 Write property test for subgoal ordering
     - **Property 5: Subgoal Ordering**
     - **Validates: Requirements 7.2, 7.3**
   
-  - [ ] 15.15 Write property test for cross-reference validity
+  - [x] 15.15 Write property test for cross-reference validity
     - **Property 6: Cross-Reference Validity**
     - **Validates: Requirements 8.4, 8.5, 8.6**
   
-  - [ ] 15.16 Write property test for no heuristics
+  - [x] 15.16 Write property test for no heuristics
     - **Property 7: No Heuristics**
     - **Validates: Requirements 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7**
 
-- [ ] 16. Documentation and cleanup
+- [x] 16. Documentation and cleanup
   - Update README with new visualization format
   - Remove old detail level documentation
   - Add examples of timeline and tree output
