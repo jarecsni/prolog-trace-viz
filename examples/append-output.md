@@ -19,44 +19,52 @@ append([1,2], [3,4], X)
 │  
 │  Pattern Match:
 │    Goal: append([1,2],[3,4],_1030)
-│    Head: append([_630|_632],_624,[_630|_638])
-│    ├─ _624 = [3,4]
+│    Head: append([H|T], L, [H|R])
+│    ├─ H = 1
+│    ├─ T = [2]
+│    ├─ L = [3,4]
 │  
-│  Clause: append([_630|_632],_624,[_630|_638]) :- append(_632,_624,_638) [line 9]
+│  Clause: append([H|T], L, [H|R]) :- append(T, L, R) [line 5]
 │  Spawns subgoals:
-│    [1.1] append(_632,_624,_638)
+│    [1.1] append(T, L, R)
 └─
 
 ┌─ Step 2: CALL append([2],[3,4],_978)
+│  ◀── Solving subgoal [1.1]
 │  
 │  Pattern Match:
 │    Goal: append([2],[3,4],_978)
-│    Head: append([_784|_786],_778,[_784|_792])
-│    ├─ _778 = [3,4]
+│    Head: append([H|T], L, [H|R])
+│    ├─ H = 2
+│    ├─ T = []
+│    ├─ L = [3,4]
 │  
-│  Clause: append([_784|_786],_778,[_784|_792]) :- append(_786,_778,_792) [line 9]
+│  Clause: append([H|T], L, [H|R]) :- append(T, L, R) [line 5]
 │  Spawns subgoals:
-│    [2.1] append(_786,_778,_792)
+│    [2.1] append(T, L, R)
 └─
 
 ┌─ Step 3: CALL append([],[3,4],_938)
+│  ◀── Solving subgoal [2.1]
 │  
 │  Pattern Match:
 │    Goal: append([],[3,4],_938)
-│    Head: append([],_908,_908)
-│    ├─ _908 = [3,4]
-│    ├─ _908 = _938
+│    Head: append([], L, L)
+│    ├─ L = [3,4]
+│    ├─ L = _938
 │  
-│  Clause: append([],_908,_908) [line 8] (fact)
+│  Clause: append([], L, L) [line 4] (fact)
 └─
 
 ┌─ Step 4: EXIT append([],[3,4],[3,4])
+│  ◀── Completed subgoal [2.1]
 │  Bindings:
 │    _938 = [3,4]
 │  Returns to: Step 3
 └─
 
 ┌─ Step 5: EXIT append([2],[3,4],[2,3,4])
+│  ◀── Completed subgoal [1.1]
 │  Bindings:
 │    _978 = [2,3,4]
 │  Returns to: Step 2

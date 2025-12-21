@@ -83,6 +83,9 @@ export class TimelineBuilder {
     // Second pass: backfill clause info from EXIT to CALL steps
     this.backfillClauseInfo();
     
+    // Third pass: update subgoal tracking based on execution flow
+    this.updateSubgoalTracking();
+    
     return this.steps;
   }
   
@@ -129,6 +132,57 @@ export class TimelineBuilder {
               this.parentSubgoals.set(callStep.stepNumber, callStep.subgoals);
               this.completedSubgoals.set(callStep.stepNumber, 0);
             }
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Update subgoal tracking markers based on execution flow
+   * This must run after backfillClauseInfo so we have all subgoals defined
+   */
+  private updateSubgoalTracking(): void {
+    // Track which subgoal is currently active at each level
+    const activeSubgoalMap = new Map<number, { parentStep: number; subgoalIndex: number }>();
+    
+    for (const step of this.steps) {
+      if (step.port === 'call') {
+        // Check if this CALL is solving a subgoal
+        const subgoalInfo = activeSubgoalMap.get(step.level);
+        if (subgoalInfo) {
+          step.subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
+        }
+        
+        // If this CALL has subgoals, set up tracking for the first one
+        if (step.subgoals.length > 0) {
+          activeSubgoalMap.set(step.level + 1, {
+            parentStep: step.stepNumber,
+            subgoalIndex: 1,
+          });
+        }
+      } else if (step.port === 'exit') {
+        // Check if this EXIT completes a subgoal
+        const subgoalInfo = activeSubgoalMap.get(step.level);
+        if (subgoalInfo) {
+          step.subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
+          
+          // Check if there's a next subgoal
+          const parentSubgoals = this.parentSubgoals.get(subgoalInfo.parentStep);
+          if (parentSubgoals && subgoalInfo.subgoalIndex < parentSubgoals.length) {
+            // Move to next subgoal
+            const nextSubgoalIndex = subgoalInfo.subgoalIndex + 1;
+            const nextSubgoalData = parentSubgoals[nextSubgoalIndex - 1];
+            step.nextSubgoal = `Subgoal ${nextSubgoalData.label}`;
+            
+            // Update active subgoal for this level
+            activeSubgoalMap.set(step.level, {
+              parentStep: subgoalInfo.parentStep,
+              subgoalIndex: nextSubgoalIndex,
+            });
+          } else {
+            // All subgoals completed
+            activeSubgoalMap.delete(step.level);
           }
         }
       }
@@ -267,21 +321,11 @@ export class TimelineBuilder {
       if (subgoals.length > 0) {
         this.parentSubgoals.set(stepNumber, subgoals);
         this.completedSubgoals.set(stepNumber, 0);
-        
-        // Map the FIRST subgoal to the next level
-        this.subgoalMap.set(event.level + 1, {
-          parentStep: stepNumber,
-          subgoalIndex: 1,
-        });
       }
     }
     
-    // Determine if this call is solving a subgoal
+    // Determine if this call is solving a subgoal (will be set during backfill)
     let subgoalLabel: string | undefined;
-    const subgoalInfo = this.subgoalMap.get(event.level);
-    if (subgoalInfo) {
-      subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
-    }
     
     // Extract pattern match bindings if clause available
     const unifications: Array<{ variable: string; value: string }> = [];
@@ -306,6 +350,7 @@ export class TimelineBuilder {
   
   /**
    * Extract pattern match bindings by comparing goal with clause head
+   * Uses structural decomposition - not heuristics, just comparing known data
    */
   private extractPatternMatchBindings(goal: string, clauseHead: string): Array<{ variable: string; value: string }> {
     const bindings: Array<{ variable: string; value: string }> = [];
@@ -321,21 +366,139 @@ export class TimelineBuilder {
     const goalArgs = this.splitArguments(goalMatch[2]);
     const headArgs = this.splitArguments(headMatch[2]);
     
-    // Match arguments positionally
+    // Match arguments positionally with structural decomposition
     for (let i = 0; i < Math.min(goalArgs.length, headArgs.length); i++) {
       const goalArg = goalArgs[i].trim();
       const headArg = headArgs[i].trim();
       
-      // If head has a variable (starts with _ or uppercase) and goal has a value
-      if (/^[A-Z_]/.test(headArg) && headArg !== goalArg) {
-        bindings.push({
-          variable: headArg,
-          value: goalArg,
-        });
-      }
+      // Recursively extract bindings from this argument pair
+      this.extractBindingsFromTermPair(headArg, goalArg, bindings);
     }
     
     return bindings;
+  }
+  
+  /**
+   * Recursively extract bindings by comparing pattern term with value term
+   * This is structural decomposition, not unification - we're just comparing strings
+   */
+  private extractBindingsFromTermPair(
+    pattern: string,
+    value: string,
+    bindings: Array<{ variable: string; value: string }>
+  ): void {
+    // If pattern is a simple variable (single uppercase/underscore identifier)
+    if (this.isSimpleVariable(pattern)) {
+      bindings.push({ variable: pattern, value });
+      return;
+    }
+    
+    // If pattern and value are identical, no binding needed
+    if (pattern === value) {
+      return;
+    }
+    
+    // Try to decompose as compound term with operators
+    // e.g., "X+1+1" vs "0+1+1" -> extract X=0
+    const patternOp = this.findOperator(pattern);
+    const valueOp = this.findOperator(value);
+    
+    if (patternOp && valueOp && patternOp.op === valueOp.op) {
+      // Same operator - recursively match operands
+      this.extractBindingsFromTermPair(patternOp.left, valueOp.left, bindings);
+      this.extractBindingsFromTermPair(patternOp.right, valueOp.right, bindings);
+      return;
+    }
+    
+    // Try to decompose as list
+    // e.g., "[H|T]" vs "[1,2,3]" -> extract H=1, T=[2,3]
+    if (pattern.startsWith('[') && value.startsWith('[')) {
+      const patternList = this.parseListPattern(pattern);
+      const valueList = this.parseListPattern(value);
+      
+      if (patternList && valueList) {
+        if (patternList.head && valueList.head) {
+          this.extractBindingsFromTermPair(patternList.head, valueList.head, bindings);
+        }
+        if (patternList.tail && valueList.tail) {
+          this.extractBindingsFromTermPair(patternList.tail, valueList.tail, bindings);
+        }
+        return;
+      }
+    }
+    
+    // If we can't decompose further, no binding
+  }
+  
+  /**
+   * Check if a term is a simple variable
+   */
+  private isSimpleVariable(term: string): boolean {
+    return /^[A-Z_][A-Za-z0-9_]*$/.test(term);
+  }
+  
+  /**
+   * Find the main operator in a term
+   * Returns null if no operator found
+   */
+  private findOperator(term: string): { op: string; left: string; right: string } | null {
+    const operators = ['+', '-', '*', '/'];
+    
+    // Find operator at depth 0 (not inside parentheses)
+    let depth = 0;
+    for (let i = term.length - 1; i >= 0; i--) {
+      const char = term[i];
+      
+      if (char === ')' || char === ']') {
+        depth++;
+      } else if (char === '(' || char === '[') {
+        depth--;
+      } else if (depth === 0 && operators.includes(char)) {
+        return {
+          op: char,
+          left: term.slice(0, i).trim(),
+          right: term.slice(i + 1).trim(),
+        };
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Parse a list pattern
+   */
+  private parseListPattern(list: string): { head: string; tail: string } | null {
+    if (!list.startsWith('[') || !list.endsWith(']')) {
+      return null;
+    }
+    
+    const content = list.slice(1, -1).trim();
+    
+    // Check for [H|T] pattern
+    const pipeIndex = content.indexOf('|');
+    if (pipeIndex !== -1) {
+      return {
+        head: content.slice(0, pipeIndex).trim(),
+        tail: content.slice(pipeIndex + 1).trim(),
+      };
+    }
+    
+    // Check for [H, ...] pattern
+    const commaIndex = content.indexOf(',');
+    if (commaIndex !== -1) {
+      return {
+        head: content.slice(0, commaIndex).trim(),
+        tail: `[${content.slice(commaIndex + 1).trim()}]`,
+      };
+    }
+    
+    // Single element or empty list
+    if (content) {
+      return { head: content, tail: '[]' };
+    }
+    
+    return null;
   }
 
   /**
@@ -421,37 +584,7 @@ export class TimelineBuilder {
       }
     }
     
-    // Determine if this completes a subgoal
-    let subgoalLabel: string | undefined;
-    let nextSubgoal: string | undefined;
-    const subgoalInfo = this.subgoalMap.get(event.level);
-    if (subgoalInfo) {
-      subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
-      
-      // Mark this subgoal as completed
-      const parentStep = subgoalInfo.parentStep;
-      const currentCompleted = this.completedSubgoals.get(parentStep) || 0;
-      this.completedSubgoals.set(parentStep, currentCompleted + 1);
-      
-      // Check if there's a next subgoal
-      const parentSubgoals = this.parentSubgoals.get(parentStep);
-      if (parentSubgoals && subgoalInfo.subgoalIndex < parentSubgoals.length) {
-        // There's a next subgoal - update the mapping
-        const nextSubgoalIndex = subgoalInfo.subgoalIndex + 1;
-        const nextSubgoalData = parentSubgoals[nextSubgoalIndex - 1];
-        nextSubgoal = `Subgoal ${nextSubgoalData.label}`;
-        
-        // Update the subgoal map for the next subgoal at the same level
-        this.subgoalMap.set(event.level, {
-          parentStep,
-          subgoalIndex: nextSubgoalIndex,
-        });
-      } else {
-        // All subgoals completed - clear the mapping
-        this.subgoalMap.delete(event.level);
-      }
-    }
-    
+    // Subgoal tracking will be updated in updateSubgoalTracking pass
     const step: TimelineStep = {
       stepNumber,
       port: 'exit',
@@ -461,8 +594,6 @@ export class TimelineBuilder {
       unifications,
       subgoals: [],
       returnsTo: callStep,
-      subgoalLabel,
-      nextSubgoal,
     };
     
     // Remove from call stack

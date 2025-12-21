@@ -542,38 +542,38 @@ After comparing actual output against requirements and design, significant gaps 
     - Extract from parsed source clause body
     - _Requirements: 7.1, 7.5_
 
-- [ ] 26. Fix Pattern Match Binding Extraction
-  - [ ] 26.1 Implement positional structural matching
+- [x] 26. Fix Pattern Match Binding Extraction
+  - [x] 26.1 Implement positional structural matching
     - Compare CALL goal with source clause head positionally
     - Extract variable bindings by structural decomposition
     - Handle compound terms recursively (e.g., X+1+1 matches 0+1+1 → X=0)
     - _Requirements: 5.1, 5.2, 5.3, 5.5_
   
-  - [ ] 26.2 Display extracted bindings correctly
+  - [x] 26.2 Display extracted bindings correctly
     - Show "├─ X = 0" not "├─ _578+1+1 = 0+1+1"
     - Show actual variable-to-value mappings
     - Use source variable names
     - _Requirements: 5.5, 6.1_
   
-  - [ ] 26.3 Handle complex pattern matches
+  - [x] 26.3 Handle complex pattern matches
     - Arithmetic expressions: X+1+1 = 0+1+1 → X=0
     - List patterns: [H|T] = [1,2,3] → H=1, T=[2,3]
     - Nested structures
     - _Requirements: 16.1, 16.2, 16.3_
 
-- [ ] 27. Implement Missing Subgoal Tracking Markers
-  - [ ] 27.1 Add "Solving subgoal" markers to CALL steps
+- [x] 27. Implement Missing Subgoal Tracking Markers
+  - [x] 27.1 Add "Solving subgoal" markers to CALL steps
     - Display "◀── Solving subgoal [1.1]" when CALL solves a subgoal
     - Track which subgoal each CALL is solving
     - Reference parent step that spawned the subgoal
     - _Requirements: 7.4, 7.10, 18.2_
   
-  - [ ] 27.2 Add "Completed subgoal" markers to EXIT steps
+  - [x] 27.2 Add "Completed subgoal" markers to EXIT steps
     - Display "◀── Completed subgoal [1.1]" when EXIT completes a subgoal
     - Show which subgoal was completed
     - _Requirements: 7.4, 7.11, 18.3_
   
-  - [ ] 27.3 Add "Next subgoal" indicators to EXIT steps
+  - [x] 27.3 Add "Next subgoal" indicators to EXIT steps
     - Display "Next: Subgoal [1.2]" after completing a subgoal
     - Show what comes next in the execution
     - Only show if there is a next subgoal

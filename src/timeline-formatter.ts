@@ -27,8 +27,8 @@ function formatStep(step: TimelineStep): string[] {
   // Step header with box drawing
   lines.push(`┌─ Step ${step.stepNumber}: ${step.port.toUpperCase()} ${step.goal}`);
   
-  // Add subgoal marker if this is solving a subgoal
-  if (step.subgoalLabel) {
+  // Add subgoal marker for CALL steps only
+  if (step.port === 'call' && step.subgoalLabel) {
     lines.push(`│  ◀── Solving subgoal ${step.subgoalLabel}`);
   }
   

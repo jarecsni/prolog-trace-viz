@@ -19,10 +19,12 @@ member(X, [a,b,c])
 │  
 │  Pattern Match:
 │    Goal: member(_572,[a,b,c])
-│    Head: member(_534,[_534|_542])
-│    ├─ _534 = _572
+│    Head: member(X, [X|_])
+│    ├─ X = _572
+│    ├─ X = a
+│    ├─ _ = [b,c]
 │  
-│  Clause: member(_534,[_534|_542]) [line 8] (fact)
+│  Clause: member(X, [X|_]) [line 4] (fact)
 └─
 
 ┌─ Step 2: EXIT member(a,[a,b,c])

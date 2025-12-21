@@ -25,7 +25,7 @@ t(0+1+1, B)
 │  Pattern Match:
 │    Goal: t(0+1+1,_924)
 │    Head: t(X+1+1, Z)
-│    ├─ X+1+1 = 0+1+1
+│    ├─ X = 0
 │    ├─ Z = _924
 │  
 │  Clause: t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z) [line 28]
@@ -35,6 +35,7 @@ t(0+1+1, B)
 └─
 
 ┌─ Step 2: CALL t(0+1,_886)
+│  ◀── Solving subgoal [1.1]
 │  
 │  Pattern Match:
 │    Goal: t(0+1,_886)
@@ -44,23 +45,26 @@ t(0+1+1, B)
 └─
 
 ┌─ Step 3: EXIT t(0+1,1+0)
+│  ◀── Completed subgoal [1.1]
 │  Bindings:
 │    _886 = 1+0
 │  Returns to: Step 2
+│  Next: Subgoal [1.2]
 └─
 
 ┌─ Step 4: CALL t(1+0+1,_760)
+│  ◀── Solving subgoal [1.2]
 │  
 │  Pattern Match:
 │    Goal: t(1+0+1,_760)
 │    Head: t(X+0+1, X+1+0)
-│    ├─ X+0+1 = 1+0+1
-│    ├─ X+1+0 = _760
+│    ├─ X = 1
 │  
 │  Clause: t(X+0+1, X+1+0) [line 27] (fact)
 └─
 
 ┌─ Step 5: EXIT t(1+0+1,1+1+0)
+│  ◀── Completed subgoal [1.2]
 │  Bindings:
 │    _760 = 1+1+0
 │  Returns to: Step 4
