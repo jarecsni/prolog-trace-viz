@@ -33,3 +33,6 @@ coverage/
 
 # Auto-generated files
 src/build-info.ts
+
+# Debug/test artifacts
+debug_*.json
