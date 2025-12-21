@@ -1,95 +1,107 @@
-# Prolog Execution Tree: t(0+1+1, B)
+# Prolog Execution Trace: t(0+1+1, B)
 
 ## Query
 
-```prolog
+```
 t(0+1+1, B)
 ```
 
-## Clauses Defined
+## Clause Definitions
 
 | Line # | Clause |
 |--------|--------|
+| 5 | `test1 :- Term = (jimmy plays football and squash), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl` |
+| 10 | `test2 :- Term = (susan plays tennis and basketball and volleyball), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl` |
+| 19 | `diana was the secretary of the department` |
+| 20 | `test3 :- Term = (diana was the secretary of the department), write('Pretty: '), write(Term), nl, write('Canonical: '), write_canonical(Term), nl` |
 | 26 | `t(0+1, 1+0)` |
 | 27 | `t(X+0+1, X+1+0)` |
 | 28 | `t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z)` |
 
-## Search Tree Visualization
+## Execution Timeline
+
+┌─ Step 1: CALL t(0+1+1,_1152)
+│  
+│  Pattern Match:
+│    Goal: t(0+1+1,_1152)
+│    Head: t(X+1+1, Z)
+│    ├─ X = 0
+│    ├─ Z = _1152
+│  
+│  Clause: t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z) [line 28]
+│  Spawns subgoals:
+│    [1.1] t(X+1, X1)
+│    [1.2] t(X1+1, Z)
+└─
+
+┌─ Step 2: CALL t(0+1,_1094)
+│  ◀── Solving subgoal [1.1]
+│  
+│  Pattern Match:
+│    Goal: t(0+1,_1094)
+│    Head: t(0+1, 1+0)
+│  
+│  Clause: t(0+1, 1+0) [line 26] (fact)
+└─
+
+┌─ Step 3: EXIT t(0+1,1+0)
+│  ◀── Completed subgoal [1.1]
+│  Bindings:
+│    _1094 = 1+0
+│  Returns to: Step 2
+│  Next: Subgoal [1.2]
+└─
+
+┌─ Step 4: CALL t(1+0+1,_916)
+│  ◀── Solving subgoal [1.2]
+│  
+│  Pattern Match:
+│    Goal: t(1+0+1,_916)
+│    Head: t(X+0+1, X+1+0)
+│    ├─ X = 1
+│  
+│  Clause: t(X+0+1, X+1+0) [line 27] (fact)
+└─
+
+┌─ Step 5: EXIT t(1+0+1,1+1+0)
+│  ◀── Completed subgoal [1.2]
+│  Bindings:
+│    _916 = 1+1+0
+│  Returns to: Step 4
+└─
+
+┌─ Step 6: EXIT t(0+1+1,1+1+0)
+│  Bindings:
+│    _1152 = 1+1+0
+│  Returns to: Step 1
+│  Note: Z from Step 1 is now bound to 1+1+0
+└─
+
+
+## Call Tree
 
 ```mermaid
 graph TD
 
 %% Nodes
-A[["🎯 QUERY<br/>t(0+1+1, B)"]]
-B["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• B = 1+1+0"]
-C["🔄 🔁 Recurse: t(0+1, _918) [clause 26]"]
-D["📦 Match Clause 26<br/>t(0+1, 1+0)<br/><br/>Unifications:<br/>• B = 1+0"]
-E(("🎉 SUCCESS"))
-F["📦 Match Clause 28<br/>t(X+1+1, Z)"]
-G["🔄 🔁 Recurse: t(1+0+1, _792) [clause 28]"]
-H(("🎉 SUCCESS"))
+A["① t(X+1+1, Z)<br/>clause 28<br/>⑥ EXIT: _1152=1+1+0"]
+B["② t(0+1, 1+0)<br/>clause 26<br/>③ EXIT: _1094=1+0"]
+C["④ t(X+0+1, X+1+0)<br/>clause 27<br/>⑤ EXIT: _916=1+1+0"]
 
 %% Edges
-A -->|"① try"| B
-B -->|"② try"| D
-D -->|"③"| C
-C -->|"④ success"| E
-B -->|"⑤ backtrack"| F
-F -->|"⑥ clause 28"| G
-G -->|"⑦"| H
+A -->|"t(X+1, X1)"| B
+A -->|"t(X1+1, Z)"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-style B fill:#ffe0b2,stroke:#e65100
-style C fill:#fff9c4,stroke:#f57f17
-style D fill:#ffe0b2,stroke:#e65100
-style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-style F fill:#ffe0b2,stroke:#e65100
-style G fill:#fff9c4,stroke:#f57f17
-style H fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+style B fill:#c8e6c9,stroke:#388e3c
+style C fill:#c8e6c9,stroke:#388e3c
 ```
-
-### Legend
-
-- 🎯 **Blue**: Initial query
-- 🔄 **Yellow**: Currently solving goal
-- 📦 **Orange**: Clause match with unifications
-- ⏸️ **Gray**: Pending goals (waiting for current goal to complete)
-- ✅ **Green**: Solved goal with binding
-- 🎉 **Green**: Final success
-- **Solid arrows**: Active execution flow
-- **Dashed arrows**: Goals queued for later
-- **Double arrows (green)**: Pending goal becomes active
-
-## Step-by-Step Execution
-
-### Step 3
-
-**Goal:** `t(0+1,_918)`
-
-**Action:** Solving t(0+1,_918)
-
-**Clause matched:** `_918 = 1+0`
-
-### Step 4
-
-**Goal:** `true`
-
-**Action:** Solving true
-
-### Step 6
-
-**Goal:** `t(1+0+1,_792)`
-
-**Action:** Backtracking: t(1+0+1,_792)
-
-### Step 7
-
-**Goal:** `true`
-
-**Action:** Solving true
-
 
 ## Final Answer
 
-Query succeeded with no bindings.
+```
+B = 1+1+0
+```
+
+_Showing first solution only._

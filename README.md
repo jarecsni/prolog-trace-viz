@@ -1,16 +1,19 @@
 # prolog-trace-viz
 
-Generate beautiful, educational Mermaid diagrams from Prolog execution traces.
+Generate beautiful, educational visualisations from Prolog execution traces.
 
 ## Features
 
 - Custom Prolog tracer using SWI-Prolog's trace interception hook
 - Captures accurate unification information directly from execution
+- **Dual visualisation format**: execution timeline + call tree diagram
+- **Pattern matching display**: Shows how goals unify with clause heads
+- **Subgoal tracking**: Labels and tracks subgoals with [N.M] notation
 - Generates colour-coded Mermaid diagrams
 - Produces complete markdown documentation with step-by-step breakdowns
-- Tracks pending goals, variable bindings, and clause usage
+- Tracks variable bindings and clause usage
 - **Smart clause filtering** - Only shows clauses that were actually used during execution
-- **Clean table format** - Organised clause presentation with line numbers
+- **Depth limiting** - Control trace depth to focus on relevant execution
 - No external dependencies beyond SWI-Prolog
 
 ## Prerequisites
@@ -46,7 +49,8 @@ prolog-trace-viz <prolog-file> <query> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-o, --output <file>` | Write output to file instead of stdout |
+| `-o, --output <file>` | Write output to file (default: `<source>-output.md`) |
+| `--depth <number>` | Maximum trace depth to capture (default: 100) |
 | `--verbose` | Display detailed processing information |
 | `--quiet` | Suppress all non-error output except final result |
 | `-h, --help` | Show help message |
@@ -72,6 +76,12 @@ With verbose output:
 prolog-trace-viz program.pl "factorial(5, X)" --verbose
 ```
 
+Limit trace depth:
+
+```
+prolog-trace-viz program.pl "factorial(10, X)" --depth 20
+```
+
 ## Example Output
 
 Given a simple Prolog file `append.pl`:
@@ -90,28 +100,29 @@ prolog-trace-viz append.pl "append([1,2], [3], X)"
 Produces a markdown document with:
 
 1. **Query section** - The original query in a code block
-2. **Execution tree** - A Mermaid diagram showing the trace
-3. **Legend** - Explanation of visual elements
-4. **Step-by-step breakdown** - Detailed execution steps
-5. **Final answer** - The result bindings
-6. **Clauses used** - Clean table showing only the clauses that were actually used during execution
+2. **Clause definitions** - Table showing clauses used during execution
+3. **Execution timeline** - Step-by-step breakdown with subgoal tracking
+4. **Call tree diagram** - Mermaid visualisation showing execution structure
+5. **Final answer** - The result bindings with original query variables
 
-### Visual Elements
+### Timeline Format
 
-| Symbol | Meaning |
-|--------|---------|
-| 🎯 | Initial query |
-| 🔄 | Currently solving |
-| ⏸️ | Pending (queued) |
-| ✅ | Solved |
-| 🎉 | Success |
+The execution timeline shows each step with:
+- Step number and event type (CALL, EXIT, REDO, FAIL)
+- Goal being solved
+- Pattern matches and unifications
+- Subgoal labels in `[N.M]` format
+- Variable flow between steps
+- Box drawing characters for visual structure
 
-### Colour Scheme
+### Call Tree Format
 
-- **Blue** - Query nodes
-- **Yellow** - Solving nodes
-- **Grey** - Pending nodes
-- **Green** - Solved/Success nodes
+The Mermaid diagram shows:
+- Circled numbers (①②③...) for step references
+- Node colours: blue (root query), green (success), red (failure)
+- Edges labelled with subgoal relationships
+- Clause numbers for each call
+- Final bindings at EXIT nodes
 
 ## Architecture
 
@@ -121,16 +132,18 @@ The tool uses a custom Prolog tracer that leverages SWI-Prolog's `prolog_trace_i
 - **No code instrumentation**: Your Prolog code runs unmodified
 - **Reliable clause tracking**: Clause numbers come from Prolog's internal tracking
 - **Structured output**: JSON-based trace format for easy parsing
+- **Depth control**: Configurable trace depth to manage output size
 
 ### Pipeline
 
 1. Parse user's Prolog file to extract clauses
-2. Generate wrapper that loads custom tracer
+2. Generate wrapper that loads custom tracer with depth limit
 3. Execute query with trace interception active
 4. Export trace events as JSON
-5. Build execution tree from trace events
-6. Analyze tree and generate visualization
-7. Render as Mermaid diagram in markdown
+5. Build execution timeline and call tree in parallel
+6. Format timeline with subgoal tracking and variable flow
+7. Generate Mermaid diagram from call tree
+8. Render complete markdown document
 
 ## Development
 

@@ -1,14 +1,11 @@
 import { createError, ErrorCode, ToolError } from './errors.js';
 import { BUILD_INFO, COPYRIGHT_NOTICE } from './build-info.js';
 
-export type DetailLevel = 'minimal' | 'standard' | 'detailed' | 'full';
-
 export interface CLIOptions {
   prologFile: string;
   query: string;
   output?: string;
-  depth?: number;
-  detail: DetailLevel;
+  depth: number;
   verbose: boolean;
   quiet: boolean;
 }
@@ -31,12 +28,7 @@ ARGUMENTS:
 
 OPTIONS:
   -o, --output <file>   Write output to file instead of stdout
-  --depth <n>           Set maximum trace depth for sldnfdraw
-  --detail <level>      Visualization detail level (default: standard)
-                        minimal  - Query and success/failure only
-                        standard - + recursion indicators (🔁)
-                        detailed - + clause body nodes
-                        full     - + pending goals, all subgoals
+  --depth <n>           Maximum trace depth (default: 100)
   --verbose             Display detailed processing information
   --quiet               Suppress all non-error output except final result
   -h, --help            Show this help message
@@ -68,7 +60,7 @@ export function parseArgs(argv: string[]): CLIResult {
   }
   
   const options: Partial<CLIOptions> = {
-    detail: 'standard',
+    depth: 100,
     verbose: false,
     quiet: false,
   };
@@ -103,25 +95,6 @@ export function parseArgs(argv: string[]): CLIResult {
         };
       }
       options.depth = depth;
-    } else if (arg === '--detail') {
-      const nextArg = args[++i];
-      if (!nextArg || nextArg.startsWith('-')) {
-        return {
-          type: 'error',
-          error: createError(ErrorCode.INVALID_ARGS, '--detail requires a level argument'),
-        };
-      }
-      const validLevels: DetailLevel[] = ['minimal', 'standard', 'detailed', 'full'];
-      if (!validLevels.includes(nextArg as DetailLevel)) {
-        return {
-          type: 'error',
-          error: createError(
-            ErrorCode.INVALID_ARGS,
-            `Invalid detail level: ${nextArg}. Must be one of: ${validLevels.join(', ')}`
-          ),
-        };
-      }
-      options.detail = nextArg as DetailLevel;
     } else if (arg === '--verbose') {
       options.verbose = true;
     } else if (arg === '--quiet') {
@@ -177,8 +150,7 @@ export function parseArgs(argv: string[]): CLIResult {
       prologFile: positionalArgs[0],
       query: positionalArgs[1],
       output: options.output,
-      depth: options.depth,
-      detail: options.detail!,
+      depth: options.depth!,
       verbose: options.verbose!,
       quiet: options.quiet!,
     },

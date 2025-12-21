@@ -5,13 +5,59 @@ import { parseArgs, getHelpText, getVersion, getCopyright, CLIOptions } from './
 import { formatError } from './errors.js';
 import { createTempWrapper } from './wrapper.js';
 import { executeTracer, checkDependencies } from './executor.js';
-import { parseTraceJson } from './parser.js';
 import * as path from 'node:path';
-import { analyzeTree } from './analyzer.js';
-import { generateMermaid } from './mermaid.js';
-import { renderMarkdown } from './renderer.js';
 import { writeOutput, logVerbose, logInfo, logError } from './output.js';
-import { parsePrologFile } from './clauses.js';
+import { parsePrologFile, buildSourceClauseMap } from './clauses.js';
+import { TimelineBuilder, TraceEvent } from './timeline.js';
+import { TreeBuilder } from './tree.js';
+import { generateMarkdown, ClauseDefinition } from './markdown-generator.js';
+
+/**
+ * Extract variable names from original query
+ * e.g., "factorial(3, X)" -> ["X"]
+ */
+function extractQueryVariables(query: string): string[] {
+  const match = query.match(/\((.*)\)$/);
+  if (!match) return [];
+  
+  const args = match[1].split(',').map(a => a.trim());
+  return args.filter(arg => /^[A-Z_]/.test(arg));
+}
+
+/**
+ * Map internal variable binding to original query variable
+ * e.g., "_1606=6" with query "factorial(3, X)" -> "X = 6"
+ */
+function mapBindingToOriginalQuery(
+  binding: string,
+  goalWithInternalVars: string,
+  originalQuery: string,
+  queryVars: string[]
+): string {
+  // Parse binding: "_1606=6" -> ["_1606", "6"]
+  const [internalVar, value] = binding.split('=').map(s => s.trim());
+  
+  // Parse goals to find position of internal variable
+  const goalMatch = goalWithInternalVars.match(/\((.*)\)$/);
+  const queryMatch = originalQuery.match(/\((.*)\)$/);
+  
+  if (!goalMatch || !queryMatch) return binding;
+  
+  const goalArgs = goalMatch[1].split(',').map(a => a.trim());
+  const queryArgs = queryMatch[1].split(',').map(a => a.trim());
+  
+  // Find which position has the internal variable
+  const position = goalArgs.findIndex(arg => arg === internalVar);
+  
+  if (position >= 0 && position < queryArgs.length) {
+    const originalVar = queryArgs[position];
+    if (/^[A-Z_]/.test(originalVar)) {
+      return `${originalVar} = ${value}`;
+    }
+  }
+  
+  return binding;
+}
 
 async function main(): Promise<void> {
   const result = parseArgs(process.argv);
@@ -72,6 +118,9 @@ async function run(options: CLIOptions): Promise<void> {
   logVerbose('Parsing Prolog clauses...', options);
   const clauses = parsePrologFile(prologContent);
   
+  // Build source clause map for preserving original variable names
+  const sourceClauseMap = buildSourceClauseMap(prologContent);
+  
   // Get absolute path to tracer.pl from package installation
   const tracerPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'tracer.pl');
   
@@ -80,6 +129,7 @@ async function run(options: CLIOptions): Promise<void> {
   const tempFile = await createTempWrapper({
     prologContent,
     query: options.query,
+    depth: options.depth,
     tracerPath,
   });
   
@@ -87,6 +137,10 @@ async function run(options: CLIOptions): Promise<void> {
     // Execute custom tracer
     logVerbose('Executing custom tracer...', options);
     const execResult = await executeTracer(tempFile.path);
+    
+    logVerbose(`Tracer exit code: ${execResult.exitCode}`, options);
+    logVerbose(`JSON length: ${execResult.json?.length || 0}`, options);
+    logVerbose(`Stderr: ${execResult.stderr}`, options);
     
     if (execResult.exitCode !== 0 || !execResult.json) {
       logError('Custom tracer execution failed');
@@ -107,27 +161,44 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Parse JSON trace output
     logVerbose('Parsing JSON trace output...', options);
-    const tree = parseTraceJson(execResult.json, prologContent);
+    const { parseEvents } = await import('./parser.js');
+    const traceEvents = parseEvents(execResult.json, prologContent);
     
-    // Also parse raw events for clause extraction
-    const rawEvents = JSON.parse(execResult.json);
+    // Build timeline
+    logVerbose('Building execution timeline...', options);
+    const timelineBuilder = new TimelineBuilder(traceEvents, sourceClauseMap);
+    const timeline = timelineBuilder.build();
     
-    // Analyze tree
-    logVerbose('Analyzing execution tree...', options);
-    const analysis = analyzeTree(tree, clauses, { detailLevel: options.detail }, rawEvents, options.query);
+    // Build tree
+    logVerbose('Building call tree...', options);
+    const treeBuilder = new TreeBuilder(traceEvents, sourceClauseMap);
+    const tree = treeBuilder.build();
     
-    // Generate Mermaid diagram
-    logVerbose('Generating Mermaid diagram...', options);
-    const diagram = generateMermaid(analysis);
+    // Prepare clause definitions
+    const clauseDefinitions: ClauseDefinition[] = clauses.map(c => ({
+      line: c.number,
+      text: c.text,
+    }));
     
-    // Render markdown
-    logVerbose('Rendering markdown...', options);
-    const markdown = renderMarkdown({
+    // Generate markdown
+    logVerbose('Generating markdown output...', options);
+    
+    // Extract final answer from tree root and map to original query variables
+    let finalAnswer: string | undefined;
+    if (tree && tree.finalBinding) {
+      // Parse original query to get variable names
+      const queryVars = extractQueryVariables(options.query);
+      // Map internal variable to original query variable
+      finalAnswer = mapBindingToOriginalQuery(tree.finalBinding, tree.goal, options.query, queryVars);
+    }
+    
+    const markdown = generateMarkdown({
       query: options.query,
-      diagram,
-      executionSteps: analysis.executionSteps,
-      finalAnswer: analysis.finalAnswer,
-      clausesUsed: analysis.clausesUsed,
+      originalQuery: options.query,
+      timeline,
+      tree,
+      clauses: clauseDefinitions,
+      finalAnswer,
     });
     
     // Write output - default to source file location if not specified
@@ -146,4 +217,7 @@ async function run(options: CLIOptions): Promise<void> {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
