@@ -425,7 +425,7 @@ After initial implementation, a review against requirements revealed significant
     - _Requirements: 7.7, 7.8, 10.6_
 
 - [ ] 20. Enhance Tree Formatter with Missing Details
-  - [ ] 20.1 Add clause numbers to tree nodes
+  - [x] 20.1 Add clause numbers to tree nodes
     - Extract clause line numbers from trace
     - Display in node label
     - Use dot notation for multiple clauses on same line
@@ -437,7 +437,7 @@ After initial implementation, a review against requirements revealed significant
     - Keep labels concise but meaningful
     - _Requirements: 4.3, 7.1_
   
-  - [ ] 20.3 Add clause head to node display
+  - [x] 20.3 Add clause head to node display
     - Show matched clause head in node
     - Format compactly for readability
     - _Requirements: 4.2, 6.1_
