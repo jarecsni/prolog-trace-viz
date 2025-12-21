@@ -7,9 +7,11 @@ Generate beautiful, educational visualisations from Prolog execution traces.
 - Custom Prolog tracer using SWI-Prolog's trace interception hook
 - Captures accurate unification information directly from execution
 - **Dual visualisation format**: execution timeline + call tree diagram
+- **Pattern matching display**: Shows how goals unify with clause heads
+- **Subgoal tracking**: Labels and tracks subgoals with [N.M] notation
 - Generates colour-coded Mermaid diagrams
 - Produces complete markdown documentation with step-by-step breakdowns
-- Tracks subgoals, variable bindings, and clause usage
+- Tracks variable bindings and clause usage
 - **Smart clause filtering** - Only shows clauses that were actually used during execution
 - **Depth limiting** - Control trace depth to focus on relevant execution
 - No external dependencies beyond SWI-Prolog
