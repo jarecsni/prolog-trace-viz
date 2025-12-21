@@ -510,7 +510,7 @@ export function analyzeTree(
   };
   
   // Extract final answer first so we can show it in the success node
-  const finalAnswer = extractFinalAnswer(root);
+  const finalAnswer = extractFinalAnswer(root, originalQuery);
   
   // Process the tree
   processTreeNode(root, null, {
@@ -1461,20 +1461,23 @@ function renameVariablesWithLevel(text: string, level: number): string {
 /**
  * Extracts the final answer from a successful execution tree.
  */
-function extractFinalAnswer(root: ExecutionNode): string | undefined {
-  // Extract the query variable from the root goal
+function extractFinalAnswer(root: ExecutionNode, originalQuery?: string): string | undefined {
+  // Use original query if available to get source variable names
+  const goalToAnalyze = originalQuery || root.goal;
+  
+  // Extract the query variable from the goal
   // Try multiple patterns: member(X, ...), append(..., X), factorial(..., X), etc.
   let queryVar: string | null = null;
   
   // Pattern 1: First argument is a variable (e.g., member(X, [a,b,c]))
-  const firstArgMatch = root.goal.match(/^[a-z_][a-zA-Z0-9_]*\(\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*/);
+  const firstArgMatch = goalToAnalyze.match(/^[a-z_][a-zA-Z0-9_]*\(\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*/);
   if (firstArgMatch) {
     queryVar = firstArgMatch[1];
   }
   
   // Pattern 2: Last argument is a variable (e.g., factorial(5, X))
   if (!queryVar) {
-    const lastArgMatch = root.goal.match(/,\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\s*\)/);
+    const lastArgMatch = goalToAnalyze.match(/,\s*([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\s*\)/);
     if (lastArgMatch) {
       queryVar = lastArgMatch[1];
     }
@@ -1485,10 +1488,15 @@ function extractFinalAnswer(root: ExecutionNode): string | undefined {
   
   function findQueryBinding(node: ExecutionNode): void {
     if (node.binding && queryVar) {
-      // Check if this binding is for the query variable (with or without subscript)
-      const bindingVarMatch = node.binding.match(/^([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*/);
-      if (bindingVarMatch && bindingVarMatch[1] === queryVar) {
-        finalBinding = node.binding;
+      // Binding format is now "variable = value" or "var1 = val1, var2 = val2"
+      // Split by comma and check each binding
+      const bindings = node.binding.split(',').map(b => b.trim());
+      for (const binding of bindings) {
+        const match = binding.match(/^([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\s*=\s*(.+)$/);
+        if (match && match[1] === queryVar) {
+          finalBinding = `${match[1]} = ${match[2]}`;
+          return;
+        }
       }
     }
     for (const child of node.children) {
@@ -1498,12 +1506,7 @@ function extractFinalAnswer(root: ExecutionNode): string | undefined {
   
   findQueryBinding(root);
   
-  // Convert from X/value to X = value format, and strip subscript from variable name
-  if (finalBinding) {
-    return finalBinding.replace(/^([A-Z][A-Za-z0-9_]*)[\u2080-\u2089]*\/(.+)/, '$1 = $2');
-  }
-  
-  return undefined;
+  return finalBinding;
 }
 
 /**
