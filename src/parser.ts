@@ -478,6 +478,12 @@ function parseEvents(json: string, prologContent?: string): TraceEvent[] {
       continue;
     }
     
+    // Check for truncation marker
+    if (rawEvent.truncated === true) {
+      console.warn(`Trace truncated at depth ${rawEvent.max_depth}`);
+      continue;
+    }
+    
     const { port, level, goal, predicate } = rawEvent;
     
     if (!port || !['call', 'exit', 'redo', 'fail'].includes(port)) {

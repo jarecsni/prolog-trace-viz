@@ -80,6 +80,7 @@ async function run(options: CLIOptions): Promise<void> {
   const tempFile = await createTempWrapper({
     prologContent,
     query: options.query,
+    depth: options.depth,
     tracerPath,
   });
   

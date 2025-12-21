@@ -24,7 +24,8 @@ export interface TempFile {
  * - Tracer cleanup
  */
 export function generateWrapper(config: WrapperConfig): string {
-  const { prologContent, query, tracerPath } = config;
+  const { prologContent, query, depth, tracerPath } = config;
+  const maxDepth = depth || 100; // Default to 100 if not specified
   
   const lines: string[] = [
     `% Load custom tracer`,
@@ -41,7 +42,7 @@ export function generateWrapper(config: WrapperConfig): string {
   lines.push('');
   lines.push('% Run trace with error handling');
   lines.push('run_trace :-');
-  lines.push('    install_tracer,');
+  lines.push(`    install_tracer(${maxDepth}),`);
   lines.push('    catch(');
   lines.push(`        (${query.trim()}, export_trace_json('trace.json')),`);
   lines.push('        Error,');

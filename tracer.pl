@@ -3,10 +3,17 @@
 
 :- dynamic trace_event/1.
 :- dynamic trace_active/0.
+:- dynamic max_trace_depth/1.
 
 %% install_tracer/0
-%  Install the trace interception hook
+%  Install the trace interception hook with default depth
 install_tracer :-
+    install_tracer(100).
+
+%% install_tracer/1
+%  Install the trace interception hook with specified max depth
+install_tracer(MaxDepth) :-
+    asserta(max_trace_depth(MaxDepth)),
     asserta(trace_active),
     trace.
 
@@ -15,6 +22,7 @@ install_tracer :-
 remove_tracer :-
     notrace,
     retractall(trace_active),
+    retractall(max_trace_depth(_)),
     clear_trace.
 
 %% clear_trace/0
@@ -26,6 +34,10 @@ clear_trace :-
 %  Hook predicate that intercepts trace events
 user:prolog_trace_interception(Port, Frame, _Choice, continue) :-
     trace_active,
+    % Check depth limit
+    prolog_frame_attribute(Frame, level, Level),
+    max_trace_depth(MaxDepth),
+    Level =< MaxDepth,
     % Don't trace our own operations
     prolog_frame_attribute(Frame, goal, Goal),
     \+ is_tracer_goal(Goal),
@@ -35,6 +47,15 @@ user:prolog_trace_interception(Port, Frame, _Choice, continue) :-
         Error,
         handle_trace_error(Error, Port, Frame)
     ).
+user:prolog_trace_interception(Port, Frame, _Choice, continue) :-
+    trace_active,
+    % Exceeded depth limit - record truncation marker once
+    prolog_frame_attribute(Frame, level, Level),
+    max_trace_depth(MaxDepth),
+    Level > MaxDepth,
+    \+ trace_event(truncated(MaxDepth)),
+    !,
+    assertz(trace_event(truncated(MaxDepth))).
 user:prolog_trace_interception(_, _, _, continue).
 
 %% is_tracer_goal(+Goal)
@@ -135,12 +156,20 @@ write_events_list(_, []).
 write_events_list(Stream, [Event]) :-
     !,
     write(Stream, '  '),
-    write_json_event(Stream, Event).
+    write_json_event_or_marker(Stream, Event).
 write_events_list(Stream, [Event|Rest]) :-
     write(Stream, '  '),
-    write_json_event(Stream, Event),
+    write_json_event_or_marker(Stream, Event),
     write(Stream, ',\n'),
     write_events_list(Stream, Rest).
+
+%% write_json_event_or_marker(+Stream, +EventOrMarker)
+%  Write either a regular event or a truncation marker
+write_json_event_or_marker(Stream, truncated(MaxDepth)) :-
+    !,
+    format(Stream, '{"truncated": true, "max_depth": ~w}', [MaxDepth]).
+write_json_event_or_marker(Stream, Event) :-
+    write_json_event(Stream, Event).
 
 %% write_json_event(+Stream, +Event)
 %  Write a single event as JSON object
