@@ -365,18 +365,18 @@ This plan implements a dual-format Prolog trace visualization system with an exe
 
 After initial implementation, a review against requirements revealed significant gaps in the educational detail. These tasks address missing functionality to meet the full specification.
 
-- [ ] 17. Enhance Timeline Formatter with Clause Information
-  - [ ] 17.1 Display clause head in CALL steps
+- [x] 17. Enhance Timeline Formatter with Clause Information
+  - [x] 17.1 Display clause head in CALL steps
     - Show matched clause head with pattern
     - Include clause line number
     - _Requirements: 3.2, 6.1, 6.2_
   
-  - [ ] 17.2 Display clause body in CALL steps
+  - [x] 17.2 Display clause body in CALL steps
     - Show the body goals that will be spawned
     - Format body readably
     - _Requirements: 3.2, 6.4_
   
-  - [ ] 17.3 Extract and display spawned subgoals
+  - [x] 17.3 Extract and display spawned subgoals
     - Parse clause body to extract subgoals
     - Assign labels [N.M] to each subgoal
     - Display list of spawned subgoals in CALL step

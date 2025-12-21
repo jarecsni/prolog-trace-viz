@@ -74,7 +74,15 @@ function formatCallStep(step: TimelineStep): string[] {
     }
     
     lines.push('│  ');
-    lines.push(`│  Clause: ${step.clause.head}${step.clause.body ? ' :- ' + step.clause.body : ''} [line ${step.clause.line}]`);
+    
+    // Display clause head and body separately
+    if (step.clause.body && step.clause.body !== 'true') {
+      // Clause with body
+      lines.push(`│  Clause: ${step.clause.head} :- ${step.clause.body} [line ${step.clause.line}]`);
+    } else {
+      // Fact (no body)
+      lines.push(`│  Clause: ${step.clause.head} [line ${step.clause.line}] (fact)`);
+    }
     
     // Show spawned subgoals
     if (step.subgoals.length > 0) {
