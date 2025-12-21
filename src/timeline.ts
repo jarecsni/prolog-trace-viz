@@ -100,6 +100,10 @@ export class TimelineBuilder {
         if (exitStep && exitStep.clause) {
           callStep.clause = exitStep.clause;
           
+          // Extract pattern match bindings
+          const patternBindings = this.extractPatternMatchBindings(callStep.goal, exitStep.clause.head);
+          callStep.unifications = patternBindings;
+          
           // Re-extract subgoals now that we have clause info
           if (exitStep.clause.body && exitStep.clause.body !== 'true') {
             const subgoalGoals = this.extractSubgoals(exitStep.clause.body);
@@ -234,18 +238,59 @@ export class TimelineBuilder {
       subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
     }
     
+    // Extract pattern match bindings if clause available
+    const unifications: Array<{ variable: string; value: string }> = [];
+    if (event.clause) {
+      const patternBindings = this.extractPatternMatchBindings(event.goal, event.clause.head);
+      unifications.push(...patternBindings);
+    }
+    
     const step: TimelineStep = {
       stepNumber,
       port: 'call',
       level: event.level,
       goal: event.goal,
       clause: event.clause,
-      unifications: [],
+      unifications,
       subgoals,
       subgoalLabel,
     };
     
     this.steps.push(step);
+  }
+  
+  /**
+   * Extract pattern match bindings by comparing goal with clause head
+   */
+  private extractPatternMatchBindings(goal: string, clauseHead: string): Array<{ variable: string; value: string }> {
+    const bindings: Array<{ variable: string; value: string }> = [];
+    
+    // Parse both goal and clause head
+    const goalMatch = goal.match(/^([^(]+)\((.*)\)$/);
+    const headMatch = clauseHead.match(/^([^(]+)\((.*)\)$/);
+    
+    if (!goalMatch || !headMatch) {
+      return bindings;
+    }
+    
+    const goalArgs = this.splitArguments(goalMatch[2]);
+    const headArgs = this.splitArguments(headMatch[2]);
+    
+    // Match arguments positionally
+    for (let i = 0; i < Math.min(goalArgs.length, headArgs.length); i++) {
+      const goalArg = goalArgs[i].trim();
+      const headArg = headArgs[i].trim();
+      
+      // If head has a variable (starts with _ or uppercase) and goal has a value
+      if (/^[A-Z_]/.test(headArg) && headArg !== goalArg) {
+        bindings.push({
+          variable: headArg,
+          value: goalArg,
+        });
+      }
+    }
+    
+    return bindings;
   }
 
   /**

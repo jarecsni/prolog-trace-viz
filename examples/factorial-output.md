@@ -20,6 +20,8 @@ factorial(2, F)
 │  Pattern Match:
 │    Goal: factorial(2,_1242)
 │    Head: factorial(_488,_490)
+│    ├─ _488 = 2
+│    ├─ _490 = _1242
 │  
 │  Clause: factorial(_488,_490) :- _488>0,_512 is _488+ -1,factorial(_512,_532),_490 is _488*_532 [line 9]
 │  Spawns subgoals:
@@ -48,6 +50,8 @@ factorial(2, F)
 │  Pattern Match:
 │    Goal: factorial(1,_1064)
 │    Head: factorial(_676,_678)
+│    ├─ _676 = 1
+│    ├─ _678 = _1064
 │  
 │  Clause: factorial(_676,_678) :- _676>0,_700 is _676+ -1,factorial(_700,_720),_678 is _676*_720 [line 9]
 │  Spawns subgoals:

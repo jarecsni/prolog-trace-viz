@@ -424,7 +424,7 @@ After initial implementation, a review against requirements revealed significant
     - Show same variable name across all subgoals
     - _Requirements: 7.7, 7.8, 10.6_
 
-- [ ] 20. Enhance Tree Formatter with Missing Details
+- [x] 20. Enhance Tree Formatter with Missing Details
   - [x] 20.1 Add clause numbers to tree nodes
     - Extract clause line numbers from trace
     - Display in node label
@@ -442,36 +442,36 @@ After initial implementation, a review against requirements revealed significant
     - Format compactly for readability
     - _Requirements: 4.2, 6.1_
 
-- [ ] 21. Improve Subgoal Extraction Logic
-  - [ ] 21.1 Parse clause bodies correctly
+- [x] 21. Improve Subgoal Extraction Logic
+  - [x] 21.1 Parse clause bodies correctly
     - Split on commas respecting parentheses
     - Handle nested structures
     - Preserve operator precedence
     - _Requirements: 7.1, 7.3_
   
-  - [ ] 21.2 Extract subgoals with proper formatting
+  - [x] 21.2 Extract subgoals with proper formatting
     - Maintain variable names from clause
     - Handle complex terms correctly
     - _Requirements: 7.1, 7.5_
   
-  - [ ] 21.3 Map subgoals to execution steps
+  - [x] 21.3 Map subgoals to execution steps
     - Track which step solves which subgoal
     - Handle recursive calls correctly
     - _Requirements: 7.2, 7.4_
 
-- [ ] 22. Enhance Unification Display
-  - [ ] 22.1 Show pattern match bindings
+- [x] 22. Enhance Unification Display
+  - [x] 22.1 Show pattern match bindings
     - Extract bindings from clause head match
     - Display in CALL step
     - _Requirements: 5.5, 6.1_
   
-  - [ ] 22.2 Improve complex unification formatting
+  - [x] 22.2 Improve complex unification formatting
     - Handle list structures clearly
     - Show compound terms properly
     - Preserve arithmetic expressions
     - _Requirements: 16.1, 16.2, 16.3, 16.4_
   
-  - [ ] 22.3 Map internal variables to original query
+  - [x] 22.3 Map internal variables to original query
     - Already implemented for final answer
     - Extend to all unification displays
     - _Requirements: 2.8_

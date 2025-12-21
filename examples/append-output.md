@@ -1,9 +1,9 @@
-# Prolog Execution Trace: append([1,2], [3,4], L)
+# Prolog Execution Trace: append([1,2], [3,4], X)
 
 ## Query
 
 ```
-append([1,2], [3,4], L)
+append([1,2], [3,4], X)
 ```
 
 ## Clause Definitions
@@ -16,12 +16,38 @@ append([1,2], [3,4], L)
 ## Execution Timeline
 
 ┌─ Step 1: CALL append([1,2],[3,4],_1030)
+│  
+│  Pattern Match:
+│    Goal: append([1,2],[3,4],_1030)
+│    Head: append([_630|_632],_624,[_630|_638])
+│    ├─ _624 = [3,4]
+│  
+│  Clause: append([_630|_632],_624,[_630|_638]) :- append(_632,_624,_638) [line 9]
+│  Spawns subgoals:
+│    [1.1] append(_632,_624,_638)
 └─
 
 ┌─ Step 2: CALL append([2],[3,4],_978)
+│  
+│  Pattern Match:
+│    Goal: append([2],[3,4],_978)
+│    Head: append([_784|_786],_778,[_784|_792])
+│    ├─ _778 = [3,4]
+│  
+│  Clause: append([_784|_786],_778,[_784|_792]) :- append(_786,_778,_792) [line 9]
+│  Spawns subgoals:
+│    [2.1] append(_786,_778,_792)
 └─
 
 ┌─ Step 3: CALL append([],[3,4],_938)
+│  
+│  Pattern Match:
+│    Goal: append([],[3,4],_938)
+│    Head: append([],_908,_908)
+│    ├─ _908 = [3,4]
+│    ├─ _908 = _938
+│  
+│  Clause: append([],_908,_908) [line 8] (fact)
 └─
 
 ┌─ Step 4: EXIT append([],[3,4],[3,4])
@@ -66,7 +92,7 @@ style C fill:#c8e6c9,stroke:#388e3c
 ## Final Answer
 
 ```
-L = [1,2,3,4]
+X = [1,2,3,4]
 ```
 
 _Showing first solution only._
