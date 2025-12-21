@@ -36,3 +36,12 @@ src/build-info.ts
 
 # Debug/test artifacts
 debug_*.json
+test_*.json
+test_*.pl
+trace.json
+trace.tex
+*.trace
+*-output.md.bak
+
+# Development tools
+dev-tools/
