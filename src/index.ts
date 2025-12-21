@@ -5,13 +5,12 @@ import { parseArgs, getHelpText, getVersion, getCopyright, CLIOptions } from './
 import { formatError } from './errors.js';
 import { createTempWrapper } from './wrapper.js';
 import { executeTracer, checkDependencies } from './executor.js';
-import { parseTraceJson } from './parser.js';
 import * as path from 'node:path';
-import { analyzeTree } from './analyzer.js';
-import { generateMermaid } from './mermaid.js';
-import { renderMarkdown } from './renderer.js';
 import { writeOutput, logVerbose, logInfo, logError } from './output.js';
 import { parsePrologFile } from './clauses.js';
+import { TimelineBuilder, TraceEvent } from './timeline.js';
+import { TreeBuilder } from './tree.js';
+import { generateMarkdown, ClauseDefinition } from './markdown-generator.js';
 
 async function main(): Promise<void> {
   const result = parseArgs(process.argv);
@@ -108,27 +107,44 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Parse JSON trace output
     logVerbose('Parsing JSON trace output...', options);
-    const tree = parseTraceJson(execResult.json, prologContent);
-    
-    // Also parse raw events for clause extraction
     const rawEvents = JSON.parse(execResult.json);
     
-    // Analyze tree
-    logVerbose('Analyzing execution tree...', options);
-    const analysis = analyzeTree(tree, clauses, {}, rawEvents, options.query);
+    // Convert raw events to TraceEvent format
+    const traceEvents: TraceEvent[] = rawEvents
+      .filter((e: any) => e.port && e.level !== undefined && e.goal && e.predicate)
+      .map((e: any) => ({
+        port: e.port,
+        level: e.level,
+        goal: e.goal,
+        predicate: e.predicate,
+        arguments: e.arguments,
+        clause: e.clause,
+      }));
     
-    // Generate Mermaid diagram
-    logVerbose('Generating Mermaid diagram...', options);
-    const diagram = generateMermaid(analysis);
+    // Build timeline
+    logVerbose('Building execution timeline...', options);
+    const timelineBuilder = new TimelineBuilder(traceEvents);
+    const timeline = timelineBuilder.build();
     
-    // Render markdown
-    logVerbose('Rendering markdown...', options);
-    const markdown = renderMarkdown({
+    // Build tree
+    logVerbose('Building call tree...', options);
+    const treeBuilder = new TreeBuilder(traceEvents);
+    const tree = treeBuilder.build();
+    
+    // Prepare clause definitions
+    const clauseDefinitions: ClauseDefinition[] = clauses.map(c => ({
+      line: c.number,
+      text: c.text,
+    }));
+    
+    // Generate markdown
+    logVerbose('Generating markdown output...', options);
+    const markdown = generateMarkdown({
       query: options.query,
-      diagram,
-      executionSteps: analysis.executionSteps,
-      finalAnswer: analysis.finalAnswer,
-      clausesUsed: analysis.clausesUsed,
+      originalQuery: options.query,
+      timeline,
+      tree,
+      clauses: clauseDefinitions,
     });
     
     // Write output - default to source file location if not specified
