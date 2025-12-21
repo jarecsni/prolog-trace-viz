@@ -28,12 +28,31 @@ export class TreeBuilder {
   constructor(private events: TraceEvent[]) {}
 
   /**
+   * Check if a predicate is part of tracer infrastructure and should be filtered
+   */
+  private isTracerPredicate(predicate: string): boolean {
+    const tracerPredicates = [
+      'catch/3',
+      'export_trace_json/1',
+      'run_trace/0',
+      'install_tracer/1',
+      'remove_tracer/0',
+    ];
+    return tracerPredicates.includes(predicate);
+  }
+
+  /**
    * Build the complete tree from trace events
    */
   build(): TreeNode | null {
     let root: TreeNode | null = null;
 
     for (const event of this.events) {
+      // Filter out tracer infrastructure
+      if (this.isTracerPredicate(event.predicate)) {
+        continue;
+      }
+
       this.stepCounter++;
       
       switch (event.port) {

@@ -12,6 +12,53 @@ import { TimelineBuilder, TraceEvent } from './timeline.js';
 import { TreeBuilder } from './tree.js';
 import { generateMarkdown, ClauseDefinition } from './markdown-generator.js';
 
+/**
+ * Extract variable names from original query
+ * e.g., "factorial(3, X)" -> ["X"]
+ */
+function extractQueryVariables(query: string): string[] {
+  const match = query.match(/\((.*)\)$/);
+  if (!match) return [];
+  
+  const args = match[1].split(',').map(a => a.trim());
+  return args.filter(arg => /^[A-Z_]/.test(arg));
+}
+
+/**
+ * Map internal variable binding to original query variable
+ * e.g., "_1606=6" with query "factorial(3, X)" -> "X = 6"
+ */
+function mapBindingToOriginalQuery(
+  binding: string,
+  goalWithInternalVars: string,
+  originalQuery: string,
+  queryVars: string[]
+): string {
+  // Parse binding: "_1606=6" -> ["_1606", "6"]
+  const [internalVar, value] = binding.split('=').map(s => s.trim());
+  
+  // Parse goals to find position of internal variable
+  const goalMatch = goalWithInternalVars.match(/\((.*)\)$/);
+  const queryMatch = originalQuery.match(/\((.*)\)$/);
+  
+  if (!goalMatch || !queryMatch) return binding;
+  
+  const goalArgs = goalMatch[1].split(',').map(a => a.trim());
+  const queryArgs = queryMatch[1].split(',').map(a => a.trim());
+  
+  // Find which position has the internal variable
+  const position = goalArgs.findIndex(arg => arg === internalVar);
+  
+  if (position >= 0 && position < queryArgs.length) {
+    const originalVar = queryArgs[position];
+    if (/^[A-Z_]/.test(originalVar)) {
+      return `${originalVar} = ${value}`;
+    }
+  }
+  
+  return binding;
+}
+
 async function main(): Promise<void> {
   const result = parseArgs(process.argv);
   
@@ -88,6 +135,10 @@ async function run(options: CLIOptions): Promise<void> {
     logVerbose('Executing custom tracer...', options);
     const execResult = await executeTracer(tempFile.path);
     
+    logVerbose(`Tracer exit code: ${execResult.exitCode}`, options);
+    logVerbose(`JSON length: ${execResult.json?.length || 0}`, options);
+    logVerbose(`Stderr: ${execResult.stderr}`, options);
+    
     if (execResult.exitCode !== 0 || !execResult.json) {
       logError('Custom tracer execution failed');
       if (execResult.stderr) {
@@ -139,12 +190,23 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Generate markdown
     logVerbose('Generating markdown output...', options);
+    
+    // Extract final answer from tree root and map to original query variables
+    let finalAnswer: string | undefined;
+    if (tree && tree.finalBinding) {
+      // Parse original query to get variable names
+      const queryVars = extractQueryVariables(options.query);
+      // Map internal variable to original query variable
+      finalAnswer = mapBindingToOriginalQuery(tree.finalBinding, tree.goal, options.query, queryVars);
+    }
+    
     const markdown = generateMarkdown({
       query: options.query,
       originalQuery: options.query,
       timeline,
       tree,
       clauses: clauseDefinitions,
+      finalAnswer,
     });
     
     // Write output - default to source file location if not specified
