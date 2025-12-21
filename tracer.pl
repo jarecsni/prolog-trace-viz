@@ -102,11 +102,14 @@ capture_trace_event(Port, Frame) :-
     ;   Arguments = []
     ),
     
-    % Extract clause information
-    extract_clause_info(Frame, Goal, ClauseInfo),
+    % Extract clause information with enhanced data
+    extract_clause_info_enhanced(Frame, Goal, Port, ClauseInfo),
     
-    % Record the event - keep it simple for now
-    assertz(trace_event(event(Port, Level, Goal, Arguments, ClauseInfo, Predicate))).
+    % Extract parent information
+    extract_parent_info(Frame, ParentInfo),
+    
+    % Record the event with enhanced information
+    assertz(trace_event(event(Port, Level, Goal, Arguments, ClauseInfo, Predicate, ParentInfo))).
 
 %% extract_frame_arguments(+Frame, +Arity, -Arguments)
 %  Extract actual argument values from a frame
@@ -134,6 +137,27 @@ extract_clause_info(Frame, Goal, clause(Head, Body, Line)) :-
     subsumes_term(Head, Goal),
     !.
 extract_clause_info(_, _, no_clause).
+
+%% extract_clause_info_enhanced(+Frame, +Goal, +Port, -ClauseInfo)
+%  Extract clause information - keep it simple, TypeScript will handle variable names
+extract_clause_info_enhanced(Frame, Goal, _, ClauseInfo) :-
+    extract_clause_info(Frame, Goal, ClauseInfo).
+
+%% extract_parent_info(+Frame, -ParentInfo)
+%  Extract information about the parent frame
+extract_parent_info(Frame, parent(ParentLevel, ParentGoal)) :-
+    catch(
+        (
+            prolog_frame_attribute(Frame, parent, ParentFrame),
+            ParentFrame \= 0,
+            prolog_frame_attribute(ParentFrame, level, ParentLevel),
+            prolog_frame_attribute(ParentFrame, goal, ParentGoal)
+        ),
+        _,
+        fail
+    ),
+    !.
+extract_parent_info(_, no_parent).
 
 %% export_trace_json(+File)
 %  Export all trace events as JSON
@@ -173,6 +197,29 @@ write_json_event_or_marker(Stream, Event) :-
 
 %% write_json_event(+Stream, +Event)
 %  Write a single event as JSON object
+write_json_event(Stream, event(Port, Level, Goal, Arguments, ClauseInfo, Predicate, ParentInfo)) :-
+    format(Stream, '{', []),
+    format(Stream, '"port": "~w"', [Port]),
+    format(Stream, ', "level": ~w', [Level]),
+    format(Stream, ', "goal": ', []),
+    write_json_term(Stream, Goal),
+    format(Stream, ', "predicate": "~w"', [Predicate]),
+    
+    % Write arguments if present (exit port)
+    (   Arguments \= []
+    ->  format(Stream, ', "arguments": ', []),
+        write_json_list(Stream, Arguments)
+    ;   true
+    ),
+    
+    % Write clause info if present
+    write_clause_info_json(Stream, ClauseInfo),
+    
+    % Write parent info if present
+    write_parent_info_json(Stream, ParentInfo),
+    
+    format(Stream, '}', []).
+% Backward compatibility: handle old event format without ParentInfo
 write_json_event(Stream, event(Port, Level, Goal, Arguments, ClauseInfo, Predicate)) :-
     format(Stream, '{', []),
     format(Stream, '"port": "~w"', [Port]),
@@ -189,43 +236,33 @@ write_json_event(Stream, event(Port, Level, Goal, Arguments, ClauseInfo, Predica
     ),
     
     % Write clause info if present
-    (   ClauseInfo = clause(Head, Body, Line)
-    ->  format(Stream, ', "clause": {', []),
-        format(Stream, '"head": ', []),
-        write_json_term(Stream, Head),
-        format(Stream, ', "body": ', []),
-        write_json_term(Stream, Body),
-        format(Stream, ', "line": ~w', [Line]),
-        format(Stream, '}', [])
-    ;   true
-    ),
+    write_clause_info_json(Stream, ClauseInfo),
     
     format(Stream, '}', []).
 
-%% write_json_unifications(+Stream, +Unifications)
-%  Write unifications as JSON array
-write_json_unifications(Stream, Unifications) :-
-    write(Stream, '['),
-    write_json_unification_items(Stream, Unifications),
-    write(Stream, ']').
-
-%% write_json_unification_items(+Stream, +Items)
-%  Write unification items with comma separation
-write_json_unification_items(_, []).
-write_json_unification_items(Stream, [unification(Var, Value)]) :-
+%% write_clause_info_json(+Stream, +ClauseInfo)
+%  Write clause information as JSON
+write_clause_info_json(Stream, clause(Head, Body, Line)) :-
     !,
-    format(Stream, '{"variable": ', []),
-    write_json_string(Stream, Var),
-    format(Stream, ', "value": ', []),
-    write_json_string(Stream, Value),
+    format(Stream, ', "clause": {', []),
+    format(Stream, '"head": ', []),
+    write_json_term(Stream, Head),
+    format(Stream, ', "body": ', []),
+    write_json_term(Stream, Body),
+    format(Stream, ', "line": ~w', [Line]),
     format(Stream, '}', []).
-write_json_unification_items(Stream, [unification(Var, Value)|Rest]) :-
-    format(Stream, '{"variable": ', []),
-    write_json_string(Stream, Var),
-    format(Stream, ', "value": ', []),
-    write_json_string(Stream, Value),
-    format(Stream, '}, ', []),
-    write_json_unification_items(Stream, Rest).
+write_clause_info_json(_, no_clause).
+
+%% write_parent_info_json(+Stream, +ParentInfo)
+%  Write parent information as JSON
+write_parent_info_json(Stream, parent(ParentLevel, ParentGoal)) :-
+    !,
+    format(Stream, ', "parent_info": {', []),
+    format(Stream, '"level": ~w', [ParentLevel]),
+    format(Stream, ', "goal": ', []),
+    write_json_term(Stream, ParentGoal),
+    format(Stream, '}', []).
+write_parent_info_json(_, no_parent).
 
 %% write_json_term(+Stream, +Term)
 %  Write a Prolog term as JSON string

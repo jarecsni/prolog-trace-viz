@@ -26,6 +26,7 @@ export interface TimelineStep {
   returnsTo?: number;       // For EXIT: which CALL step
   note?: string;            // Additional context
   nextSubgoal?: string;     // e.g., "Subgoal [1.2]" - what comes next
+  variableFlowNotes?: string[];  // Variable flow tracking notes
 }
 
 export interface TraceEvent {
@@ -38,6 +39,10 @@ export interface TraceEvent {
     head: string;
     body: string;
     line: number;
+  };
+  parent_info?: {
+    level: number;
+    goal: string;
   };
 }
 
@@ -85,6 +90,9 @@ export class TimelineBuilder {
     
     // Third pass: update subgoal tracking based on execution flow
     this.updateSubgoalTracking();
+    
+    // Fourth pass: add variable flow tracking notes
+    this.addVariableFlowNotes();
     
     return this.steps;
   }
@@ -187,6 +195,78 @@ export class TimelineBuilder {
         }
       }
     }
+  }
+  
+  /**
+   * Add variable flow tracking notes to steps
+   * This shows how variables from parent clauses flow into child goals
+   */
+  private addVariableFlowNotes(): void {
+    // Track variable bindings: step number -> variable name -> value
+    const bindingMap = new Map<number, Map<string, string>>();
+    
+    for (const step of this.steps) {
+      // Record bindings from this step
+      if (step.unifications.length > 0) {
+        const stepBindings = new Map<string, string>();
+        for (const unif of step.unifications) {
+          stepBindings.set(unif.variable, unif.value);
+        }
+        bindingMap.set(step.stepNumber, stepBindings);
+      }
+      
+      // For EXIT steps, add notes about which variables got bound
+      if (step.port === 'exit' && step.returnsTo) {
+        const callStep = this.steps.find(s => s.stepNumber === step.returnsTo);
+        if (callStep && callStep.unifications.length > 0) {
+          const notes: string[] = [];
+          
+          for (const unif of callStep.unifications) {
+            // Check if this variable was unbound at CALL and is now bound at EXIT
+            if (unif.value.startsWith('_') && !step.goal.includes(unif.value)) {
+              // Variable was unbound, now it's bound - extract the new value from EXIT goal
+              const exitValue = this.extractVariableValueFromGoal(step.goal, unif.variable, callStep.clause?.head);
+              if (exitValue && exitValue !== unif.value) {
+                notes.push(`${unif.variable} from Step ${callStep.stepNumber} is now bound to ${exitValue}`);
+              }
+            }
+          }
+          
+          if (notes.length > 0) {
+            step.variableFlowNotes = notes;
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Extract the value of a variable from a goal based on its position in the clause head
+   */
+  private extractVariableValueFromGoal(goal: string, variable: string, clauseHead?: string): string | null {
+    if (!clauseHead) {
+      return null;
+    }
+    
+    // Find the position of the variable in the clause head
+    const headMatch = clauseHead.match(/^([^(]+)\((.*)\)$/);
+    const goalMatch = goal.match(/^([^(]+)\((.*)\)$/);
+    
+    if (!headMatch || !goalMatch) {
+      return null;
+    }
+    
+    const headArgs = this.splitArguments(headMatch[2]);
+    const goalArgs = this.splitArguments(goalMatch[2]);
+    
+    // Find which argument position contains the variable
+    for (let i = 0; i < headArgs.length; i++) {
+      if (headArgs[i].trim() === variable) {
+        return goalArgs[i]?.trim() || null;
+      }
+    }
+    
+    return null;
   }
   
   /**

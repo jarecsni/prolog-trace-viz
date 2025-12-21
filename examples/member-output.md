@@ -15,12 +15,12 @@ member(X, [a,b,c])
 
 ## Execution Timeline
 
-┌─ Step 1: CALL member(_572,[a,b,c])
+┌─ Step 1: CALL member(_672,[a,b,c])
 │  
 │  Pattern Match:
-│    Goal: member(_572,[a,b,c])
+│    Goal: member(_672,[a,b,c])
 │    Head: member(X, [X|_])
-│    ├─ X = _572
+│    ├─ X = _672
 │    ├─ X = a
 │    ├─ _ = [b,c]
 │  
@@ -29,8 +29,9 @@ member(X, [a,b,c])
 
 ┌─ Step 2: EXIT member(a,[a,b,c])
 │  Bindings:
-│    _572 = a
+│    _672 = a
 │  Returns to: Step 1
+│  Note: X from Step 1 is now bound to a
 └─
 
 
@@ -40,7 +41,7 @@ member(X, [a,b,c])
 graph TD
 
 %% Nodes
-A["① member(X, [X|_])<br/>clause 4<br/>② EXIT: _572=a"]
+A["① member(X, [X|_])<br/>clause 4<br/>② EXIT: _672=a"]
 
 %% Edges
 

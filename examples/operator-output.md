@@ -16,10 +16,10 @@ t(1+0+1, C)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL t(1+0+1,_610)
+┌─ Step 1: CALL t(1+0+1,_722)
 │  
 │  Pattern Match:
-│    Goal: t(1+0+1,_610)
+│    Goal: t(1+0+1,_722)
 │    Head: t(X+0+1, X+1+0)
 │    ├─ X = 1
 │  
@@ -28,7 +28,7 @@ t(1+0+1, C)
 
 ┌─ Step 2: EXIT t(1+0+1,1+1+0)
 │  Bindings:
-│    _610 = 1+1+0
+│    _722 = 1+1+0
 │  Returns to: Step 1
 └─
 
@@ -39,7 +39,7 @@ t(1+0+1, C)
 graph TD
 
 %% Nodes
-A["① t(X+0+1, X+1+0)<br/>clause 2<br/>② EXIT: _610=1+1+0"]
+A["① t(X+0+1, X+1+0)<br/>clause 2<br/>② EXIT: _722=1+1+0"]
 
 %% Edges
 

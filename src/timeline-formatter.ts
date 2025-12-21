@@ -120,7 +120,14 @@ function formatExitStep(step: TimelineStep): string[] {
     lines.push(`│  Returns to: Step ${step.returnsTo}`);
   }
   
-  // Show variable flow note
+  // Show variable flow notes
+  if (step.variableFlowNotes && step.variableFlowNotes.length > 0) {
+    for (const note of step.variableFlowNotes) {
+      lines.push(`│  Note: ${note}`);
+    }
+  }
+  
+  // Show general note (if any)
   if (step.note) {
     lines.push(`│  Note: ${step.note}`);
   }

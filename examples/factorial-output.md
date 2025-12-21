@@ -15,13 +15,13 @@ factorial(3, X)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL factorial(3,_1606)
+┌─ Step 1: CALL factorial(3,_2006)
 │  
 │  Pattern Match:
-│    Goal: factorial(3,_1606)
+│    Goal: factorial(3,_2006)
 │    Head: factorial(N, R)
 │    ├─ N = 3
-│    ├─ R = _1606
+│    ├─ R = _2006
 │  
 │  Clause: factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1 [line 5]
 │  Spawns subgoals:
@@ -41,7 +41,7 @@ factorial(3, X)
 │  Next: Subgoal [1.2]
 └─
 
-┌─ Step 4: CALL _1502 is 3+ -1
+┌─ Step 4: CALL _1866 is 3+ -1
 │  ◀── Solving subgoal [1.2]
 └─
 
@@ -51,14 +51,14 @@ factorial(3, X)
 │  Next: Subgoal [1.3]
 └─
 
-┌─ Step 6: CALL factorial(2,_1428)
+┌─ Step 6: CALL factorial(2,_1764)
 │  ◀── Solving subgoal [1.3]
 │  
 │  Pattern Match:
-│    Goal: factorial(2,_1428)
+│    Goal: factorial(2,_1764)
 │    Head: factorial(N, R)
 │    ├─ N = 2
-│    ├─ R = _1428
+│    ├─ R = _1764
 │  
 │  Clause: factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1 [line 5]
 │  Spawns subgoals:
@@ -78,7 +78,7 @@ factorial(3, X)
 │  Next: Subgoal [6.2]
 └─
 
-┌─ Step 9: CALL _1330 is 2+ -1
+┌─ Step 9: CALL _1624 is 2+ -1
 │  ◀── Solving subgoal [6.2]
 └─
 
@@ -88,14 +88,14 @@ factorial(3, X)
 │  Next: Subgoal [6.3]
 └─
 
-┌─ Step 11: CALL factorial(1,_1256)
+┌─ Step 11: CALL factorial(1,_1522)
 │  ◀── Solving subgoal [6.3]
 │  
 │  Pattern Match:
-│    Goal: factorial(1,_1256)
+│    Goal: factorial(1,_1522)
 │    Head: factorial(N, R)
 │    ├─ N = 1
-│    ├─ R = _1256
+│    ├─ R = _1522
 │  
 │  Clause: factorial(N, R) :- N > 0, N1 is N - 1, factorial(N1, R1), R is N * R1 [line 5]
 │  Spawns subgoals:
@@ -115,7 +115,7 @@ factorial(3, X)
 │  Next: Subgoal [11.2]
 └─
 
-┌─ Step 14: CALL _1158 is 1+ -1
+┌─ Step 14: CALL _1382 is 1+ -1
 │  ◀── Solving subgoal [11.2]
 └─
 
@@ -125,11 +125,11 @@ factorial(3, X)
 │  Next: Subgoal [11.3]
 └─
 
-┌─ Step 16: CALL factorial(0,_1084)
+┌─ Step 16: CALL factorial(0,_1280)
 │  ◀── Solving subgoal [11.3]
 │  
 │  Pattern Match:
-│    Goal: factorial(0,_1084)
+│    Goal: factorial(0,_1280)
 │    Head: factorial(0, 1)
 │  
 │  Clause: factorial(0, 1) [line 4] (fact)
@@ -138,12 +138,12 @@ factorial(3, X)
 ┌─ Step 17: EXIT factorial(0,1)
 │  ◀── Completed subgoal [11.3]
 │  Bindings:
-│    _1084 = 1
+│    _1280 = 1
 │  Returns to: Step 16
 │  Next: Subgoal [11.4]
 └─
 
-┌─ Step 18: CALL _998 is 1*1
+┌─ Step 18: CALL _1166 is 1*1
 │  ◀── Solving subgoal [11.4]
 └─
 
@@ -155,12 +155,13 @@ factorial(3, X)
 ┌─ Step 20: EXIT factorial(1,1)
 │  ◀── Completed subgoal [6.3]
 │  Bindings:
-│    _1256 = 1
+│    _1522 = 1
 │  Returns to: Step 11
+│  Note: R from Step 11 is now bound to 1
 │  Next: Subgoal [6.4]
 └─
 
-┌─ Step 21: CALL _810 is 2*1
+┌─ Step 21: CALL _936 is 2*1
 │  ◀── Solving subgoal [6.4]
 └─
 
@@ -172,12 +173,13 @@ factorial(3, X)
 ┌─ Step 23: EXIT factorial(2,2)
 │  ◀── Completed subgoal [1.3]
 │  Bindings:
-│    _1428 = 2
+│    _1764 = 2
 │  Returns to: Step 6
+│  Note: R from Step 6 is now bound to 2
 │  Next: Subgoal [1.4]
 └─
 
-┌─ Step 24: CALL _622 is 3*2
+┌─ Step 24: CALL _706 is 3*2
 │  ◀── Solving subgoal [1.4]
 └─
 
@@ -188,8 +190,9 @@ factorial(3, X)
 
 ┌─ Step 26: EXIT factorial(3,6)
 │  Bindings:
-│    _1606 = 6
+│    _2006 = 6
 │  Returns to: Step 1
+│  Note: R from Step 1 is now bound to 6
 └─
 
 
@@ -199,19 +202,19 @@ factorial(3, X)
 graph TD
 
 %% Nodes
-A["① factorial(N, R)<br/>clause 5<br/>㉖ EXIT: _1606=6"]
+A["① factorial(N, R)<br/>clause 5<br/>㉖ EXIT: _2006=6"]
 B["② 3>0<br/>③ EXIT"]
-C["④ _1502 is 3+ -1<br/>⑤ EXIT"]
-D["⑥ factorial(N, R)<br/>clause 5<br/>㉓ EXIT: _1428=2"]
+C["④ _1866 is 3+ -1<br/>⑤ EXIT"]
+D["⑥ factorial(N, R)<br/>clause 5<br/>㉓ EXIT: _1764=2"]
 E["⑦ 2>0<br/>⑧ EXIT"]
-F["⑨ _1330 is 2+ -1<br/>⑩ EXIT"]
-G["⑪ factorial(N, R)<br/>clause 5<br/>⑳ EXIT: _1256=1"]
+F["⑨ _1624 is 2+ -1<br/>⑩ EXIT"]
+G["⑪ factorial(N, R)<br/>clause 5<br/>⑳ EXIT: _1522=1"]
 H["⑫ 1>0<br/>⑬ EXIT"]
-I["⑭ _1158 is 1+ -1<br/>⑮ EXIT"]
-J["⑯ factorial(0, 1)<br/>clause 4<br/>⑰ EXIT: _1084=1"]
-K["⑱ _998 is 1*1<br/>⑲ EXIT"]
-L["㉑ _810 is 2*1<br/>㉒ EXIT"]
-M["㉔ _622 is 3*2<br/>㉕ EXIT"]
+I["⑭ _1382 is 1+ -1<br/>⑮ EXIT"]
+J["⑯ factorial(0, 1)<br/>clause 4<br/>⑰ EXIT: _1280=1"]
+K["⑱ _1166 is 1*1<br/>⑲ EXIT"]
+L["㉑ _936 is 2*1<br/>㉒ EXIT"]
+M["㉔ _706 is 3*2<br/>㉕ EXIT"]
 
 %% Edges
 A -->|"N > 0"| B

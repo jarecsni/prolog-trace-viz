@@ -15,10 +15,10 @@ append([1,2], [3,4], X)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL append([1,2],[3,4],_1030)
+┌─ Step 1: CALL append([1,2],[3,4],_1396)
 │  
 │  Pattern Match:
-│    Goal: append([1,2],[3,4],_1030)
+│    Goal: append([1,2],[3,4],_1396)
 │    Head: append([H|T], L, [H|R])
 │    ├─ H = 1
 │    ├─ T = [2]
@@ -29,11 +29,11 @@ append([1,2], [3,4], X)
 │    [1.1] append(T, L, R)
 └─
 
-┌─ Step 2: CALL append([2],[3,4],_978)
+┌─ Step 2: CALL append([2],[3,4],_1304)
 │  ◀── Solving subgoal [1.1]
 │  
 │  Pattern Match:
-│    Goal: append([2],[3,4],_978)
+│    Goal: append([2],[3,4],_1304)
 │    Head: append([H|T], L, [H|R])
 │    ├─ H = 2
 │    ├─ T = []
@@ -44,14 +44,14 @@ append([1,2], [3,4], X)
 │    [2.1] append(T, L, R)
 └─
 
-┌─ Step 3: CALL append([],[3,4],_938)
+┌─ Step 3: CALL append([],[3,4],_1224)
 │  ◀── Solving subgoal [2.1]
 │  
 │  Pattern Match:
-│    Goal: append([],[3,4],_938)
+│    Goal: append([],[3,4],_1224)
 │    Head: append([], L, L)
 │    ├─ L = [3,4]
-│    ├─ L = _938
+│    ├─ L = _1224
 │  
 │  Clause: append([], L, L) [line 4] (fact)
 └─
@@ -59,20 +59,21 @@ append([1,2], [3,4], X)
 ┌─ Step 4: EXIT append([],[3,4],[3,4])
 │  ◀── Completed subgoal [2.1]
 │  Bindings:
-│    _938 = [3,4]
+│    _1224 = [3,4]
 │  Returns to: Step 3
+│  Note: L from Step 3 is now bound to [3,4]
 └─
 
 ┌─ Step 5: EXIT append([2],[3,4],[2,3,4])
 │  ◀── Completed subgoal [1.1]
 │  Bindings:
-│    _978 = [2,3,4]
+│    _1304 = [2,3,4]
 │  Returns to: Step 2
 └─
 
 ┌─ Step 6: EXIT append([1,2],[3,4],[1,2,3,4])
 │  Bindings:
-│    _1030 = [1,2,3,4]
+│    _1396 = [1,2,3,4]
 │  Returns to: Step 1
 └─
 
@@ -83,9 +84,9 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A["① append([H|T], L, [H|R])<br/>clause 5<br/>⑥ EXIT: _1030=[1,2,3,4]"]
-B["② append([H|T], L, [H|R])<br/>clause 5<br/>⑤ EXIT: _978=[2,3,4]"]
-C["③ append([], L, L)<br/>clause 4<br/>④ EXIT: _938=[3,4]"]
+A["① append([H|T], L, [H|R])<br/>clause 5<br/>⑥ EXIT: _1396=[1,2,3,4]"]
+B["② append([H|T], L, [H|R])<br/>clause 5<br/>⑤ EXIT: _1304=[2,3,4]"]
+C["③ append([], L, L)<br/>clause 4<br/>④ EXIT: _1224=[3,4]"]
 
 %% Edges
 A -->|"append(T, L, R)"| B

@@ -18,6 +18,10 @@ export interface TraceEvent {
     line: number;
   };
   predicate: string;
+  parent_info?: {
+    level: number;
+    goal: string;
+  };
 }
 
 export interface ExecutionNode {
