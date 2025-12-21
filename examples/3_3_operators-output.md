@@ -83,13 +83,13 @@ t(0+1+1, B)
 graph TD
 
 %% Nodes
-A["① t(0+1+1,_924)<br/>⑥ EXIT: _924=1+1+0"]
-B["② t(0+1,_886)<br/>③ EXIT: _886=1+0"]
-C["④ t(1+0+1,_760)<br/>⑤ EXIT: _760=1+1+0"]
+A["① t(X+1+1, Z)<br/>clause 28<br/>⑥ EXIT: _924=1+1+0"]
+B["② t(0+1, 1+0)<br/>clause 26<br/>③ EXIT: _886=1+0"]
+C["④ t(X+0+1, X+1+0)<br/>clause 27<br/>⑤ EXIT: _760=1+1+0"]
 
 %% Edges
-A -->|"subgoal 1"| B
-A -->|"subgoal 2"| C
+A -->|"t(X+1, X1)"| B
+A -->|"t(X1+1, Z)"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px

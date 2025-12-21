@@ -63,7 +63,13 @@ function collectNodesAndEdges(
   // Generate edges to children
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i];
-    const edgeLabel = `subgoal ${i + 1}`;
+    
+    // Use actual subgoal content if available, otherwise generic label
+    let edgeLabel = `subgoal ${i + 1}`;
+    if (node.subgoals && i < node.subgoals.length) {
+      edgeLabel = node.subgoals[i].goal;
+    }
+    
     edges.push(`${node.id} -->|"${edgeLabel}"| ${child.id}`);
     
     // Recursively process child
@@ -77,8 +83,11 @@ function collectNodesAndEdges(
 function formatNodeLabel(node: TreeNode): string {
   const parts: string[] = [];
   
+  // Use source clause head if available, otherwise use goal
+  const displayGoal = node.clauseHead || node.goal;
+  
   // Add call step with circled number
-  parts.push(`${toCircledNumber(node.callStep)} ${node.goal}`);
+  parts.push(`${toCircledNumber(node.callStep)} ${displayGoal}`);
   
   // Add clause number if available
   if (node.clauseNumber) {

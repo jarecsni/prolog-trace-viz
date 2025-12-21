@@ -83,13 +83,13 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A["① append([1,2],[3,4],_1030)<br/>⑥ EXIT: _1030=[1,2,3,4]"]
-B["② append([2],[3,4],_978)<br/>⑤ EXIT: _978=[2,3,4]"]
-C["③ append([],[3,4],_938)<br/>④ EXIT: _938=[3,4]"]
+A["① append([H|T], L, [H|R])<br/>clause 5<br/>⑥ EXIT: _1030=[1,2,3,4]"]
+B["② append([H|T], L, [H|R])<br/>clause 5<br/>⑤ EXIT: _978=[2,3,4]"]
+C["③ append([], L, L)<br/>clause 4<br/>④ EXIT: _938=[3,4]"]
 
 %% Edges
-A -->|"subgoal 1"| B
-B -->|"subgoal 1"| C
+A -->|"append(T, L, R)"| B
+B -->|"append(T, L, R)"| C
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px

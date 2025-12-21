@@ -199,33 +199,33 @@ factorial(3, X)
 graph TD
 
 %% Nodes
-A["① factorial(3,_1606)<br/>㉖ EXIT: _1606=6"]
+A["① factorial(N, R)<br/>clause 5<br/>㉖ EXIT: _1606=6"]
 B["② 3>0<br/>③ EXIT"]
 C["④ _1502 is 3+ -1<br/>⑤ EXIT"]
-D["⑥ factorial(2,_1428)<br/>㉓ EXIT: _1428=2"]
+D["⑥ factorial(N, R)<br/>clause 5<br/>㉓ EXIT: _1428=2"]
 E["⑦ 2>0<br/>⑧ EXIT"]
 F["⑨ _1330 is 2+ -1<br/>⑩ EXIT"]
-G["⑪ factorial(1,_1256)<br/>⑳ EXIT: _1256=1"]
+G["⑪ factorial(N, R)<br/>clause 5<br/>⑳ EXIT: _1256=1"]
 H["⑫ 1>0<br/>⑬ EXIT"]
 I["⑭ _1158 is 1+ -1<br/>⑮ EXIT"]
-J["⑯ factorial(0,_1084)<br/>⑰ EXIT: _1084=1"]
+J["⑯ factorial(0, 1)<br/>clause 4<br/>⑰ EXIT: _1084=1"]
 K["⑱ _998 is 1*1<br/>⑲ EXIT"]
 L["㉑ _810 is 2*1<br/>㉒ EXIT"]
 M["㉔ _622 is 3*2<br/>㉕ EXIT"]
 
 %% Edges
-A -->|"subgoal 1"| B
-A -->|"subgoal 2"| C
-A -->|"subgoal 3"| D
-D -->|"subgoal 1"| E
-D -->|"subgoal 2"| F
-D -->|"subgoal 3"| G
-G -->|"subgoal 1"| H
-G -->|"subgoal 2"| I
-G -->|"subgoal 3"| J
-G -->|"subgoal 4"| K
-D -->|"subgoal 4"| L
-A -->|"subgoal 4"| M
+A -->|"N > 0"| B
+A -->|"N1 is N - 1"| C
+A -->|"factorial(N1, R1)"| D
+D -->|"N > 0"| E
+D -->|"N1 is N - 1"| F
+D -->|"factorial(N1, R1)"| G
+G -->|"N > 0"| H
+G -->|"N1 is N - 1"| I
+G -->|"factorial(N1, R1)"| J
+G -->|"R is N * R1"| K
+D -->|"R is N * R1"| L
+A -->|"R is N * R1"| M
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px

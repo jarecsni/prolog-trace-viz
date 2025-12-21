@@ -598,20 +598,20 @@ After comparing actual output against requirements and design, significant gaps 
     - Use source variable names consistently
     - _Requirements: 10.2, 10.3, 10.6_
 
-- [ ] 29. Fix Tree Visualization Issues
-  - [ ] 29.1 Add clause numbers to tree nodes
+- [x] 29. Fix Tree Visualization Issues
+  - [x] 29.1 Add clause numbers to tree nodes
     - Extract clause line numbers from trace
     - Display "clause 28" in node label
     - Use dot notation for multiple clauses (26.1, 26.2)
     - _Requirements: 4.2, 6.2, 6.3_
   
-  - [ ] 29.2 Improve edge labels with actual subgoal content
+  - [x] 29.2 Improve edge labels with actual subgoal content
     - Show "|t(X+1,X1)|" not "|subgoal 1|"
     - Extract subgoal text from source clause body
     - Keep labels concise but meaningful
     - _Requirements: 4.3, 7.1, 20.2_
   
-  - [ ] 29.3 Fix clause head display in tree nodes
+  - [x] 29.3 Fix clause head display in tree nodes
     - Use source clause head with original variables
     - Show "t(X+1+1,Z)" not "t(_578+1+1,_568)"
     - _Requirements: 4.2, 6.1_

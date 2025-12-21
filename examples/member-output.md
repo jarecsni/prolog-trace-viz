@@ -40,7 +40,7 @@ member(X, [a,b,c])
 graph TD
 
 %% Nodes
-A["① member(_572,[a,b,c])<br/>② EXIT: _572=a"]
+A["① member(X, [X|_])<br/>clause 4<br/>② EXIT: _572=a"]
 
 %% Edges
 
