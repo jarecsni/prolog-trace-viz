@@ -2,6 +2,8 @@
  * Timeline Builder - Constructs a flat, sequential timeline from trace events
  */
 
+import { SourceClauseMap } from './clauses.js';
+
 export interface TimelineStep {
   stepNumber: number;
   port: 'call' | 'exit' | 'redo' | 'fail';
@@ -50,7 +52,7 @@ export class TimelineBuilder {
   private parentSubgoals: Map<number, Array<{ label: string; goal: string }>> = new Map(); // step number -> subgoals
   private completedSubgoals: Map<number, number> = new Map(); // parent step -> count of completed subgoals
 
-  constructor(private events: TraceEvent[]) {}
+  constructor(private events: TraceEvent[], private sourceClauseMap?: SourceClauseMap) {}
 
   /**
    * Check if a predicate is part of tracer infrastructure and should be filtered
@@ -98,15 +100,25 @@ export class TimelineBuilder {
         const exitStep = this.findMatchingExit(callStep, i);
         
         if (exitStep && exitStep.clause) {
-          callStep.clause = exitStep.clause;
+          // Use source clause if available, otherwise use runtime clause
+          const sourceClause = this.getSourceClause(exitStep.clause.line);
+          if (sourceClause) {
+            callStep.clause = {
+              head: sourceClause.head,
+              body: sourceClause.body || 'true',
+              line: sourceClause.number,
+            };
+          } else {
+            callStep.clause = exitStep.clause;
+          }
           
-          // Extract pattern match bindings
-          const patternBindings = this.extractPatternMatchBindings(callStep.goal, exitStep.clause.head);
+          // Extract pattern match bindings using source clause head
+          const patternBindings = this.extractPatternMatchBindings(callStep.goal, callStep.clause.head);
           callStep.unifications = patternBindings;
           
           // Re-extract subgoals now that we have clause info
-          if (exitStep.clause.body && exitStep.clause.body !== 'true') {
-            const subgoalGoals = this.extractSubgoals(exitStep.clause.body);
+          if (callStep.clause.body && callStep.clause.body !== 'true') {
+            const subgoalGoals = this.extractSubgoals(callStep.clause.body);
             callStep.subgoals = subgoalGoals.map((goal, index) => ({
               label: `[${callStep.stepNumber}.${index + 1}]`,
               goal,
@@ -121,6 +133,26 @@ export class TimelineBuilder {
         }
       }
     }
+  }
+  
+  /**
+   * Get source clause from the source clause map
+   */
+  private getSourceClause(lineNumber: number): { head: string; body?: string; number: number } | null {
+    if (!this.sourceClauseMap) {
+      return null;
+    }
+    
+    const clause = this.sourceClauseMap[lineNumber];
+    if (!clause) {
+      return null;
+    }
+    
+    return {
+      head: clause.head,
+      body: clause.body,
+      number: clause.number,
+    };
   }
   
   /**
@@ -207,10 +239,23 @@ export class TimelineBuilder {
     // Track this call in the stack
     this.callStack.set(event.level, stepNumber);
     
+    // Use source clause if available
+    let clauseInfo = event.clause;
+    if (clauseInfo && this.sourceClauseMap) {
+      const sourceClause = this.getSourceClause(clauseInfo.line);
+      if (sourceClause) {
+        clauseInfo = {
+          head: sourceClause.head,
+          body: sourceClause.body || 'true',
+          line: sourceClause.number,
+        };
+      }
+    }
+    
     // Extract subgoals from clause body if available
     const subgoals: Array<{ label: string; goal: string }> = [];
-    if (event.clause && event.clause.body) {
-      const subgoalGoals = this.extractSubgoals(event.clause.body);
+    if (clauseInfo && clauseInfo.body) {
+      const subgoalGoals = this.extractSubgoals(clauseInfo.body);
       subgoalGoals.forEach((goal, index) => {
         subgoals.push({
           label: `[${stepNumber}.${index + 1}]`,
@@ -240,8 +285,8 @@ export class TimelineBuilder {
     
     // Extract pattern match bindings if clause available
     const unifications: Array<{ variable: string; value: string }> = [];
-    if (event.clause) {
-      const patternBindings = this.extractPatternMatchBindings(event.goal, event.clause.head);
+    if (clauseInfo) {
+      const patternBindings = this.extractPatternMatchBindings(event.goal, clauseInfo.head);
       unifications.push(...patternBindings);
     }
     
@@ -250,7 +295,7 @@ export class TimelineBuilder {
       port: 'call',
       level: event.level,
       goal: event.goal,
-      clause: event.clause,
+      clause: clauseInfo,
       unifications,
       subgoals,
       subgoalLabel,

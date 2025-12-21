@@ -519,3 +519,135 @@ After initial implementation, a review against requirements revealed significant
     - Explain how to follow variable bindings
     - Show examples of flow notes
     - _Requirements: 10.1-10.7_
+
+## Phase 3: Critical Gap Resolution
+
+After comparing actual output against requirements and design, significant gaps were found in Phase 2 implementation. These tasks fix the core educational features that are currently broken or missing.
+
+- [x] 25. Fix Clause Head Display with Source Variables
+  - [x] 25.1 Implement source file parsing
+    - Parse Prolog source file to extract original clause text
+    - Map line numbers to clause definitions
+    - Preserve original variable names (X, Z, etc.)
+    - _Requirements: 6.1, 6.7_
+  
+  - [x] 25.2 Replace runtime clause heads with source clause heads
+    - Use parsed source clauses instead of tracer's mangled versions
+    - Display "Head: t(X+1+1, Z)" not "Head: t(_578+1+1, _568)"
+    - Apply to all CALL steps
+    - _Requirements: 6.1, 6.4_
+  
+  - [x] 25.3 Update subgoal display to use source variables
+    - Show "[1.1] t(X+1, X1)" not "[1.1] t(_578+1, _592)"
+    - Extract from parsed source clause body
+    - _Requirements: 7.1, 7.5_
+
+- [ ] 26. Fix Pattern Match Binding Extraction
+  - [ ] 26.1 Implement positional structural matching
+    - Compare CALL goal with source clause head positionally
+    - Extract variable bindings by structural decomposition
+    - Handle compound terms recursively (e.g., X+1+1 matches 0+1+1 → X=0)
+    - _Requirements: 5.1, 5.2, 5.3, 5.5_
+  
+  - [ ] 26.2 Display extracted bindings correctly
+    - Show "├─ X = 0" not "├─ _578+1+1 = 0+1+1"
+    - Show actual variable-to-value mappings
+    - Use source variable names
+    - _Requirements: 5.5, 6.1_
+  
+  - [ ] 26.3 Handle complex pattern matches
+    - Arithmetic expressions: X+1+1 = 0+1+1 → X=0
+    - List patterns: [H|T] = [1,2,3] → H=1, T=[2,3]
+    - Nested structures
+    - _Requirements: 16.1, 16.2, 16.3_
+
+- [ ] 27. Implement Missing Subgoal Tracking Markers
+  - [ ] 27.1 Add "Solving subgoal" markers to CALL steps
+    - Display "◀── Solving subgoal [1.1]" when CALL solves a subgoal
+    - Track which subgoal each CALL is solving
+    - Reference parent step that spawned the subgoal
+    - _Requirements: 7.4, 7.10, 18.2_
+  
+  - [ ] 27.2 Add "Completed subgoal" markers to EXIT steps
+    - Display "◀── Completed subgoal [1.1]" when EXIT completes a subgoal
+    - Show which subgoal was completed
+    - _Requirements: 7.4, 7.11, 18.3_
+  
+  - [ ] 27.3 Add "Next subgoal" indicators to EXIT steps
+    - Display "Next: Subgoal [1.2]" after completing a subgoal
+    - Show what comes next in the execution
+    - Only show if there is a next subgoal
+    - _Requirements: 7.12, 18.4_
+
+- [ ] 28. Implement Variable Flow Tracking (Properly This Time)
+  - [ ] 28.1 Track variable bindings across steps
+    - Maintain map of variable → value for each step
+    - Track when variables get bound in EXIT steps
+    - Propagate bindings to subsequent subgoals
+    - _Requirements: 10.1, 10.4_
+  
+  - [ ] 28.2 Add variable flow notes to EXIT steps
+    - Show "Note: X1 from Step 1 is now bound to 1+0"
+    - Indicate which variable was bound and to what value
+    - Reference the step where the variable originated
+    - _Requirements: 10.5, 10.7_
+  
+  - [ ] 28.3 Show variable substitutions in CALL steps
+    - Display "Note: X1 from Step 1 was substituted → 1+0"
+    - Show how bound variables affect subsequent subgoal calls
+    - Use source variable names consistently
+    - _Requirements: 10.2, 10.3, 10.6_
+
+- [ ] 29. Fix Tree Visualization Issues
+  - [ ] 29.1 Add clause numbers to tree nodes
+    - Extract clause line numbers from trace
+    - Display "clause 28" in node label
+    - Use dot notation for multiple clauses (26.1, 26.2)
+    - _Requirements: 4.2, 6.2, 6.3_
+  
+  - [ ] 29.2 Improve edge labels with actual subgoal content
+    - Show "|t(X+1,X1)|" not "|subgoal 1|"
+    - Extract subgoal text from source clause body
+    - Keep labels concise but meaningful
+    - _Requirements: 4.3, 7.1, 20.2_
+  
+  - [ ] 29.3 Fix clause head display in tree nodes
+    - Use source clause head with original variables
+    - Show "t(X+1+1,Z)" not "t(_578+1+1,_568)"
+    - _Requirements: 4.2, 6.1_
+
+- [ ] 30. Fix Line Number Mapping
+  - [ ] 30.1 Correct clause line number extraction
+    - Verify tracer provides correct line numbers
+    - Map to actual source file lines
+    - Handle multi-clause lines correctly
+    - _Requirements: 6.2, 6.3_
+  
+  - [ ] 30.2 Update clause table generation
+    - Show correct line numbers in clause definitions table
+    - Match line numbers shown in timeline
+    - _Requirements: 13.3, 13.4_
+
+- [ ] 31. Testing and Validation
+  - [ ] 31.1 Test with 3_3_operators example
+    - Verify source variable names displayed (X, Z not _578, _568)
+    - Check pattern match shows X=0 not _578+1+1=0+1+1
+    - Validate subgoal markers present
+    - Confirm variable flow notes present
+    - _Requirements: All Phase 3_
+  
+  - [ ] 31.2 Test with factorial example
+    - Verify all Phase 3 features working
+    - Check deep recursion handling
+    - Validate variable flow across multiple levels
+    - _Requirements: All Phase 3_
+  
+  - [ ] 31.3 Test with append example
+    - Verify list pattern matching works
+    - Check subgoal tracking with recursion
+    - _Requirements: All Phase 3_
+  
+  - [ ] 31.4 Regenerate all examples
+    - Run regenerate_examples.sh
+    - Verify all outputs match design examples
+    - _Requirements: All Phase 3_

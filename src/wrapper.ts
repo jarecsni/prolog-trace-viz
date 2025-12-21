@@ -78,28 +78,10 @@ export function calculateLineOffset(prologContent: string): number {
  */
 export function mapWrapperLineToSource(wrapperLine: number, prologContent: string): number {
   const offset = calculateLineOffset(prologContent);
-  const sourceLineInWrapper = wrapperLine - offset;
   
-  // Now we need to find which actual source line this corresponds to
-  // by accounting for empty lines and comments that were preserved
-  const sourceLines = prologContent.split('\n');
-  let actualSourceLine = 0;
-  let nonEmptyLineCount = 0;
-  
-  for (let i = 0; i < sourceLines.length; i++) {
-    actualSourceLine = i + 1; // 1-based line numbers
-    const line = sourceLines[i].trim();
-    
-    // Skip empty lines and comments when counting
-    if (line.length > 0 && !line.startsWith('%') && !line.startsWith('/*')) {
-      nonEmptyLineCount++;
-      if (nonEmptyLineCount === sourceLineInWrapper) {
-        return actualSourceLine;
-      }
-    }
-  }
-  
-  return actualSourceLine; // Fallback to last line
+  // Simple mapping: wrapper line - offset = source line
+  // The wrapper includes all source lines as-is, so no need to skip empty lines or comments
+  return wrapperLine - offset;
 }
 export async function createTempWrapper(config: WrapperConfig): Promise<TempFile> {
   const content = generateWrapper(config);

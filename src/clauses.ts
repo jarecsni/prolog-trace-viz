@@ -10,6 +10,13 @@ export interface Clause {
 }
 
 /**
+ * Maps line numbers to source clauses for preserving original variable names
+ */
+export interface SourceClauseMap {
+  [lineNumber: number]: Clause;
+}
+
+/**
  * Parses a Prolog file and extracts clauses.
  * Filters out directives, comments, and non-predicate statements.
  */
@@ -93,6 +100,21 @@ export function parsePrologFile(content: string): Clause[] {
   }
   
   return clauses;
+}
+
+/**
+ * Builds a map from line numbers to source clauses for quick lookup.
+ * This preserves original variable names from the source file.
+ */
+export function buildSourceClauseMap(content: string): SourceClauseMap {
+  const clauses = parsePrologFile(content);
+  const map: SourceClauseMap = {};
+  
+  for (const clause of clauses) {
+    map[clause.number] = clause;
+  }
+  
+  return map;
 }
 
 

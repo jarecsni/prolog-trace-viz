@@ -7,7 +7,7 @@ import { createTempWrapper } from './wrapper.js';
 import { executeTracer, checkDependencies } from './executor.js';
 import * as path from 'node:path';
 import { writeOutput, logVerbose, logInfo, logError } from './output.js';
-import { parsePrologFile } from './clauses.js';
+import { parsePrologFile, buildSourceClauseMap } from './clauses.js';
 import { TimelineBuilder, TraceEvent } from './timeline.js';
 import { TreeBuilder } from './tree.js';
 import { generateMarkdown, ClauseDefinition } from './markdown-generator.js';
@@ -118,6 +118,9 @@ async function run(options: CLIOptions): Promise<void> {
   logVerbose('Parsing Prolog clauses...', options);
   const clauses = parsePrologFile(prologContent);
   
+  // Build source clause map for preserving original variable names
+  const sourceClauseMap = buildSourceClauseMap(prologContent);
+  
   // Get absolute path to tracer.pl from package installation
   const tracerPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'tracer.pl');
   
@@ -158,23 +161,12 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Parse JSON trace output
     logVerbose('Parsing JSON trace output...', options);
-    const rawEvents = JSON.parse(execResult.json);
-    
-    // Convert raw events to TraceEvent format
-    const traceEvents: TraceEvent[] = rawEvents
-      .filter((e: any) => e.port && e.level !== undefined && e.goal && e.predicate)
-      .map((e: any) => ({
-        port: e.port,
-        level: e.level,
-        goal: e.goal,
-        predicate: e.predicate,
-        arguments: e.arguments,
-        clause: e.clause,
-      }));
+    const { parseEvents } = await import('./parser.js');
+    const traceEvents = parseEvents(execResult.json, prologContent);
     
     // Build timeline
     logVerbose('Building execution timeline...', options);
-    const timelineBuilder = new TimelineBuilder(traceEvents);
+    const timelineBuilder = new TimelineBuilder(traceEvents, sourceClauseMap);
     const timeline = timelineBuilder.build();
     
     // Build tree
@@ -225,4 +217,7 @@ async function run(options: CLIOptions): Promise<void> {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

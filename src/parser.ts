@@ -452,7 +452,7 @@ export function parseTraceJson(json: string, prologContent?: string): ExecutionN
 /**
  * Parses JSON array into TraceEvent objects with validation.
  */
-function parseEvents(json: string, prologContent?: string): TraceEvent[] {
+export function parseEvents(json: string, prologContent?: string): TraceEvent[] {
   let rawEvents: any[];
   
   try {
