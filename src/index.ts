@@ -114,7 +114,7 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Analyze tree
     logVerbose('Analyzing execution tree...', options);
-    const analysis = analyzeTree(tree, clauses, { detailLevel: options.detail }, rawEvents, options.query);
+    const analysis = analyzeTree(tree, clauses, {}, rawEvents, options.query);
     
     // Generate Mermaid diagram
     logVerbose('Generating Mermaid diagram...', options);
