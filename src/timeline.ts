@@ -159,6 +159,7 @@ export class TimelineBuilder {
    */
   private mergeCallExitPairs(): void {
     const mergedSteps: TimelineStep[] = [];
+    const processedCalls = new Set<number>();
     const processedExits = new Set<number>();
     
     // Initialize binding tracker if we have original query
@@ -167,51 +168,65 @@ export class TimelineBuilder {
       bindingTracker = new VariableBindingTracker(this.originalQuery);
     }
     
-    // Build a map of CALL events to their trace events for parent_info access
-    const callEventMap = new Map<number, TraceEvent>();
-    for (const event of this.events) {
-      if (event.port === 'call') {
-        // Find the step number for this event
-        const step = this.steps.find(s => s.port === 'call' && s.goal === event.goal && s.level === event.level);
-        if (step) {
-          callEventMap.set(step.stepNumber, event);
-        }
+    // Build maps for quick lookup
+    const callStepMap = new Map<number, TimelineStep>();  // level -> CALL step
+    const exitStepMap = new Map<number, TimelineStep>();  // level -> EXIT step
+    const callEventMap = new Map<number, TraceEvent>();   // step number -> CALL event
+    const exitEventMap = new Map<number, TraceEvent>();   // step number -> EXIT event
+    
+    for (const step of this.steps) {
+      if (step.port === 'call') {
+        callStepMap.set(step.level, step);
+      } else if (step.port === 'exit') {
+        exitStepMap.set(step.level, step);
       }
     }
     
-    // Process events in order, tracking bindings as we go
-    for (const step of this.steps) {
-      if (step.port === 'call') {
+    for (const event of this.events) {
+      if (event.port === 'call') {
+        const step = callStepMap.get(event.level);
+        if (step) callEventMap.set(step.stepNumber, event);
+      } else if (event.port === 'exit') {
+        const step = exitStepMap.get(event.level);
+        if (step) exitEventMap.set(step.stepNumber, event);
+      }
+    }
+    
+    // Process events in their original order
+    for (const event of this.events) {
+      if (this.isTracerPredicate(event.predicate)) continue;
+      
+      if (event.port === 'call') {
+        const callStep = callStepMap.get(event.level);
+        if (!callStep || processedCalls.has(callStep.stepNumber)) continue;
+        
         // Process this CALL event in the binding tracker
-        const callEvent = callEventMap.get(step.stepNumber);
-        if (callEvent && bindingTracker && !this.isTracerPredicate(callEvent.predicate)) {
-          bindingTracker.processEvent(callEvent);
+        if (bindingTracker) {
+          bindingTracker.processEvent(event);
         }
         
         // Find the matching EXIT
-        const exitStep = this.steps.find(s => 
-          s.port === 'exit' && s.returnsTo === step.stepNumber
-        );
+        const exitStep = exitStepMap.get(event.level);
         
-        if (exitStep) {
+        if (exitStep && exitStep.returnsTo === callStep.stepNumber) {
           // Merge CALL and EXIT into a single step
           const mergedStep: TimelineStep = {
-            ...step,
+            ...callStep,
             port: 'merged',
             result: this.extractResult(exitStep.goal),
           };
           
           // Get query variable state at CALL time (before EXIT)
           if (bindingTracker) {
-            const queryVarState = bindingTracker.getQueryVarState(step.level);
+            const queryVarState = bindingTracker.getQueryVarState(callStep.level);
             if (queryVarState) {
               mergedStep.queryVarState = queryVarState;
             }
           }
           
           // Fallback to old method if binding tracker didn't produce result
-          if (!mergedStep.queryVarState && callEvent && this.originalQuery) {
-            const env = this.extractVariableEnvironment(callEvent, this.originalQuery);
+          if (!mergedStep.queryVarState) {
+            const env = this.extractVariableEnvironment(event, this.originalQuery || '');
             if (env.queryVarState) {
               mergedStep.queryVarState = env.queryVarState;
             }
@@ -220,25 +235,34 @@ export class TimelineBuilder {
             }
           }
           
-          // Now process the EXIT event in the binding tracker
-          const exitEvent = this.events.find(e => 
-            e.port === 'exit' && e.level === exitStep.level && e.goal === exitStep.goal
-          );
-          if (exitEvent && bindingTracker && !this.isTracerPredicate(exitEvent.predicate)) {
-            bindingTracker.processEvent(exitEvent);
-          }
-          
           mergedSteps.push(mergedStep);
+          processedCalls.add(callStep.stepNumber);
           processedExits.add(exitStep.stepNumber);
         } else {
           // CALL without EXIT (failed goal) - keep as is
-          mergedSteps.push(step);
+          mergedSteps.push(callStep);
+          processedCalls.add(callStep.stepNumber);
         }
-      } else if (step.port === 'exit' && !processedExits.has(step.stepNumber)) {
+      } else if (event.port === 'exit') {
+        const exitStep = exitStepMap.get(event.level);
+        if (!exitStep || processedExits.has(exitStep.stepNumber)) continue;
+        
+        // Process this EXIT event in the binding tracker
+        if (bindingTracker) {
+          bindingTracker.processEvent(event);
+        }
+        
         // EXIT without CALL (shouldn't happen, but keep for safety)
-        mergedSteps.push(step);
-      } else if (step.port === 'redo' || step.port === 'fail') {
-        // Keep REDO/FAIL steps as is
+        if (!processedExits.has(exitStep.stepNumber)) {
+          mergedSteps.push(exitStep);
+          processedExits.add(exitStep.stepNumber);
+        }
+      }
+    }
+    
+    // Add any remaining REDO/FAIL steps
+    for (const step of this.steps) {
+      if (step.port === 'redo' || step.port === 'fail') {
         mergedSteps.push(step);
       }
     }

@@ -69,13 +69,18 @@ export class VariableBindingTracker {
       const parentBinding = this.bindings.get(parentLevel);
       
       if (parentBinding) {
+        // Save the parent's OLD result variable before updating
+        const parentOldResultVar = parentBinding.resultVar;
+        
         // Update parent's pattern - this is how parent sees its result NOW
         parentBinding.resultPattern = parentResultPattern;
         
-        // Propagate: substitute this child's result variable in all ancestors
-        // e.g., if parent now has "[1|_79854]" and this child is "_79854",
-        // then ancestors that had "_79984" should now have "[1|_79854]"
-        this.propagateBinding(parentLevel, resultVar, parentResultPattern);
+        // Propagate: substitute the parent's OLD result variable with its NEW pattern in all ancestors
+        // e.g., if parent was "_79854" and now has pattern "[2|_79774]",
+        // then ancestors with "[1|_79854]" should become "[1|[2|_79774]]"
+        if (parentOldResultVar !== parentResultPattern) {
+          this.propagateBinding(parentLevel, parentOldResultVar, parentResultPattern);
+        }
       }
     }
   }

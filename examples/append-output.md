@@ -50,7 +50,7 @@ append([1,2], [3,4], X)
 │    L = [3,4]
 │    L = _1224
 │  Result: [3,4]
-│  Query Variable: X = [1,2,3,4]
+│  Query Variable: X = [1,2|?]
 └─
 
 
