@@ -30,6 +30,7 @@ t(1+0+1+1+1, A)
 │    [1.1] t(X+1, X1)
 │    [1.2] t(X1+1, Z)
 │  Result: 1+1+1+1+0
+│  Query Variable: X = ?
 └─
 
 ┌─ Step 2: t(1+0+1+1,_1926)
@@ -43,7 +44,7 @@ t(1+0+1+1+1, A)
 │    [2.1] t(X+1, X1)
 │    [2.2] t(X1+1, Z)
 │  Result: 1+1+1+0
-│  Query Variable: Building: 1+1+1+1+0
+│  Query Variable: X = ?
 └─
 
 ┌─ Step 3: t(1+0+1,_1856)
@@ -53,7 +54,7 @@ t(1+0+1+1+1, A)
 │  Unifications:
 │    X = 1
 │  Result: 1+1+0
-│  Query Variable: Building: 1+1+1+0
+│  Query Variable: X = ?
 └─
 
 ┌─ Step 5: t(1+1+0+1,_1624)
@@ -63,7 +64,7 @@ t(1+0+1+1+1, A)
 │  Unifications:
 │    X = 1+1
 │  Result: 1+1+1+0
-│  Query Variable: Building: 1+1+1+0
+│  Query Variable: X = ?
 └─
 
 ┌─ Step 8: t(1+1+1+0+1,_1134)
@@ -73,7 +74,7 @@ t(1+0+1+1+1, A)
 │  Unifications:
 │    X = 1+1+1
 │  Result: 1+1+1+1+0
-│  Query Variable: Building: 1+1+1+1+0
+│  Query Variable: X = ?
 └─
 
 

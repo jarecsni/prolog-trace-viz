@@ -94,6 +94,11 @@ function formatMergedStep(step: TimelineStep): string[] {
     if (step.queryVarState) {
       lines.push('│  Query Variable: ' + step.queryVarState);
     }
+    
+    // Show parent context if available
+    if (step.parentContext) {
+      lines.push('│  ' + step.parentContext);
+    }
   }
   
   return lines;

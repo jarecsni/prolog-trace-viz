@@ -154,31 +154,41 @@ How to show `[1, 2 | ?]` clearly?
 - All necessary data available in trace events
 - Variable tracking is feasible via parent_info.goal
 
-### Phase 2: Timeline Restructuring (IN PROGRESS)
-- [ ] Update TimelineStep interface to merge CALL/EXIT
-- [ ] Modify timeline builder to pair CALL/EXIT events
-- [ ] Extract query variable tracking from parent_info
-- [ ] Redesign step structure (goal, clause, unifications, result)
-- [ ] Update timeline formatter for new structure
+### Phase 2: Timeline Restructuring ✅ COMPLETE
+- [x] Update TimelineStep interface to merge CALL/EXIT
+- [x] Modify timeline builder to pair CALL/EXIT events
+- [x] Extract query variable tracking from parent_info
+- [x] Redesign step structure (goal, clause, unifications, result)
+- [x] Update timeline formatter for new structure
+- [x] Fix subgoal tracking for merged format
+- [x] Add parent_info extraction to parser
 
-**Steps:**
-1. Update `src/timeline.ts` - new TimelineStep structure
-2. Update `src/timeline-formatter.ts` - new output format
-3. Test with append example
+**Completed:**
+- Timeline now shows merged steps (3 instead of 6 for append)
+- Each step shows: goal, clause, unifications, subgoals, result
+- Subgoal labels working correctly
+- Basic query variable tracking infrastructure in place
+- Committed to feature branch: feature/timeline-redesign
 
-### Phase 3: Variable Tracking
-- [ ] Extract result variable from parent_info.goal
+### Phase 3: Variable Tracking (TODO)
+- [ ] Refine query variable extraction to show intermediate construction
+- [ ] Show partial structures with holes ([1|?] → [1,2|?] → [1,2,3,4])
 - [ ] Map internal vars to query variable names
-- [ ] Show partial structures with holes (?)
-- [ ] Add "Query Variable State" to each step
+- [ ] Track variable flow through recursion properly
 
-### Phase 4: Testing & Refinement
+**Current state:**
+- Query Variable field shows final results instead of intermediate construction
+- Need to extract from CALL event's parent, not EXIT event's parent
+- Need better logic to show the "Russian doll" building pattern
+
+### Phase 4: Testing & Refinement (TODO)
 - [ ] Test with append example
 - [ ] Test with factorial example
 - [ ] Test with operators example
 - [ ] Refine variable naming strategy
 - [ ] Update all example outputs
 - [ ] Ensure all tests pass
+- [ ] Merge to main branch
 
 ## Success Criteria
 

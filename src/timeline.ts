@@ -3,6 +3,7 @@
  */
 
 import { SourceClauseMap } from './clauses.js';
+import { VariableBindingTracker } from './variable-tracker.js';
 
 export interface TimelineStep {
   stepNumber: number;
@@ -29,6 +30,7 @@ export interface TimelineStep {
   variableFlowNotes?: string[];  // Variable flow tracking notes
   result?: string;          // For merged steps: the result value
   queryVarState?: string;   // State of the query variable at this step (e.g., "[1|?]", "[1,2,3,4]")
+  parentContext?: string;   // How parent sees this step's variables (e.g., "X = [1|R]")
 }
 
 export interface TraceEvent {
@@ -59,7 +61,7 @@ export class TimelineBuilder {
   private parentSubgoals: Map<number, Array<{ label: string; goal: string }>> = new Map(); // step number -> subgoals
   private completedSubgoals: Map<number, number> = new Map(); // parent step -> count of completed subgoals
 
-  constructor(private events: TraceEvent[], private sourceClauseMap?: SourceClauseMap) {}
+  constructor(private events: TraceEvent[], private sourceClauseMap?: SourceClauseMap, private originalQuery?: string) {}
 
   /**
    * Check if a predicate is part of tracer infrastructure and should be filtered
@@ -90,7 +92,7 @@ export class TimelineBuilder {
     // Second pass: backfill clause info from EXIT to CALL steps
     this.backfillClauseInfo();
     
-    // Third pass: merge CALL/EXIT pairs into single steps
+    // Third pass: merge CALL/EXIT pairs into single steps (with incremental binding tracking)
     this.mergeCallExitPairs();
     
     // Fourth pass: update subgoal tracking based on execution flow
@@ -159,16 +161,33 @@ export class TimelineBuilder {
     const mergedSteps: TimelineStep[] = [];
     const processedExits = new Set<number>();
     
-    // Build parent info map from original events
-    const parentInfoMap = new Map<number, { level: number; goal: string }>();
+    // Initialize binding tracker if we have original query
+    let bindingTracker: VariableBindingTracker | undefined;
+    if (this.originalQuery) {
+      bindingTracker = new VariableBindingTracker(this.originalQuery);
+    }
+    
+    // Build a map of CALL events to their trace events for parent_info access
+    const callEventMap = new Map<number, TraceEvent>();
     for (const event of this.events) {
-      if (event.parent_info) {
-        parentInfoMap.set(event.level, event.parent_info);
+      if (event.port === 'call') {
+        // Find the step number for this event
+        const step = this.steps.find(s => s.port === 'call' && s.goal === event.goal && s.level === event.level);
+        if (step) {
+          callEventMap.set(step.stepNumber, event);
+        }
       }
     }
     
+    // Process events in order, tracking bindings as we go
     for (const step of this.steps) {
       if (step.port === 'call') {
+        // Process this CALL event in the binding tracker
+        const callEvent = callEventMap.get(step.stepNumber);
+        if (callEvent && bindingTracker && !this.isTracerPredicate(callEvent.predicate)) {
+          bindingTracker.processEvent(callEvent);
+        }
+        
         // Find the matching EXIT
         const exitStep = this.steps.find(s => 
           s.port === 'exit' && s.returnsTo === step.stepNumber
@@ -182,16 +201,31 @@ export class TimelineBuilder {
             result: this.extractResult(exitStep.goal),
           };
           
-          // Extract query variable state from parent_info
-          const parentInfo = parentInfoMap.get(step.level);
-          if (parentInfo && parentInfo.goal) {
-            // Skip meta-calls and tracer infrastructure
-            if (!parentInfo.goal.includes('<meta-call>') && !parentInfo.goal.includes('test_')) {
-              const queryVarState = this.extractResultFromGoal(parentInfo.goal);
-              if (queryVarState) {
-                mergedStep.queryVarState = `Building: ${queryVarState}`;
-              }
+          // Get query variable state at CALL time (before EXIT)
+          if (bindingTracker) {
+            const queryVarState = bindingTracker.getQueryVarState(step.level);
+            if (queryVarState) {
+              mergedStep.queryVarState = queryVarState;
             }
+          }
+          
+          // Fallback to old method if binding tracker didn't produce result
+          if (!mergedStep.queryVarState && callEvent && this.originalQuery) {
+            const env = this.extractVariableEnvironment(callEvent, this.originalQuery);
+            if (env.queryVarState) {
+              mergedStep.queryVarState = env.queryVarState;
+            }
+            if (env.parentContext) {
+              mergedStep.parentContext = env.parentContext;
+            }
+          }
+          
+          // Now process the EXIT event in the binding tracker
+          const exitEvent = this.events.find(e => 
+            e.port === 'exit' && e.level === exitStep.level && e.goal === exitStep.goal
+          );
+          if (exitEvent && bindingTracker && !this.isTracerPredicate(exitEvent.predicate)) {
+            bindingTracker.processEvent(exitEvent);
           }
           
           mergedSteps.push(mergedStep);
@@ -213,6 +247,57 @@ export class TimelineBuilder {
   }
   
   /**
+   * Extract complete variable environment from parent_info
+   * Shows the immediate parent's view of this call
+   */
+  private extractVariableEnvironment(event: TraceEvent, originalQuery: string): {
+    queryVarState?: string;
+    parentContext?: string;
+  } {
+    if (!event.parent_info || !event.parent_info.goal) {
+      return {};
+    }
+    
+    const parentGoal = event.parent_info.goal;
+    
+    // Skip meta-call wrappers and test predicates
+    if (parentGoal.includes('<meta-call>') || parentGoal === 'test_append') {
+      return {};
+    }
+    
+    // Extract predicate name from both goals
+    const parentPredMatch = parentGoal.match(/^([^(]+)\(/);
+    const queryPredMatch = originalQuery.match(/^([^(]+)\(/);
+    
+    if (!parentPredMatch || !queryPredMatch) {
+      return {};
+    }
+    
+    // Only process if parent is same predicate (recursive call)
+    if (parentPredMatch[1] !== queryPredMatch[1]) {
+      return {};
+    }
+    
+    // Extract result from immediate parent
+    const result = this.extractResultFromGoal(parentGoal);
+    
+    if (result) {
+      const cleaned = this.cleanupVariableName(result);
+      
+      // Show query variable state if it has holes (partial construction)
+      if (cleaned.includes('?')) {
+        return {
+          queryVarState: `X = ${cleaned}`,
+          parentContext: `Parent view: result = ${cleaned}`
+        };
+      }
+    }
+    
+    return {};
+  }
+
+  
+  /**
    * Extract the result argument from a goal
    * For append([1,2],[3,4],[1|_79854]), extract [1|_79854]
    */
@@ -232,11 +317,15 @@ export class TimelineBuilder {
   
   /**
    * Clean up variable names for better readability
-   * Replace internal vars like _79854 with ? to show holes
+   * Replace internal vars like _79854 and unbound clause vars like R with ? to show holes
    */
   private cleanupVariableName(value: string): string {
     // Replace internal variables (_NNNN) with ? to show "holes"
-    return value.replace(/_\d+/g, '?');
+    let cleaned = value.replace(/_\d+/g, '?');
+    // Replace remaining unbound variables (single uppercase letters or uppercase identifiers)
+    // that appear as standalone terms (not part of a larger structure)
+    cleaned = cleaned.replace(/\b[A-Z][A-Za-z0-9_]*\b/g, '?');
+    return cleaned;
   }
   
   /**
