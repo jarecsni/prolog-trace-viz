@@ -545,6 +545,17 @@ export function parseEvents(json: string, prologContent?: string): TraceEvent[] 
       }));
     }
     
+    // Add parent_info if present
+    if (rawEvent.parent_info && typeof rawEvent.parent_info === 'object') {
+      const { level: parentLevel, goal: parentGoal } = rawEvent.parent_info;
+      if (typeof parentLevel === 'number' && typeof parentGoal === 'string') {
+        event.parent_info = {
+          level: parentLevel,
+          goal: parentGoal,
+        };
+      }
+    }
+    
     events.push(event);
   }
   

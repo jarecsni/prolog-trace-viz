@@ -6,7 +6,7 @@ import { SourceClauseMap } from './clauses.js';
 
 export interface TimelineStep {
   stepNumber: number;
-  port: 'call' | 'exit' | 'redo' | 'fail';
+  port: 'call' | 'exit' | 'redo' | 'fail' | 'merged';  // Add 'merged' type
   level: number;
   goal: string;
   clause?: {
@@ -27,6 +27,8 @@ export interface TimelineStep {
   note?: string;            // Additional context
   nextSubgoal?: string;     // e.g., "Subgoal [1.2]" - what comes next
   variableFlowNotes?: string[];  // Variable flow tracking notes
+  result?: string;          // For merged steps: the result value
+  queryVarState?: string;   // State of the query variable at this step (e.g., "[1|?]", "[1,2,3,4]")
 }
 
 export interface TraceEvent {
@@ -88,10 +90,13 @@ export class TimelineBuilder {
     // Second pass: backfill clause info from EXIT to CALL steps
     this.backfillClauseInfo();
     
-    // Third pass: update subgoal tracking based on execution flow
+    // Third pass: merge CALL/EXIT pairs into single steps
+    this.mergeCallExitPairs();
+    
+    // Fourth pass: update subgoal tracking based on execution flow
     this.updateSubgoalTracking();
     
-    // Fourth pass: add variable flow tracking notes
+    // Fifth pass: add variable flow tracking notes
     this.addVariableFlowNotes();
     
     return this.steps;
@@ -147,6 +152,109 @@ export class TimelineBuilder {
   }
   
   /**
+   * Merge CALL/EXIT pairs into single steps
+   * This creates a cleaner timeline focused on goal execution rather than trace mechanics
+   */
+  private mergeCallExitPairs(): void {
+    const mergedSteps: TimelineStep[] = [];
+    const processedExits = new Set<number>();
+    
+    // Build parent info map from original events
+    const parentInfoMap = new Map<number, { level: number; goal: string }>();
+    for (const event of this.events) {
+      if (event.parent_info) {
+        parentInfoMap.set(event.level, event.parent_info);
+      }
+    }
+    
+    for (const step of this.steps) {
+      if (step.port === 'call') {
+        // Find the matching EXIT
+        const exitStep = this.steps.find(s => 
+          s.port === 'exit' && s.returnsTo === step.stepNumber
+        );
+        
+        if (exitStep) {
+          // Merge CALL and EXIT into a single step
+          const mergedStep: TimelineStep = {
+            ...step,
+            port: 'merged',
+            result: this.extractResult(exitStep.goal),
+          };
+          
+          // Extract query variable state from parent_info
+          const parentInfo = parentInfoMap.get(step.level);
+          if (parentInfo && parentInfo.goal) {
+            // Skip meta-calls and tracer infrastructure
+            if (!parentInfo.goal.includes('<meta-call>') && !parentInfo.goal.includes('test_')) {
+              const queryVarState = this.extractResultFromGoal(parentInfo.goal);
+              if (queryVarState) {
+                mergedStep.queryVarState = `Building: ${queryVarState}`;
+              }
+            }
+          }
+          
+          mergedSteps.push(mergedStep);
+          processedExits.add(exitStep.stepNumber);
+        } else {
+          // CALL without EXIT (failed goal) - keep as is
+          mergedSteps.push(step);
+        }
+      } else if (step.port === 'exit' && !processedExits.has(step.stepNumber)) {
+        // EXIT without CALL (shouldn't happen, but keep for safety)
+        mergedSteps.push(step);
+      } else if (step.port === 'redo' || step.port === 'fail') {
+        // Keep REDO/FAIL steps as is
+        mergedSteps.push(step);
+      }
+    }
+    
+    this.steps = mergedSteps;
+  }
+  
+  /**
+   * Extract the result argument from a goal
+   * For append([1,2],[3,4],[1|_79854]), extract [1|_79854]
+   */
+  private extractResultFromGoal(goal: string): string | null {
+    const match = goal.match(/^([^(]+)\((.*)\)$/);
+    if (!match) {
+      return null;
+    }
+    
+    const args = this.splitArguments(match[2]);
+    // Return the last argument (typically the result in Prolog predicates)
+    const lastArg = args[args.length - 1];
+    
+    // Clean up internal variable names for display
+    return lastArg ? this.cleanupVariableName(lastArg) : null;
+  }
+  
+  /**
+   * Clean up variable names for better readability
+   * Replace internal vars like _79854 with ? to show holes
+   */
+  private cleanupVariableName(value: string): string {
+    // Replace internal variables (_NNNN) with ? to show "holes"
+    return value.replace(/_\d+/g, '?');
+  }
+  
+  /**
+   * Extract the result value from an EXIT goal
+   * For example, from "append([1,2],[3,4],[1,2,3,4])" extract "[1,2,3,4]"
+   */
+  private extractResult(exitGoal: string): string {
+    const match = exitGoal.match(/^([^(]+)\((.*)\)$/);
+    if (!match) {
+      return exitGoal;
+    }
+    
+    const args = this.splitArguments(match[2]);
+    // Return the last argument as the result (common pattern in Prolog)
+    return args[args.length - 1] || exitGoal;
+  }
+  
+  /**
    * Update subgoal tracking markers based on execution flow
    * This must run after backfillClauseInfo so we have all subgoals defined
    */
@@ -155,22 +263,44 @@ export class TimelineBuilder {
     const activeSubgoalMap = new Map<number, { parentStep: number; subgoalIndex: number }>();
     
     for (const step of this.steps) {
-      if (step.port === 'call') {
-        // Check if this CALL is solving a subgoal
+      // Handle both 'call' and 'merged' steps (merged steps are essentially completed calls)
+      if (step.port === 'call' || step.port === 'merged') {
+        // Check if this step is solving a subgoal
         const subgoalInfo = activeSubgoalMap.get(step.level);
         if (subgoalInfo) {
           step.subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;
         }
         
-        // If this CALL has subgoals, set up tracking for the first one
+        // If this step has subgoals, set up tracking for the first one
         if (step.subgoals.length > 0) {
           activeSubgoalMap.set(step.level + 1, {
             parentStep: step.stepNumber,
             subgoalIndex: 1,
           });
         }
+        
+        // For merged steps, also handle completion logic
+        if (step.port === 'merged' && subgoalInfo) {
+          // Check if there's a next subgoal
+          const parentSubgoals = this.parentSubgoals.get(subgoalInfo.parentStep);
+          if (parentSubgoals && subgoalInfo.subgoalIndex < parentSubgoals.length) {
+            // Move to next subgoal
+            const nextSubgoalIndex = subgoalInfo.subgoalIndex + 1;
+            const nextSubgoalData = parentSubgoals[nextSubgoalIndex - 1];
+            step.nextSubgoal = `Subgoal ${nextSubgoalData.label}`;
+            
+            // Update active subgoal for this level
+            activeSubgoalMap.set(step.level, {
+              parentStep: subgoalInfo.parentStep,
+              subgoalIndex: nextSubgoalIndex,
+            });
+          } else {
+            // All subgoals completed
+            activeSubgoalMap.delete(step.level);
+          }
+        }
       } else if (step.port === 'exit') {
-        // Check if this EXIT completes a subgoal
+        // Handle legacy EXIT steps (shouldn't exist after merging, but keep for safety)
         const subgoalInfo = activeSubgoalMap.get(step.level);
         if (subgoalInfo) {
           step.subgoalLabel = `[${subgoalInfo.parentStep}.${subgoalInfo.subgoalIndex}]`;

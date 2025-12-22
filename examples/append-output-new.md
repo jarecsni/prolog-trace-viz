@@ -37,6 +37,7 @@ append([1,2], [3,4], X)
 │  Subgoals:
 │    [2.1] append(T, L, R)
 │  Result: [2,3,4]
+│  Query Variable: Building: [1,2,3,4]
 └─
 
 ┌─ Step 3: append([],[3,4],_1224)
@@ -46,6 +47,7 @@ append([1,2], [3,4], X)
 │    L = [3,4]
 │    L = _1224
 │  Result: [3,4]
+│  Query Variable: Building: [2,3,4]
 └─
 
 

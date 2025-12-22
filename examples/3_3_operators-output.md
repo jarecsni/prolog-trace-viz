@@ -1,9 +1,9 @@
-# Prolog Execution Trace: t(0+1+1, B)
+# Prolog Execution Trace: t(1+0+1+1+1, A)
 
 ## Query
 
 ```
-t(0+1+1, B)
+t(1+0+1+1+1, A)
 ```
 
 ## Clause Definitions
@@ -20,61 +20,60 @@ t(0+1+1, B)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL t(0+1+1,_1152)
+┌─ Step 1: t(1+0+1+1+1,_2008)
 │  
-│  Pattern Match:
-│    Goal: t(0+1+1,_1152)
-│    Head: t(X+1+1, Z)
-│    ├─ X = 0
-│    ├─ Z = _1152
-│  
-│  Clause: t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z) [line 28]
-│  Spawns subgoals:
+│  Clause: t(X+1+1, Z) [line 28]
+│  Unifications:
+│    X = 1+0+1
+│    Z = _2008
+│  Subgoals:
 │    [1.1] t(X+1, X1)
 │    [1.2] t(X1+1, Z)
+│  Result: 1+1+1+1+0
 └─
 
-┌─ Step 2: CALL t(0+1,_1094)
+┌─ Step 2: t(1+0+1+1,_1926)
 │  ◀── Solving subgoal [1.1]
 │  
-│  Pattern Match:
-│    Goal: t(0+1,_1094)
-│    Head: t(0+1, 1+0)
+│  Clause: t(X+1+1, Z) [line 28]
+│  Unifications:
+│    X = 1+0
+│    Z = _1926
+│  Subgoals:
+│    [2.1] t(X+1, X1)
+│    [2.2] t(X1+1, Z)
+│  Result: 1+1+1+0
+│  Query Variable: Building: 1+1+1+1+0
+└─
+
+┌─ Step 3: t(1+0+1,_1856)
+│  ◀── Solving subgoal [2.1]
 │  
-│  Clause: t(0+1, 1+0) [line 26] (fact)
+│  Fact: t(X+0+1, X+1+0) [line 27]
+│  Unifications:
+│    X = 1
+│  Result: 1+1+0
+│  Query Variable: Building: 1+1+1+0
 └─
 
-┌─ Step 3: EXIT t(0+1,1+0)
-│  ◀── Completed subgoal [1.1]
-│  Bindings:
-│    _1094 = 1+0
-│  Returns to: Step 2
-│  Next: Subgoal [1.2]
+┌─ Step 5: t(1+1+0+1,_1624)
+│  ◀── Solving subgoal [2.2]
+│  
+│  Fact: t(X+0+1, X+1+0) [line 27]
+│  Unifications:
+│    X = 1+1
+│  Result: 1+1+1+0
+│  Query Variable: Building: 1+1+1+0
 └─
 
-┌─ Step 4: CALL t(1+0+1,_916)
+┌─ Step 8: t(1+1+1+0+1,_1134)
 │  ◀── Solving subgoal [1.2]
 │  
-│  Pattern Match:
-│    Goal: t(1+0+1,_916)
-│    Head: t(X+0+1, X+1+0)
-│    ├─ X = 1
-│  
-│  Clause: t(X+0+1, X+1+0) [line 27] (fact)
-└─
-
-┌─ Step 5: EXIT t(1+0+1,1+1+0)
-│  ◀── Completed subgoal [1.2]
-│  Bindings:
-│    _916 = 1+1+0
-│  Returns to: Step 4
-└─
-
-┌─ Step 6: EXIT t(0+1+1,1+1+0)
-│  Bindings:
-│    _1152 = 1+1+0
-│  Returns to: Step 1
-│  Note: Z from Step 1 is now bound to 1+1+0
+│  Fact: t(X+0+1, X+1+0) [line 27]
+│  Unifications:
+│    X = 1+1+1
+│  Result: 1+1+1+1+0
+│  Query Variable: Building: 1+1+1+1+0
 └─
 
 
@@ -84,24 +83,30 @@ t(0+1+1, B)
 graph TD
 
 %% Nodes
-A["① t(X+1+1, Z)<br/>clause 28<br/>⑥ EXIT: _1152=1+1+0"]
-B["② t(0+1, 1+0)<br/>clause 26<br/>③ EXIT: _1094=1+0"]
-C["④ t(X+0+1, X+1+0)<br/>clause 27<br/>⑤ EXIT: _916=1+1+0"]
+A["① t(X+1+1, Z)<br/>clause 28<br/>⑩ EXIT: _2008=1+1+1+1+0"]
+B["② t(X+1+1, Z)<br/>clause 28<br/>⑦ EXIT: _1926=1+1+1+0"]
+C["③ t(X+0+1, X+1+0)<br/>clause 27<br/>④ EXIT: _1856=1+1+0"]
+D["⑤ t(X+0+1, X+1+0)<br/>clause 27<br/>⑥ EXIT: _1624=1+1+1+0"]
+E["⑧ t(X+0+1, X+1+0)<br/>clause 27<br/>⑨ EXIT: _1134=1+1+1+1+0"]
 
 %% Edges
 A -->|"t(X+1, X1)"| B
-A -->|"t(X1+1, Z)"| C
+B -->|"t(X+1, X1)"| C
+B -->|"t(X1+1, Z)"| D
+A -->|"t(X1+1, Z)"| E
 
 %% Styles
 style A fill:#e1f5ff,stroke:#01579b,stroke-width:3px
 style B fill:#c8e6c9,stroke:#388e3c
 style C fill:#c8e6c9,stroke:#388e3c
+style D fill:#c8e6c9,stroke:#388e3c
+style E fill:#c8e6c9,stroke:#388e3c
 ```
 
 ## Final Answer
 
 ```
-B = 1+1+0
+A = 1+1+1+1+0
 ```
 
 _Showing first solution only._

@@ -25,10 +25,11 @@ function formatStep(step: TimelineStep): string[] {
   const lines: string[] = [];
   
   // Step header with box drawing
-  lines.push(`┌─ Step ${step.stepNumber}: ${step.port.toUpperCase()} ${step.goal}`);
+  const portLabel = step.port === 'merged' ? '' : step.port.toUpperCase() + ' ';
+  lines.push(`┌─ Step ${step.stepNumber}: ${portLabel}${step.goal}`);
   
-  // Add subgoal marker for CALL steps only
-  if (step.port === 'call' && step.subgoalLabel) {
+  // Add subgoal marker for CALL and merged steps
+  if ((step.port === 'call' || step.port === 'merged') && step.subgoalLabel) {
     lines.push(`│  ◀── Solving subgoal ${step.subgoalLabel}`);
   }
   
@@ -36,6 +37,9 @@ function formatStep(step: TimelineStep): string[] {
   switch (step.port) {
     case 'call':
       lines.push(...formatCallStep(step));
+      break;
+    case 'merged':
+      lines.push(...formatMergedStep(step));
       break;
     case 'exit':
       lines.push(...formatExitStep(step));
@@ -49,6 +53,48 @@ function formatStep(step: TimelineStep): string[] {
   }
   
   lines.push('└─');
+  
+  return lines;
+}
+
+/**
+ * Format merged CALL/EXIT step
+ */
+function formatMergedStep(step: TimelineStep): string[] {
+  const lines: string[] = [];
+  
+  // Show clause information
+  if (step.clause) {
+    lines.push('│  ');
+    const clauseLabel = step.clause.body && step.clause.body !== 'true' ? 'Clause' : 'Fact';
+    lines.push(`│  ${clauseLabel}: ${step.clause.head} [line ${step.clause.line}]`);
+    
+    // Show unifications if any
+    if (step.unifications.length > 0) {
+      lines.push('│  Unifications:');
+      for (const unif of step.unifications) {
+        lines.push(`│    ${unif.variable} = ${unif.value}`);
+      }
+    }
+    
+    // Show spawned subgoals
+    if (step.subgoals.length > 0) {
+      lines.push('│  Subgoals:');
+      for (const subgoal of step.subgoals) {
+        lines.push(`│    ${subgoal.label} ${subgoal.goal}`);
+      }
+    }
+    
+    // Show result
+    if (step.result) {
+      lines.push('│  Result: ' + step.result);
+    }
+    
+    // Show query variable state if available
+    if (step.queryVarState) {
+      lines.push('│  Query Variable: ' + step.queryVarState);
+    }
+  }
   
   return lines;
 }
