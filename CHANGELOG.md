@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2025-12-23
+
 ### Fixed
 - Fixed timeline merging bug where steps appeared out of chronological order for recursive predicates with multiple calls at the same recursion level
 - Synchronized call tree diagram step numbers with timeline steps - diagram now uses same step numbers (①②③) as timeline (1, 2, 3)
