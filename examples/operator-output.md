@@ -22,7 +22,7 @@ t(1+0+1, C)
 │  Unifications:
 │    X = 1
 │  Result: 1+1+0
-│  Query Variable: X = ?
+│  Query Variable: C = ?
 └─
 
 

@@ -17,9 +17,32 @@ interface LevelBinding {
 export class VariableBindingTracker {
   private bindings: Map<number, LevelBinding> = new Map();
   private topLevelQuery: string;
+  private queryVarName: string;
   
   constructor(originalQuery: string) {
     this.topLevelQuery = originalQuery;
+    // Extract the query variable name (e.g., "X" from "append([1,2], [3,4], X)")
+    this.queryVarName = this.extractQueryVarName(originalQuery);
+  }
+  
+  /**
+   * Extract the query variable name from the original query
+   * e.g., "append([1,2], [3,4], X)" -> "X"
+   * e.g., "factorial(3, Result)" -> "Result"
+   */
+  private extractQueryVarName(query: string): string {
+    const match = query.match(/^([^(]+)\((.*)\)$/);
+    if (!match) return 'X'; // fallback
+    
+    const args = this.splitArguments(match[2]);
+    const lastArg = args[args.length - 1]?.trim();
+    
+    // Check if last argument is a variable (starts with uppercase or underscore)
+    if (lastArg && /^[A-Z_]/.test(lastArg)) {
+      return lastArg;
+    }
+    
+    return 'X'; // fallback
   }
   
   /**
@@ -142,7 +165,7 @@ export class VariableBindingTracker {
     const cleaned = this.cleanupPattern(topBinding.resultPattern);
     
     // Always show the state (whether partial or complete)
-    return `X = ${cleaned}`;
+    return `${this.queryVarName} = ${cleaned}`;
   }
   
   /**

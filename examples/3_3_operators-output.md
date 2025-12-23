@@ -30,7 +30,7 @@ t(0+1+1, B)
 │    [1.1] t(X+1, X1)
 │    [1.2] t(X1+1, Z)
 │  Result: 1+1+0
-│  Query Variable: X = ?
+│  Query Variable: B = ?
 └─
 
 ┌─ Step 4: t(1+0+1,_916)
@@ -40,7 +40,7 @@ t(0+1+1, B)
 │  Unifications:
 │    X = 1
 │  Result: 1+1+0
-│  Query Variable: X = ?
+│  Query Variable: B = ?
 └─
 
 
