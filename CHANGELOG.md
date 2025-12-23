@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [2.1.0] - 2025-12-23
+
+### Added
+- **Timeline Redesign**: Merged CALL/EXIT pairs into single steps, reducing timeline verbosity by ~50%
+- **Query Variable Tracking**: Shows how query variables evolve through recursive execution (Russian doll pattern)
+- **Variable Binding Tracker**: Event-driven tracker that processes trace events in chronological order
+- Variable name extraction from queries (no longer hardcodes "X")
+- List simplification for nested structures: `[1|[2|[3,4]]]` → `[1,2,3,4]`
+
+### Changed
+- Timeline steps now show: goal, clause, unifications, subgoals, and result in merged format
+- Event processing order changed to chronological to capture intermediate states
+- Subgoal tracking updated to work with merged timeline format
+
+### Technical
+- New `VariableBindingTracker` class for tracking bindings through parent_info
+- Timeline builder processes events in original order (CALL1, CALL2, CALL3, EXIT3, EXIT2, EXIT1)
+- Added `specs/timeline-redesign.md` documenting the implementation
+
 ## [2.0.0] - 2025-12-21
 
 ### Added
