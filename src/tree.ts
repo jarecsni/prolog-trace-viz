@@ -28,7 +28,7 @@ export class TreeBuilder {
   private stepToNode: Map<number, TreeNode> = new Map(); // step number -> node
   private stepCounter = 0;
 
-  constructor(private events: TraceEvent[], private sourceClauseMap?: SourceClauseMap) {}
+  constructor(private events: TraceEvent[], private sourceClauseMap?: SourceClauseMap, private timeline?: any[]) {}
 
   /**
    * Check if a predicate is part of tracer infrastructure and should be filtered
@@ -50,6 +50,34 @@ export class TreeBuilder {
   build(): TreeNode | null {
     let root: TreeNode | null = null;
 
+    // Build event-to-timeline-step map if timeline provided
+    const eventStepToTimelineStep = new Map<number, number>();
+    if (this.timeline) {
+      let eventStep = 0;
+      for (const event of this.events) {
+        if (this.isTracerPredicate(event.predicate)) {
+          continue;
+        }
+        eventStep++;
+        
+        // Find corresponding timeline step
+        // Timeline steps are merged CALL/EXIT pairs, so we need to find which timeline step
+        // corresponds to this event step
+        const timelineStep = this.timeline.find(ts => {
+          // For CALL events, match by level and goal
+          if (event.port === 'call') {
+            return ts.level === event.level && ts.goal === event.goal && (ts.port === 'call' || ts.port === 'merged');
+          }
+          // For EXIT events, they're merged into CALL steps, so skip
+          return false;
+        });
+        
+        if (timelineStep) {
+          eventStepToTimelineStep.set(eventStep, timelineStep.stepNumber);
+        }
+      }
+    }
+
     for (const event of this.events) {
       // Filter out tracer infrastructure
       if (this.isTracerPredicate(event.predicate)) {
@@ -58,21 +86,24 @@ export class TreeBuilder {
 
       this.stepCounter++;
       
+      // Map to timeline step if available
+      const timelineStepNumber = eventStepToTimelineStep.get(this.stepCounter) || this.stepCounter;
+      
       switch (event.port) {
         case 'call':
-          const node = this.processCall(event, this.stepCounter);
+          const node = this.processCall(event, timelineStepNumber);
           if (!root) {
             root = node;
           }
           break;
         case 'exit':
-          this.processExit(event, this.stepCounter);
+          this.processExit(event, timelineStepNumber);
           break;
         case 'redo':
           // REDO doesn't create new nodes, just marks retry
           break;
         case 'fail':
-          this.processFail(event, this.stepCounter);
+          this.processFail(event, timelineStepNumber);
           break;
       }
     }

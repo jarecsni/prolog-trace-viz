@@ -1,0 +1,12 @@
+{
+  "title": "Run Tests on Save",
+  "description": "Automatically run tests when test files are saved",
+  "trigger": {
+    "type": "onSave",
+    "filePattern": "**/*.test.ts"
+  },
+  "action": {
+    "type": "shell",
+    "command": "npm test -- ${file}"
+  }
+}

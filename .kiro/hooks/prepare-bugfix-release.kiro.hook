@@ -1,0 +1,11 @@
+{
+  "title": "Prepare Bugfix Release",
+  "description": "Run tests, regenerate examples, and prepare branch for PR",
+  "trigger": {
+    "type": "manual"
+  },
+  "action": {
+    "type": "agent",
+    "prompt": "I'm preparing a bugfix release. Please:\n1. Run all tests with 'npm test' and verify they pass\n2. Build the project with 'npm run build'\n3. Regenerate examples with './regenerate_examples.sh'\n4. Check git status and show me what files have changed\n5. Remind me to update CHANGELOG.md under [Unreleased] section if I haven't already\n6. Once I confirm the changelog is updated, commit all changes with message '📝 update changelog and examples for bugfix'\n7. Push the current branch to origin\n\nDo NOT proceed to the next step until I confirm each one is ready."
+  }
+}

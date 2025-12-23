@@ -171,7 +171,7 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Build tree
     logVerbose('Building call tree...', options);
-    const treeBuilder = new TreeBuilder(traceEvents, sourceClauseMap);
+    const treeBuilder = new TreeBuilder(traceEvents, sourceClauseMap, timeline);
     const tree = treeBuilder.build();
     
     // Prepare clause definitions

@@ -23,9 +23,9 @@ append([1,2], [3,4], X)
 │    T = [2]
 │    L = [3,4]
 │  Subgoals:
-│    [1.1] append(T, L, R)
+│    [1.1] append(T, L, R) → append([2], [3,4], R)
 │  Result: [1,2,3,4]
-│  Query Variable: X = ?
+│  Query Variable: X = [1,2,3,4]
 └─
 
 ┌─ Step 2: append([2],[3,4],_1304)
@@ -37,9 +37,9 @@ append([1,2], [3,4], X)
 │    T = []
 │    L = [3,4]
 │  Subgoals:
-│    [2.1] append(T, L, R)
+│    [2.1] append(T, L, R) → append([], [3,4], R)
 │  Result: [2,3,4]
-│  Query Variable: X = [1|?]
+│  Query Variable: X = [1,2,3,4]
 └─
 
 ┌─ Step 3: append([],[3,4],_1224)
@@ -50,7 +50,7 @@ append([1,2], [3,4], X)
 │    L = [3,4]
 │    L = _1224
 │  Result: [3,4]
-│  Query Variable: X = [1,2|?]
+│  Query Variable: X = [1,2,3,4]
 └─
 
 
@@ -60,9 +60,9 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A["① append([H|T], L, [H|R])<br/>clause 5<br/>⑥ EXIT: _1396=[1,2,3,4]"]
-B["② append([H|T], L, [H|R])<br/>clause 5<br/>⑤ EXIT: _1304=[2,3,4]"]
-C["③ append([], L, L)<br/>clause 4<br/>④ EXIT: _1224=[3,4]"]
+A["① append([H|T], L, [H|R])<br/>clause 5<br/>EXIT: _1396=[1,2,3,4]"]
+B["② append([H|T], L, [H|R])<br/>clause 5<br/>EXIT: _1304=[2,3,4]"]
+C["③ append([], L, L)<br/>clause 4<br/>EXIT: _1224=[3,4]"]
 
 %% Edges
 A -->|"append(T, L, R)"| B
