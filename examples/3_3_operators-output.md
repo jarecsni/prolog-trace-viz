@@ -20,61 +20,27 @@ t(0+1+1, B)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL t(0+1+1,_1152)
+┌─ Step 1: t(0+1+1,_1152)
 │  
-│  Pattern Match:
-│    Goal: t(0+1+1,_1152)
-│    Head: t(X+1+1, Z)
-│    ├─ X = 0
-│    ├─ Z = _1152
-│  
-│  Clause: t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z) [line 28]
-│  Spawns subgoals:
+│  Clause: t(X+1+1, Z) [line 28]
+│  Unifications:
+│    X = 0
+│    Z = _1152
+│  Subgoals:
 │    [1.1] t(X+1, X1)
 │    [1.2] t(X1+1, Z)
+│  Result: 1+1+0
+│  Query Variable: B = ?
 └─
 
-┌─ Step 2: CALL t(0+1,_1094)
+┌─ Step 4: t(1+0+1,_916)
 │  ◀── Solving subgoal [1.1]
 │  
-│  Pattern Match:
-│    Goal: t(0+1,_1094)
-│    Head: t(0+1, 1+0)
-│  
-│  Clause: t(0+1, 1+0) [line 26] (fact)
-└─
-
-┌─ Step 3: EXIT t(0+1,1+0)
-│  ◀── Completed subgoal [1.1]
-│  Bindings:
-│    _1094 = 1+0
-│  Returns to: Step 2
-│  Next: Subgoal [1.2]
-└─
-
-┌─ Step 4: CALL t(1+0+1,_916)
-│  ◀── Solving subgoal [1.2]
-│  
-│  Pattern Match:
-│    Goal: t(1+0+1,_916)
-│    Head: t(X+0+1, X+1+0)
-│    ├─ X = 1
-│  
-│  Clause: t(X+0+1, X+1+0) [line 27] (fact)
-└─
-
-┌─ Step 5: EXIT t(1+0+1,1+1+0)
-│  ◀── Completed subgoal [1.2]
-│  Bindings:
-│    _916 = 1+1+0
-│  Returns to: Step 4
-└─
-
-┌─ Step 6: EXIT t(0+1+1,1+1+0)
-│  Bindings:
-│    _1152 = 1+1+0
-│  Returns to: Step 1
-│  Note: Z from Step 1 is now bound to 1+1+0
+│  Fact: t(X+0+1, X+1+0) [line 27]
+│  Unifications:
+│    X = 1
+│  Result: 1+1+0
+│  Query Variable: B = ?
 └─
 
 

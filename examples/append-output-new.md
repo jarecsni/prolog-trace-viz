@@ -25,11 +25,9 @@ append([1,2], [3,4], X)
 │  Subgoals:
 │    [1.1] append(T, L, R)
 │  Result: [1,2,3,4]
-│  Query Variable: X = ?
 └─
 
 ┌─ Step 2: append([2],[3,4],_1304)
-│  ◀── Solving subgoal [1.1]
 │  
 │  Clause: append([H|T], L, [H|R]) [line 5]
 │  Unifications:
@@ -39,18 +37,17 @@ append([1,2], [3,4], X)
 │  Subgoals:
 │    [2.1] append(T, L, R)
 │  Result: [2,3,4]
-│  Query Variable: X = [1|?]
+│  Query Variable: Building: [1,2,3,4]
 └─
 
 ┌─ Step 3: append([],[3,4],_1224)
-│  ◀── Solving subgoal [2.1]
 │  
 │  Fact: append([], L, L) [line 4]
 │  Unifications:
 │    L = [3,4]
 │    L = _1224
 │  Result: [3,4]
-│  Query Variable: X = [1,2|?]
+│  Query Variable: Building: [2,3,4]
 └─
 
 

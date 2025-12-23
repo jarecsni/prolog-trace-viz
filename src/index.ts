@@ -166,7 +166,7 @@ async function run(options: CLIOptions): Promise<void> {
     
     // Build timeline
     logVerbose('Building execution timeline...', options);
-    const timelineBuilder = new TimelineBuilder(traceEvents, sourceClauseMap);
+    const timelineBuilder = new TimelineBuilder(traceEvents, sourceClauseMap, options.query);
     const timeline = timelineBuilder.build();
     
     // Build tree

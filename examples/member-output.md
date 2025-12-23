@@ -15,23 +15,15 @@ member(X, [a,b,c])
 
 ## Execution Timeline
 
-┌─ Step 1: CALL member(_672,[a,b,c])
+┌─ Step 1: member(_672,[a,b,c])
 │  
-│  Pattern Match:
-│    Goal: member(_672,[a,b,c])
-│    Head: member(X, [X|_])
-│    ├─ X = _672
-│    ├─ X = a
-│    ├─ _ = [b,c]
-│  
-│  Clause: member(X, [X|_]) [line 4] (fact)
-└─
-
-┌─ Step 2: EXIT member(a,[a,b,c])
-│  Bindings:
-│    _672 = a
-│  Returns to: Step 1
-│  Note: X from Step 1 is now bound to a
+│  Fact: member(X, [X|_]) [line 4]
+│  Unifications:
+│    X = _672
+│    X = a
+│    _ = [b,c]
+│  Result: [a,b,c]
+│  Query Variable: X = [a,b,c]
 └─
 
 

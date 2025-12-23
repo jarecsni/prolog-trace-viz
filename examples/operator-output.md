@@ -16,20 +16,13 @@ t(1+0+1, C)
 
 ## Execution Timeline
 
-┌─ Step 1: CALL t(1+0+1,_722)
+┌─ Step 1: t(1+0+1,_722)
 │  
-│  Pattern Match:
-│    Goal: t(1+0+1,_722)
-│    Head: t(X+0+1, X+1+0)
-│    ├─ X = 1
-│  
-│  Clause: t(X+0+1, X+1+0) [line 2] (fact)
-└─
-
-┌─ Step 2: EXIT t(1+0+1,1+1+0)
-│  Bindings:
-│    _722 = 1+1+0
-│  Returns to: Step 1
+│  Fact: t(X+0+1, X+1+0) [line 2]
+│  Unifications:
+│    X = 1
+│  Result: 1+1+0
+│  Query Variable: C = ?
 └─
 
 
