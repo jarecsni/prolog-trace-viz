@@ -110,6 +110,100 @@ node dist/index.js examples/append.pl 'append([1,2], [3,4], X)'
 
 - `main` - production-ready code
 - `feature/*` - feature branches (e.g., `feature/timeline-redesign`)
+- `bugfix/*` - bugfix branches (e.g., `bugfix/timeline-merging-fix`)
+
+### Bugfix Release Workflow
+
+When working on a bugfix that needs to be released:
+
+1. **Create bugfix branch from main**
+   ```
+   git checkout main
+   git pull origin main
+   git checkout -b bugfix/descriptive-name
+   ```
+
+2. **Make changes and commit regularly**
+   ```
+   git add .
+   git commit -m "🐛 fix: descriptive message"
+   ```
+
+3. **Update CHANGELOG.md**
+   - Add entry under `## [Unreleased]` section
+   - Describe the bug fix clearly
+   - Reference any related issues
+   ```markdown
+   ## [Unreleased]
+   
+   ### Fixed
+   - Fixed timeline merging bug where steps appeared out of order for recursive predicates
+   - Synchronized call tree diagram step numbers with timeline steps
+   ```
+
+4. **Run tests and regenerate examples**
+   ```
+   npm test
+   npm run build
+   ./regenerate_examples.sh
+   ```
+
+5. **Commit CHANGELOG and any example updates**
+   ```
+   git add CHANGELOG.md examples/
+   git commit -m "📝 update changelog and examples for bugfix"
+   ```
+
+6. **Push branch to GitHub**
+   ```
+   git push origin bugfix/descriptive-name
+   ```
+
+7. **Create Pull Request**
+   ```
+   Use GitHub MCP tools or web interface:
+   - owner: jarecsni
+   - repo: prolog-trace-viz
+   - head: bugfix/descriptive-name
+   - base: main
+   - title: "🐛 fix: descriptive title"
+   - body: detailed description of bug and fix
+   ```
+
+8. **Merge Pull Request**
+   ```
+   After review and approval:
+   - merge_method: squash (combines all commits into one)
+   ```
+
+9. **Switch back to main and pull**
+   ```
+   git checkout main
+   git pull origin main
+   ```
+
+10. **Run release script**
+    ```
+    npm run release patch    # For bugfixes, use patch version bump
+    ```
+    
+    This will:
+    - Update version in package.json
+    - Move CHANGELOG [Unreleased] entries to new version section
+    - Build and test
+    - Create release commit and tag
+
+11. **Push release to GitHub**
+    ```
+    git push origin main --tags
+    ```
+
+12. **Publish to npm** (manual step)
+    ```
+    npm publish
+    ```
+    
+    User takes over for manual npm publishing.
 
 ### Creating a Feature Branch
 
@@ -200,9 +294,41 @@ Example: `✨ add query variable tracking for recursive execution`
 
 ### Debugging Trace Issues
 
-1. Generate raw trace: `swipl -g "consult('tracer.pl'), consult('examples/file.pl'), test_predicate, halt"`
-2. Check trace JSON in `dev-tools/`
-3. Use `dev-tools/test-trace-data.pl` for inspection
+**CRITICAL**: Always generate and inspect the raw trace JSON first before assuming bugs in our code!
+
+1. **Create a test wrapper** (like the one in `src/wrapper.ts`):
+   ```
+   cat > /tmp/test-query.pl << 'EOF'
+   :- ['/path/to/tracer.pl'].
+   
+   % Your Prolog code here
+   
+   run_trace :-
+       install_tracer(100),
+       catch(
+           (your_query_here, export_trace_json('/tmp/trace.json')),
+           Error,
+           (format('Error: ~w~n', [Error]), export_trace_json('/tmp/trace.json'))
+       ),
+       remove_tracer.
+   
+   :- run_trace.
+   :- halt.
+   EOF
+   ```
+
+2. **Run it**: `swipl /tmp/test-query.pl`
+
+3. **Inspect the JSON**: `python3 -m json.tool /tmp/trace.json | grep '"goal"' | head -20`
+
+4. **Check what SWI-Prolog actually recorded** - if the goals look wrong in the JSON, it's how Prolog represents them internally (e.g., operator associativity), not our bug
+
+5. Use `dev-tools/test-trace-data.pl` for deeper inspection if needed
+
+**Remember**: The trace JSON is the source of truth. If it looks wrong there, it's either:
+- How Prolog internally represents the terms (operator precedence/associativity)
+- A bug in the tracer.pl itself
+- NOT a bug in our TypeScript code
 
 ### Updating Examples
 

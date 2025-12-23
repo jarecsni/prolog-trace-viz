@@ -1,0 +1,11 @@
+{
+  "title": "Finalize Release",
+  "description": "After PR merge: switch to main, run release script, push tags",
+  "trigger": {
+    "type": "manual"
+  },
+  "action": {
+    "type": "agent",
+    "prompt": "I've merged the bugfix PR. Please help me finalize the release:\n1. Switch to main branch: 'git checkout main'\n2. Pull latest changes: 'git pull origin main'\n3. Verify we're on main and up to date: 'git status'\n4. Run the release script for a patch version: 'npm run release patch'\n5. Push the release commit and tags: 'git push origin main --tags'\n6. Show me the new version number and remind me to manually run 'npm publish'\n\nWait for my confirmation between steps."
+  }
+}

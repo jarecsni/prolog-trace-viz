@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Fixed timeline merging bug where steps appeared out of chronological order for recursive predicates with multiple calls at the same recursion level
+- Synchronized call tree diagram step numbers with timeline steps - diagram now uses same step numbers (①②③) as timeline (1, 2, 3)
+- Renumbered timeline steps to be continuous (1, 2, 3, ...) after merging CALL/EXIT pairs
+- Added instantiated subgoal display showing variable substitutions (e.g., `t(X+1, X1) → t(1+0+1+1, X1)`)
+
+### Added
+- Comprehensive unit tests for timeline merging with recursive predicates
+- Test coverage for multiple calls at same recursion level (the bug scenario)
+- Timeline builder now passes merged timeline to tree builder for correct step number mapping
+
 ## [2.1.1] - 2025-12-23
 
 ### Fixed

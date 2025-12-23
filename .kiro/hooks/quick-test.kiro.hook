@@ -1,0 +1,11 @@
+{
+  "title": "Quick Test",
+  "description": "Run all tests quickly to verify nothing is broken",
+  "trigger": {
+    "type": "manual"
+  },
+  "action": {
+    "type": "shell",
+    "command": "npm test"
+  }
+}

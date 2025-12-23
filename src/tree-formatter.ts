@@ -94,9 +94,9 @@ function formatNodeLabel(node: TreeNode): string {
     parts.push(`clause ${node.clauseNumber}`);
   }
   
-  // Add exit step and binding if available
-  if (node.exitStep) {
-    parts.push(`${toCircledNumber(node.exitStep)} EXIT${node.finalBinding ? ': ' + node.finalBinding : ''}`);
+  // Add final binding if available (without EXIT step number since steps are now merged)
+  if (node.finalBinding) {
+    parts.push(`EXIT: ${node.finalBinding}`);
   }
   
   return `"${parts.join('<br/>')}"`;
