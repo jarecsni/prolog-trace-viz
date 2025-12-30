@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { TimelineBuilder, TraceEvent } from './timeline.js';
+import { TimelineBuilder, TraceEvent, flattenTimeline } from './timeline.js';
 
 describe('Timeline merging - non-recursive', () => {
   it('should merge CALL/EXIT pairs in correct order', () => {
@@ -26,7 +26,7 @@ describe('Timeline merging - non-recursive', () => {
     ];
     
     const builder = new TimelineBuilder(events);
-    const timeline = builder.build();
+    const timeline = flattenTimeline(builder.build());
     
     expect(timeline).toHaveLength(1);
     expect(timeline[0].port).toBe('merged');
@@ -84,7 +84,7 @@ describe('Timeline merging - recursive', () => {
     ];
     
     const builder = new TimelineBuilder(events);
-    const timeline = builder.build();
+    const timeline = flattenTimeline(builder.build());
     
     expect(timeline).toHaveLength(3);
     expect(timeline[0].stepNumber).toBe(1);
@@ -146,7 +146,7 @@ describe('Timeline merging - multiple calls at same level', () => {
     ];
     
     const builder = new TimelineBuilder(events);
-    const timeline = builder.build();
+    const timeline = flattenTimeline(builder.build());
     
     // Should have 3 merged steps (not 2!)
     expect(timeline).toHaveLength(3);
@@ -215,7 +215,7 @@ describe('Subgoal label assignment', () => {
     ];
     
     const builder = new TimelineBuilder(events);
-    const timeline = builder.build();
+    const timeline = flattenTimeline(builder.build());
     
     // Step 1 should have subgoals [1.1] and [1.2]
     expect(timeline[0].subgoals).toHaveLength(2);
@@ -250,7 +250,7 @@ describe('Instantiated subgoal display', () => {
     ];
     
     const builder = new TimelineBuilder(events);
-    const timeline = builder.build();
+    const timeline = flattenTimeline(builder.build());
     
     // Subgoal [1.1] should show instantiation with arrow
     expect(timeline[0].subgoals[0].goal).toContain('→');
@@ -261,5 +261,67 @@ describe('Instantiated subgoal display', () => {
     // Subgoal [1.2] should show: t(X1+1, Z) → t(X1+1, A) (Z is bound to A)
     expect(timeline[0].subgoals[1].goal).toContain('→');
     expect(timeline[0].subgoals[1].goal).toContain('t(X1+1,A)');
+  });
+});
+
+describe('Nested timeline structure', () => {
+  it('should nest children inside parent steps', () => {
+    const events: TraceEvent[] = [
+      { 
+        port: 'call', 
+        level: 33, 
+        goal: 't(1+0+1+1,A)', 
+        predicate: 't/2',
+        clause: { head: 't(X+1+1, Z)', body: 't(X+1, X1), t(X1+1, Z)', line: 28 }
+      },
+      { 
+        port: 'call', 
+        level: 34, 
+        goal: 't(1+0+1,X1)', 
+        predicate: 't/2',
+        clause: { head: 't(X+0+1, X+1+0)', body: 'true', line: 27 }
+      },
+      { 
+        port: 'exit', 
+        level: 34, 
+        goal: 't(1+0+1,1+1+0)', 
+        predicate: 't/2',
+        clause: { head: 't(X+0+1, X+1+0)', body: 'true', line: 27 }
+      },
+      { 
+        port: 'call', 
+        level: 34, 
+        goal: 't(1+1+0+1,Z)', 
+        predicate: 't/2',
+        clause: { head: 't(X+0+1, X+1+0)', body: 'true', line: 27 }
+      },
+      { 
+        port: 'exit', 
+        level: 34, 
+        goal: 't(1+1+0+1,1+1+1+0)', 
+        predicate: 't/2',
+        clause: { head: 't(X+0+1, X+1+0)', body: 'true', line: 27 }
+      },
+      { 
+        port: 'exit', 
+        level: 33, 
+        goal: 't(1+0+1+1,1+1+1+0)', 
+        predicate: 't/2',
+        clause: { head: 't(X+1+1, Z)', body: 't(X+1, X1), t(X1+1, Z)', line: 28 }
+      },
+    ];
+    
+    const builder = new TimelineBuilder(events);
+    const nestedTimeline = builder.build();
+    
+    // Root level should have 1 step
+    expect(nestedTimeline).toHaveLength(1);
+    
+    // Root step should have 2 children
+    expect(nestedTimeline[0].children).toHaveLength(2);
+    
+    // Children should be the two subgoal calls
+    expect(nestedTimeline[0].children[0].goal).toBe('t(1+0+1,X1)');
+    expect(nestedTimeline[0].children[1].goal).toBe('t(1+1+0+1,Z)');
   });
 });

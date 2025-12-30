@@ -16,13 +16,12 @@ member(X, [a,b,c])
 ## Execution Timeline
 
 ┌─ Step 1: member(_672,[a,b,c])
-│  
 │  Fact: member(X, [X|_]) [line 4]
 │  Unifications:
 │    X = _672
 │    X = a
 │    _ = [b,c]
-│  Result: [a,b,c]
+│  => [a,b,c] = [a,b,c]
 │  Query Variable: X = [a,b,c]
 └─
 

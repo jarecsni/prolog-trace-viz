@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-12-30
+
+### Added
+- **Nested Timeline Structure**: Child calls are now visually nested inside their parent steps, showing the call stack hierarchy clearly
+- New `flattenTimeline()` utility function for backward compatibility and testing
+- New test suite for nested timeline structure validation
+
+### Changed
+- **Timeline Visualisation Redesign**: Replaced flat sequential timeline with hierarchical nested format
+- Results now appear AFTER child steps complete, matching actual Prolog execution order
+- Query variable state (`A = ...`) now only displays on root-level steps, preventing premature display
+- Simplified timeline builder architecture - single-pass tree construction instead of multi-pass flat array processing
+- Reduced timeline.ts from ~1000 lines to ~400 lines through architectural cleanup
+
+### Fixed
+- Fixed premature query variable display where `A = result` appeared before subgoals were shown
+- Fixed confusing timeline where results appeared before the computation that produced them
+- Fixed Mermaid diagram step numbers not matching timeline step numbers (tree builder now uses flattened timeline for mapping)
+
+### Technical
+- `TimelineStep` interface now includes `children: TimelineStep[]` for nested structure
+- Timeline builder uses active call stack to track parent-child relationships
+- Clause info backfilled from EXIT events when CALL events lack it
+- Depth-first renumbering ensures consistent step numbers in nested output
+- Tree builder receives flattened timeline for correct step number mapping
+
 ## [2.1.2] - 2025-12-23
 
 ### Fixed

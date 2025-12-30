@@ -1,17 +1,19 @@
 /**
- * Timeline Formatter - Formats timeline steps into markdown
+ * Timeline Formatter - Formats nested timeline steps into markdown
+ * 
+ * Renders a hierarchical view where child calls are visually nested inside their parents.
  */
 
 import { TimelineStep } from './timeline.js';
 
 /**
- * Format timeline steps into markdown
+ * Format timeline steps into markdown with nested structure
  */
 export function formatTimeline(steps: TimelineStep[]): string {
   const lines: string[] = [];
   
   for (const step of steps) {
-    lines.push(...formatStep(step));
+    lines.push(...formatStepNested(step, 0));
     lines.push('');
   }
   
@@ -19,215 +21,121 @@ export function formatTimeline(steps: TimelineStep[]): string {
 }
 
 /**
- * Format a single timeline step
+ * Format a single timeline step with nesting support
+ * @param step The step to format
+ * @param depth Current nesting depth (0 = root level)
  */
-function formatStep(step: TimelineStep): string[] {
+function formatStepNested(step: TimelineStep, depth: number): string[] {
   const lines: string[] = [];
+  const indent = '│  '.repeat(depth);
   
   // Step header with box drawing
   const portLabel = step.port === 'merged' ? '' : step.port.toUpperCase() + ' ';
-  lines.push(`┌─ Step ${step.stepNumber}: ${portLabel}${step.goal}`);
-  
-  // Add subgoal marker for CALL and merged steps
-  if ((step.port === 'call' || step.port === 'merged') && step.subgoalLabel) {
-    lines.push(`│  ◀── Solving subgoal ${step.subgoalLabel}`);
-  }
+  // subgoalLabel is like "[1.1]", strip brackets for cleaner display
+  const subgoalMarker = step.subgoalLabel ? ` [Goal ${step.subgoalLabel.slice(1, -1)}]` : '';
+  lines.push(`${indent}┌─ Step ${step.stepNumber}${subgoalMarker}: ${portLabel}${step.goal}`);
   
   // Format based on port type
   switch (step.port) {
     case 'call':
-      lines.push(...formatCallStep(step));
-      break;
     case 'merged':
-      lines.push(...formatMergedStep(step));
-      break;
-    case 'exit':
-      lines.push(...formatExitStep(step));
+      lines.push(...formatMergedContent(step, indent));
       break;
     case 'redo':
-      lines.push(...formatRedoStep(step));
+      lines.push(`${indent}│  Backtracking...`);
       break;
     case 'fail':
-      lines.push(...formatFailStep(step));
+      lines.push(`${indent}│  Failure`);
       break;
   }
   
-  lines.push('└─');
-  
-  return lines;
-}
-
-/**
- * Format merged CALL/EXIT step
- */
-function formatMergedStep(step: TimelineStep): string[] {
-  const lines: string[] = [];
-  
-  // Show clause information
-  if (step.clause) {
-    lines.push('│  ');
-    const clauseLabel = step.clause.body && step.clause.body !== 'true' ? 'Clause' : 'Fact';
-    lines.push(`│  ${clauseLabel}: ${step.clause.head} [line ${step.clause.line}]`);
-    
-    // Show unifications if any
-    if (step.unifications.length > 0) {
-      lines.push('│  Unifications:');
-      for (const unif of step.unifications) {
-        lines.push(`│    ${unif.variable} = ${unif.value}`);
-      }
-    }
-    
-    // Show spawned subgoals
-    if (step.subgoals.length > 0) {
-      lines.push('│  Subgoals:');
-      for (const subgoal of step.subgoals) {
-        lines.push(`│    ${subgoal.label} ${subgoal.goal}`);
-      }
-    }
-    
-    // Show result
-    if (step.result) {
-      lines.push('│  Result: ' + step.result);
-    }
-    
-    // Show query variable state if available
-    if (step.queryVarState) {
-      lines.push('│  Query Variable: ' + step.queryVarState);
-    }
-    
-    // Show parent context if available
-    if (step.parentContext) {
-      lines.push('│  ' + step.parentContext);
+  // Render children (nested inside this step)
+  if (step.children.length > 0) {
+    lines.push(`${indent}│  `);
+    for (const child of step.children) {
+      lines.push(...formatStepNested(child, depth + 1));
     }
   }
   
+  // Show result AFTER children (this is the key insight!)
+  if (step.port === 'merged' && step.result) {
+    // Extract the output variable from the goal (last argument, typically unbound)
+    const goalMatch = step.goal.match(/^[^(]+\((.+)\)$/);
+    let outputVar = '?';
+    if (goalMatch) {
+      const args = splitArgs(goalMatch[1]);
+      outputVar = args[args.length - 1] || '?';
+    }
+    lines.push(`${indent}│  => ${outputVar} = ${step.result}`);
+    
+    // Show query variable state only on root-level steps (depth 0)
+    // This prevents showing "A = ?" on intermediate steps
+    if (depth === 0 && step.queryVarState) {
+      lines.push(`${indent}│  Query Variable: ${step.queryVarState}`);
+    }
+  }
+  
+  lines.push(`${indent}└─`);
+  
   return lines;
 }
 
 /**
- * Format CALL step
+ * Split arguments respecting nested brackets
  */
-function formatCallStep(step: TimelineStep): string[] {
-  const lines: string[] = [];
+function splitArgs(argsStr: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let depth = 0;
   
-  // Show pattern match if clause available
-  if (step.clause) {
-    lines.push('│  ');
-    lines.push('│  Pattern Match:');
-    lines.push(`│    Goal: ${step.goal}`);
-    lines.push(`│    Head: ${step.clause.head}`);
-    
-    // Show unifications if any
-    if (step.unifications.length > 0) {
-      for (const unif of step.unifications) {
-        lines.push(`│    ├─ ${unif.variable} = ${unif.value}`);
-      }
-    }
-    
-    lines.push('│  ');
-    
-    // Display clause head and body separately
-    if (step.clause.body && step.clause.body !== 'true') {
-      // Clause with body
-      lines.push(`│  Clause: ${step.clause.head} :- ${step.clause.body} [line ${step.clause.line}]`);
+  for (const char of argsStr) {
+    if (char === '(' || char === '[') {
+      depth++;
+      current += char;
+    } else if (char === ')' || char === ']') {
+      depth--;
+      current += char;
+    } else if (char === ',' && depth === 0) {
+      args.push(current.trim());
+      current = '';
     } else {
-      // Fact (no body)
-      lines.push(`│  Clause: ${step.clause.head} [line ${step.clause.line}] (fact)`);
+      current += char;
+    }
+  }
+  
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+  
+  return args;
+}
+
+/**
+ * Format merged CALL/EXIT step content (before children)
+ */
+function formatMergedContent(step: TimelineStep, indent: string): string[] {
+  const lines: string[] = [];
+  
+  if (step.clause) {
+    const clauseLabel = step.clause.body && step.clause.body !== 'true' ? 'Clause' : 'Fact';
+    lines.push(`${indent}│  ${clauseLabel}: ${step.clause.head} [line ${step.clause.line}]`);
+    
+    // Show unifications if any
+    if (step.unifications.length > 0) {
+      lines.push(`${indent}│  Unifications:`);
+      for (const unif of step.unifications) {
+        lines.push(`${indent}│    ${unif.variable} = ${unif.value}`);
+      }
     }
     
-    // Show spawned subgoals
+    // Show spawned subgoals (these will be solved by children)
     if (step.subgoals.length > 0) {
-      lines.push('│  Spawns subgoals:');
+      lines.push(`${indent}│  Subgoals:`);
       for (const subgoal of step.subgoals) {
-        lines.push(`│    ${subgoal.label} ${subgoal.goal}`);
+        lines.push(`${indent}│    ${subgoal.label} ${subgoal.goal}`);
       }
     }
   }
   
   return lines;
-}
-
-/**
- * Format EXIT step
- */
-function formatExitStep(step: TimelineStep): string[] {
-  const lines: string[] = [];
-  
-  // Show completed subgoal marker
-  if (step.subgoalLabel) {
-    lines.push(`│  ◀── Completed subgoal ${step.subgoalLabel}`);
-  }
-  
-  // Show bindings
-  if (step.unifications.length > 0) {
-    lines.push('│  Bindings:');
-    for (const unif of step.unifications) {
-      lines.push(`│    ${unif.variable} = ${unif.value}`);
-    }
-  }
-  
-  // Show return-to reference
-  if (step.returnsTo) {
-    lines.push(`│  Returns to: Step ${step.returnsTo}`);
-  }
-  
-  // Show variable flow notes
-  if (step.variableFlowNotes && step.variableFlowNotes.length > 0) {
-    for (const note of step.variableFlowNotes) {
-      lines.push(`│  Note: ${note}`);
-    }
-  }
-  
-  // Show general note (if any)
-  if (step.note) {
-    lines.push(`│  Note: ${step.note}`);
-  }
-  
-  // Show next subgoal
-  if (step.nextSubgoal) {
-    lines.push(`│  Next: ${step.nextSubgoal}`);
-  }
-  
-  return lines;
-}
-
-/**
- * Format REDO step
- */
-function formatRedoStep(step: TimelineStep): string[] {
-  const lines: string[] = [];
-  
-  if (step.note) {
-    lines.push(`│  ${step.note}`);
-  }
-  
-  if (step.clause) {
-    lines.push(`│  Trying clause: ${step.clause.head} [line ${step.clause.line}]`);
-  }
-  
-  return lines;
-}
-
-/**
- * Format FAIL step
- */
-function formatFailStep(step: TimelineStep): string[] {
-  const lines: string[] = [];
-  
-  lines.push('│  Failure');
-  
-  if (step.note) {
-    lines.push(`│  ${step.note}`);
-  }
-  
-  return lines;
-}
-
-/**
- * Format built-in predicates concisely
- */
-function isBuiltIn(goal: string): boolean {
-  const builtins = ['>', '<', '>=', '=<', '=:=', '=\\=', 'is', '=', '\\=', 'true'];
-  const predicate = goal.match(/^([^(]+)/)?.[1];
-  return predicate ? builtins.includes(predicate) : false;
 }
