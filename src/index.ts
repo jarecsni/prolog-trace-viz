@@ -8,7 +8,7 @@ import { executeTracer, checkDependencies } from './executor.js';
 import * as path from 'node:path';
 import { writeOutput, logVerbose, logInfo, logError } from './output.js';
 import { parsePrologFile, buildSourceClauseMap } from './clauses.js';
-import { TimelineBuilder, TraceEvent } from './timeline.js';
+import { TimelineBuilder, TraceEvent, flattenTimeline } from './timeline.js';
 import { TreeBuilder } from './tree.js';
 import { generateMarkdown, ClauseDefinition } from './markdown-generator.js';
 
@@ -168,10 +168,11 @@ async function run(options: CLIOptions): Promise<void> {
     logVerbose('Building execution timeline...', options);
     const timelineBuilder = new TimelineBuilder(traceEvents, sourceClauseMap, options.query);
     const timeline = timelineBuilder.build();
+    const flatTimeline = flattenTimeline(timeline);
     
     // Build tree
     logVerbose('Building call tree...', options);
-    const treeBuilder = new TreeBuilder(traceEvents, sourceClauseMap, timeline);
+    const treeBuilder = new TreeBuilder(traceEvents, sourceClauseMap, flatTimeline);
     const tree = treeBuilder.build();
     
     // Prepare clause definitions
