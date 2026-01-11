@@ -200,6 +200,9 @@ async function run(options: CLIOptions): Promise<void> {
       tree,
       clauses: clauseDefinitions,
       finalAnswer,
+      formatterOptions: {
+        showInternalVars: options.showInternalVars,
+      },
     });
     
     // Write output - default to source file location if not specified

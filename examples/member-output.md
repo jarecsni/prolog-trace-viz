@@ -15,7 +15,7 @@ member(X, [a,b,c])
 
 ## Execution Timeline
 
-┌─ Step 1: member(_672,[a,b,c])
+┌─ Step 1: member(X,[a,b,c])
 │  Fact: member(X, [X|_]) [line 4]
 │  Unifications:
 │    X = _672
@@ -32,7 +32,7 @@ member(X, [a,b,c])
 graph TD
 
 %% Nodes
-A["① member(X, [X|_])<br/>clause 4<br/>EXIT: _672=a"]
+A["① member(X, [X|_])<br/>clause 4<br/>Result: _672=a"]
 
 %% Edges
 

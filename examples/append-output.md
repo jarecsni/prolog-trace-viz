@@ -33,12 +33,12 @@ append([1,2], [3,4], X)
 │  │  Subgoals:
 │  │    [2.1] append(T, L, R) → append([], [3,4], R)
 │  │  
-│  │  ┌─ Step 3 [Goal 2.1]: append([],[3,4],_1224)
+│  │  ┌─ Step 3 [Goal 2.1]: append([],[3,4],L)
 │  │  │  Fact: append([], L, L) [line 4]
 │  │  │  Unifications:
 │  │  │    L = [3,4]
 │  │  │    L = _1224
-│  │  │  => _1224 = [3,4]
+│  │  │  => L = [3,4]
 │  │  └─
 │  │  => _1304 = [2,3,4]
 │  └─
@@ -53,9 +53,9 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A["① append([H|T], L, [H|R])<br/>clause 5<br/>EXIT: _1396=[1,2,3,4]"]
-B["② append([H|T], L, [H|R])<br/>clause 5<br/>EXIT: _1304=[2,3,4]"]
-C["③ append([], L, L)<br/>clause 4<br/>EXIT: _1224=[3,4]"]
+A["① append([H|T], L, [H|R])<br/>clause 5<br/>Result: _1396=[1,2,3,4]"]
+B["② append([H|T], L, [H|R])<br/>clause 5<br/>Result: _1304=[2,3,4]"]
+C["③ append([], L, L)<br/>clause 4<br/>Result: L=[3,4]"]
 
 %% Edges
 A -->|"append(T, L, R)"| B

@@ -50,7 +50,7 @@ describe('CLI Argument Parser - Property Tests', () => {
           .map(s => `--${s}`),
         (prologFile, query, unknownFlag) => {
           // Skip known flags
-          if (['--help', '--version', '--output', '--depth', '--verbose', '--quiet'].includes(unknownFlag)) {
+          if (['--help', '--version', '--output', '--depth', '--verbose', '--quiet', '--show-internal-vars'].includes(unknownFlag)) {
             return true;
           }
           const argv = ['node', 'prolog-trace-viz', prologFile, query, unknownFlag];
@@ -80,5 +80,22 @@ describe('CLI Argument Parser - Property Tests', () => {
       ),
       { numRuns: 100 }
     );
+  });
+
+  it('parses --show-internal-vars flag correctly', () => {
+    // Default should be false
+    const resultDefault = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query']);
+    expect(resultDefault.type).toBe('options');
+    expect(resultDefault.options!.showInternalVars).toBe(false);
+
+    // With flag should be true
+    const resultWithFlag = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--show-internal-vars']);
+    expect(resultWithFlag.type).toBe('options');
+    expect(resultWithFlag.options!.showInternalVars).toBe(true);
+
+    // Flag position shouldn't matter
+    const resultFlagFirst = parseArgs(['node', 'prolog-trace-viz', '--show-internal-vars', 'test.pl', 'query']);
+    expect(resultFlagFirst.type).toBe('options');
+    expect(resultFlagFirst.options!.showInternalVars).toBe(true);
   });
 });

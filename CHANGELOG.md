@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Clean Variable Display**: Timeline and call tree now use clause variable names (X, Z, X1) instead of Prolog's internal names (_2008) by default, making traces much easier to follow
+- **--show-internal-vars flag**: New CLI option to display Prolog's internal variable names for debugging purposes
+
+### Changed
+- Result lines now show `=> Z = 1+1+1+1+0` instead of `=> _2008 = 1+1+1+1+0`
+- Call tree nodes show `Result: Z=value` instead of `EXIT: _2008=value`
+
 ## [2.3.0] - 2026-01-11
 
 ### Added

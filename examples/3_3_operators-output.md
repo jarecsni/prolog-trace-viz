@@ -20,7 +20,7 @@ t(0+1+1, B)
 
 ## Execution Timeline
 
-┌─ Step 1: t(0+1+1,_1152)
+┌─ Step 1: t(0+1+1,Z)
 │  Clause: t(X+1+1, Z) [line 28]
 │  Unifications:
 │    X = 0
@@ -40,7 +40,7 @@ t(0+1+1, B)
 │  │    X = 1
 │  │  => _916 = 1+1+0
 │  └─
-│  => _1152 = 1+1+0
+│  => Z = 1+1+0
 │  Query Variable: B = 1+1+0
 └─
 
@@ -51,9 +51,9 @@ t(0+1+1, B)
 graph TD
 
 %% Nodes
-A["① t(X+1+1, Z)<br/>clause 28<br/>EXIT: _1152=1+1+0"]
-B["② t(0+1, 1+0)<br/>clause 26<br/>EXIT: _1094=1+0"]
-C["③ t(X+0+1, X+1+0)<br/>clause 27<br/>EXIT: _916=1+1+0"]
+A["① t(X+1+1, Z)<br/>clause 28<br/>Result: Z=1+1+0"]
+B["② t(0+1, 1+0)<br/>clause 26<br/>Result: _1094=1+0"]
+C["③ t(X+0+1, X+1+0)<br/>clause 27<br/>Result: _916=1+1+0"]
 
 %% Edges
 A -->|"t(X+1, X1)"| B

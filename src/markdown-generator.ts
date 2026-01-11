@@ -4,12 +4,16 @@
 
 import { TimelineStep } from './timeline.js';
 import { TreeNode } from './tree.js';
-import { formatTimeline } from './timeline-formatter.js';
-import { formatTreeAsMermaid } from './tree-formatter.js';
+import { formatTimeline, TimelineFormatterOptions } from './timeline-formatter.js';
+import { formatTreeAsMermaid, TreeFormatterOptions } from './tree-formatter.js';
 
 export interface ClauseDefinition {
   line: number;
   text: string;
+}
+
+export interface FormatterOptions {
+  showInternalVars?: boolean;
 }
 
 export interface MarkdownContext {
@@ -21,6 +25,7 @@ export interface MarkdownContext {
   finalAnswer?: string;
   truncated?: boolean;
   maxDepth?: number;
+  formatterOptions?: FormatterOptions;
 }
 
 /**
@@ -117,7 +122,11 @@ function generateTimelineSection(context: MarkdownContext): string {
     return lines.join('\n');
   }
   
-  lines.push(formatTimeline(context.timeline));
+  const formatterOptions: TimelineFormatterOptions = {
+    showInternalVars: context.formatterOptions?.showInternalVars ?? false,
+  };
+  
+  lines.push(formatTimeline(context.timeline, formatterOptions));
   
   return lines.join('\n');
 }
@@ -136,8 +145,12 @@ function generateTreeSection(context: MarkdownContext): string {
     return lines.join('\n');
   }
   
+  const formatterOptions: TreeFormatterOptions = {
+    showInternalVars: context.formatterOptions?.showInternalVars ?? false,
+  };
+  
   lines.push('```mermaid');
-  lines.push(formatTreeAsMermaid(context.tree));
+  lines.push(formatTreeAsMermaid(context.tree, formatterOptions));
   lines.push('```');
   
   return lines.join('\n');

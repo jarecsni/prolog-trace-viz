@@ -15,7 +15,7 @@ factorial(3, X)
 
 ## Execution Timeline
 
-┌─ Step 1: factorial(3,_2006)
+┌─ Step 1: factorial(3,R)
 │  Clause: factorial(N, R) [line 5]
 │  Unifications:
 │    N = 3
@@ -32,7 +32,7 @@ factorial(3, X)
 │  ┌─ Step 3 [Goal 1.2]: _1866 is 3+ -1
 │  │  => ? = 2 is 3+ -1
 │  └─
-│  ┌─ Step 4 [Goal 1.3]: factorial(2,_1764)
+│  ┌─ Step 4 [Goal 1.3]: factorial(2,R)
 │  │  Clause: factorial(N, R) [line 5]
 │  │  Unifications:
 │  │    N = 2
@@ -49,7 +49,7 @@ factorial(3, X)
 │  │  ┌─ Step 6 [Goal 4.2]: _1624 is 2+ -1
 │  │  │  => ? = 1 is 2+ -1
 │  │  └─
-│  │  ┌─ Step 7 [Goal 4.3]: factorial(1,_1522)
+│  │  ┌─ Step 7 [Goal 4.3]: factorial(1,R)
 │  │  │  Clause: factorial(N, R) [line 5]
 │  │  │  Unifications:
 │  │  │    N = 1
@@ -74,19 +74,19 @@ factorial(3, X)
 │  │  │  │  where R1 = 1 (from Step 10)
 │  │  │  │  => ? = 1 is 1*1
 │  │  │  └─
-│  │  │  => _1522 = 1
+│  │  │  => R = 1
 │  │  └─
 │  │  ┌─ Step 12 [Goal 4.4]: R is N * R1 → _936 is 2*1
 │  │  │  where R1 = 1 (from Step 7)
 │  │  │  => ? = 2 is 2*1
 │  │  └─
-│  │  => _1764 = 2
+│  │  => R = 2
 │  └─
 │  ┌─ Step 13 [Goal 1.4]: R is N * R1 → _706 is 3*2
 │  │  where R1 = 2 (from Step 4)
 │  │  => ? = 6 is 3*2
 │  └─
-│  => _2006 = 6
+│  => R = 6
 │  Query Variable: X = 6
 └─
 
@@ -97,16 +97,16 @@ factorial(3, X)
 graph TD
 
 %% Nodes
-A["① factorial(N, R)<br/>clause 5<br/>EXIT: _2006=6"]
+A["① factorial(N, R)<br/>clause 5<br/>Result: R=6"]
 B["② 3>0"]
 C["③ _1866 is 3+ -1"]
-D["④ factorial(N, R)<br/>clause 5<br/>EXIT: _1764=2"]
+D["④ factorial(N, R)<br/>clause 5<br/>Result: R=2"]
 E["⑤ 2>0"]
 F["⑥ _1624 is 2+ -1"]
-G["⑦ factorial(N, R)<br/>clause 5<br/>EXIT: _1522=1"]
+G["⑦ factorial(N, R)<br/>clause 5<br/>Result: R=1"]
 H["⑧ 1>0"]
 I["⑨ _1382 is 1+ -1"]
-J["⑩ factorial(0, 1)<br/>clause 4<br/>EXIT: _1280=1"]
+J["⑩ factorial(0, 1)<br/>clause 4<br/>Result: _1280=1"]
 K["⑪ _1166 is 1*1"]
 L["⑫ _936 is 2*1"]
 M["⑬ _706 is 3*2"]
