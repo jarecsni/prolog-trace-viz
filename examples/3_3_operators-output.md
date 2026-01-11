@@ -24,21 +24,20 @@ t(0+1+1, B)
 │  Clause: t(X+1+1, Z) [line 28]
 │  Unifications:
 │    X = 0
-│    Z = _1152
 │  Subgoals:
 │    [1.1] t(X+1, X1) → t(0+1, X1)
-│    [1.2] t(X1+1, Z) → t(X1+1, _1152)
+│    [1.2] t(X1+1, Z)
 │  
-│  ┌─ Step 2 [Goal 1.1]: t(0+1,_1094)
+│  ┌─ Step 2 [Goal 1.1]: t(0+1,1+0)
 │  │  Fact: t(0+1, 1+0) [line 26]
-│  │  => _1094 = 1+0
+│  │  => 1+0 = 1+0
 │  └─
-│  ┌─ Step 3 [Goal 1.2]: t(X1+1, Z) → t(1+0+1,_916)
+│  ┌─ Step 3 [Goal 1.2]: t(X1+1, Z) → t(1+0+1,X+1+0)
 │  │  where X1 = 1+0 (from Step 2)
 │  │  Fact: t(X+0+1, X+1+0) [line 27]
 │  │  Unifications:
 │  │    X = 1
-│  │  => _916 = 1+1+0
+│  │  => X+1+0 = 1+1+0
 │  └─
 │  => Z = 1+1+0
 │  Query Variable: B = 1+1+0
@@ -52,8 +51,8 @@ graph TD
 
 %% Nodes
 A["① t(X+1+1, Z)<br/>clause 28<br/>Result: Z=1+1+0"]
-B["② t(0+1, 1+0)<br/>clause 26<br/>Result: _1094=1+0"]
-C["③ t(X+0+1, X+1+0)<br/>clause 27<br/>Result: _916=1+1+0"]
+B["② t(0+1, 1+0)<br/>clause 26<br/>Result: 1+0=1+0"]
+C["③ t(X+0+1, X+1+0)<br/>clause 27<br/>Result: X+1+0=1+1+0"]
 
 %% Edges
 A -->|"t(X+1, X1)"| B

@@ -19,7 +19,6 @@ factorial(3, X)
 │  Clause: factorial(N, R) [line 5]
 │  Unifications:
 │    N = 3
-│    R = _2006
 │  Subgoals:
 │    [1.1] N > 0 → 3 > 0
 │    [1.2] N1 is N - 1 → N1 is 3 - 1
@@ -36,7 +35,6 @@ factorial(3, X)
 │  │  Clause: factorial(N, R) [line 5]
 │  │  Unifications:
 │  │    N = 2
-│  │    R = _1764
 │  │  Subgoals:
 │  │    [4.1] N > 0 → 2 > 0
 │  │    [4.2] N1 is N - 1 → N1 is 2 - 1
@@ -53,7 +51,6 @@ factorial(3, X)
 │  │  │  Clause: factorial(N, R) [line 5]
 │  │  │  Unifications:
 │  │  │    N = 1
-│  │  │    R = _1522
 │  │  │  Subgoals:
 │  │  │    [7.1] N > 0 → 1 > 0
 │  │  │    [7.2] N1 is N - 1 → N1 is 1 - 1
@@ -66,9 +63,9 @@ factorial(3, X)
 │  │  │  ┌─ Step 9 [Goal 7.2]: _1382 is 1+ -1
 │  │  │  │  => ? = 0 is 1+ -1
 │  │  │  └─
-│  │  │  ┌─ Step 10 [Goal 7.3]: factorial(0,_1280)
+│  │  │  ┌─ Step 10 [Goal 7.3]: factorial(0,1)
 │  │  │  │  Fact: factorial(0, 1) [line 4]
-│  │  │  │  => _1280 = 1
+│  │  │  │  => 1 = 1
 │  │  │  └─
 │  │  │  ┌─ Step 11 [Goal 7.4]: R is N * R1 → _1166 is 1*1
 │  │  │  │  where R1 = 1 (from Step 10)

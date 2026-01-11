@@ -140,6 +140,10 @@ function formatBindingWithClauseVar(binding: string, clauseHead?: string): strin
         if (/^[A-Z][A-Za-z0-9_]*$/.test(lastArg)) {
           return `${lastArg}=${valuePart}`;
         }
+        // For patterns like X+1+0, show the full pattern
+        if (lastArg.includes('+') || lastArg.includes('[')) {
+          return `${lastArg}=${valuePart}`;
+        }
       }
     }
   }

@@ -133,4 +133,44 @@ describe('Timeline Formatter', () => {
       expect(output).toContain('│  ┌─ Step 2 [Goal 1.1]');
     });
   });
+
+  describe('pattern output display', () => {
+    it('shows full pattern X+1+0 instead of ellipsis for fact results', () => {
+      // For facts like t(X+0+1, X+1+0), the result should show the full pattern
+      const step = createStep({
+        goal: 't(1+0+1,_1234)',
+        clause: {
+          head: 't(X+0+1, X+1+0)',
+          body: 'true',
+          line: 27,
+        },
+        result: '1+1+0',
+      });
+
+      const output = formatTimeline([step], { showInternalVars: false });
+      
+      // Should show full pattern X+1+0, not X+... ellipsis
+      expect(output).toContain('=> X+1+0 = 1+1+0');
+      // Should NOT contain ellipsis
+      expect(output).not.toContain('X+...');
+    });
+
+    it('shows full pattern for complex arithmetic expressions', () => {
+      const step = createStep({
+        goal: 't(1+1+0+1,_5678)',
+        clause: {
+          head: 't(X+0+1, X+1+0)',
+          body: 'true',
+          line: 27,
+        },
+        unifications: [{ variable: 'X', value: '1+1' }],
+        result: '1+1+1+0',
+      });
+
+      const output = formatTimeline([step], { showInternalVars: false });
+      
+      // Should show full pattern
+      expect(output).toContain('=> X+1+0 = 1+1+1+0');
+    });
+  });
 });

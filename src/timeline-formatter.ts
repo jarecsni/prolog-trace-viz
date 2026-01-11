@@ -119,12 +119,10 @@ function formatGoalDisplay(step: TimelineStep, showInternal: boolean): string {
       
       // Replace internal variable names with clause variable names where appropriate
       const displayArgs = goalArgs.map((arg, i) => {
-        // If this is an internal variable (starts with _) and we have a clause variable
+        // If this is an internal variable (starts with _) and we have a clause arg
         if (isInternalVariable(arg) && i < headArgs.length) {
-          const clauseVar = extractVariableName(headArgs[i]);
-          if (clauseVar) {
-            return clauseVar;
-          }
+          // Use the full clause pattern (e.g., "Z" or "X+1+0")
+          return headArgs[i];
         }
         return arg;
       });
@@ -151,16 +149,14 @@ function getOutputVariableName(step: TimelineStep, showInternal: boolean): strin
     return lastArg;
   }
   
-  // If we have clause info, use the clause variable name
+  // If we have clause info, use the clause pattern
   if (step.clause) {
     const headMatch = step.clause.head.match(/^[^(]+\((.+)\)$/);
     if (headMatch) {
       const headArgs = splitArgs(headMatch[1]);
       if (headArgs.length > 0) {
-        const clauseVar = extractVariableName(headArgs[headArgs.length - 1]);
-        if (clauseVar) {
-          return clauseVar;
-        }
+        // Use the full clause pattern (e.g., "Z" or "X+1+0")
+        return headArgs[headArgs.length - 1];
       }
     }
   }
@@ -227,22 +223,76 @@ function formatMergedContent(step: TimelineStep, indent: string, showInternal: b
     const clauseLabel = step.clause.body && step.clause.body !== 'true' ? 'Clause' : 'Fact';
     lines.push(`${indent}│  ${clauseLabel}: ${step.clause.head} [line ${step.clause.line}]`);
     
-    // Show unifications if any
+    // Show unifications if any - filter out internal variable bindings unless showInternal
     if (step.unifications.length > 0) {
-      lines.push(`${indent}│  Unifications:`);
-      for (const unif of step.unifications) {
-        lines.push(`${indent}│    ${unif.variable} = ${unif.value}`);
+      const displayUnifications = showInternal 
+        ? step.unifications 
+        : step.unifications.filter(u => !isInternalVariable(u.value));
+      
+      if (displayUnifications.length > 0) {
+        lines.push(`${indent}│  Unifications:`);
+        for (const unif of displayUnifications) {
+          lines.push(`${indent}│    ${unif.variable} = ${unif.value}`);
+        }
       }
     }
     
     // Show spawned subgoals (these will be solved by children)
+    // Clean up internal variables in subgoal display unless showInternal
     if (step.subgoals.length > 0) {
       lines.push(`${indent}│  Subgoals:`);
       for (const subgoal of step.subgoals) {
-        lines.push(`${indent}│    ${subgoal.label} ${subgoal.goal}`);
+        const cleanedGoal = showInternal ? subgoal.goal : cleanInternalVarsFromSubgoal(subgoal.goal);
+        lines.push(`${indent}│    ${subgoal.label} ${cleanedGoal}`);
       }
     }
   }
   
   return lines;
+}
+
+/**
+ * Clean internal variable names from subgoal display
+ * e.g., "t(X1+1, Z) → t(X1+1, _2008)" becomes "t(X1+1, Z) → t(X1+1, Z)"
+ */
+function cleanInternalVarsFromSubgoal(subgoalDisplay: string): string {
+  // If there's no arrow, nothing to clean
+  const arrowIndex = subgoalDisplay.indexOf(' → ');
+  if (arrowIndex === -1) {
+    return subgoalDisplay;
+  }
+  
+  const template = subgoalDisplay.slice(0, arrowIndex);
+  const instantiated = subgoalDisplay.slice(arrowIndex + 3);
+  
+  // Extract the output variable from the template
+  const templateMatch = template.match(/^([^(]+)\((.+)\)$/);
+  const instantiatedMatch = instantiated.match(/^([^(]+)\((.+)\)$/);
+  
+  if (!templateMatch || !instantiatedMatch) {
+    return subgoalDisplay;
+  }
+  
+  const templateArgs = splitArgs(templateMatch[2]);
+  const instantiatedArgs = splitArgs(instantiatedMatch[2]);
+  
+  // Replace internal variables in instantiated with template variable names
+  const cleanedArgs = instantiatedArgs.map((arg, i) => {
+    if (isInternalVariable(arg) && i < templateArgs.length) {
+      const templateVar = extractVariableName(templateArgs[i]);
+      if (templateVar) {
+        return templateVar;
+      }
+    }
+    return arg;
+  });
+  
+  const cleanedInstantiated = `${instantiatedMatch[1]}(${cleanedArgs.join(', ')})`;
+  
+  // If template and cleaned instantiated are the same, just show template
+  if (template === cleanedInstantiated) {
+    return template;
+  }
+  
+  return `${template} → ${cleanedInstantiated}`;
 }
