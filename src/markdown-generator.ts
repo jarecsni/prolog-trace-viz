@@ -7,13 +7,15 @@ import { TreeNode } from './tree.js';
 import { formatTimeline, TimelineFormatterOptions } from './timeline-formatter.js';
 import { formatTreeAsMermaid, TreeFormatterOptions } from './tree-formatter.js';
 
+import { DebugFlag } from './cli.js';
+
 export interface ClauseDefinition {
   line: number;
   text: string;
 }
 
 export interface FormatterOptions {
-  showInternalVars?: boolean;
+  debugFlags?: Set<DebugFlag>;
 }
 
 export interface MarkdownContext {
@@ -123,7 +125,7 @@ function generateTimelineSection(context: MarkdownContext): string {
   }
   
   const formatterOptions: TimelineFormatterOptions = {
-    showInternalVars: context.formatterOptions?.showInternalVars ?? false,
+    debugFlags: context.formatterOptions?.debugFlags ?? new Set(),
   };
   
   lines.push(formatTimeline(context.timeline, formatterOptions));
@@ -146,7 +148,7 @@ function generateTreeSection(context: MarkdownContext): string {
   }
   
   const formatterOptions: TreeFormatterOptions = {
-    showInternalVars: context.formatterOptions?.showInternalVars ?? false,
+    debugFlags: context.formatterOptions?.debugFlags ?? new Set(),
   };
   
   lines.push('```mermaid');

@@ -51,10 +51,20 @@ prolog-trace-viz <prolog-file> <query> [options]
 |--------|-------------|
 | `-o, --output <file>` | Write output to file (default: `<source>-output.md`) |
 | `--depth <number>` | Maximum trace depth to capture (default: 100) |
+| `--debug` | Enable all debug features |
+| `--debug:<flag>` | Enable specific debug flag (e.g., `--debug:internal-vars`) |
 | `--verbose` | Display detailed processing information |
 | `--quiet` | Suppress all non-error output except final result |
 | `-h, --help` | Show help message |
 | `-v, --version` | Show version number |
+
+### Debug Flags
+
+| Flag | Description |
+|------|-------------|
+| `internal-vars` | Show Prolog's internal variable names alongside clause variable names (e.g., `Z (_2008) = value`) |
+
+Debug flags can be combined: `--debug:internal-vars,other-flag` or use `--debug` to enable all.
 
 ### Examples
 
@@ -84,6 +94,8 @@ prolog-trace-viz program.pl "factorial(10, X)" --depth 20
 
 ## Example Output
 
+### Simple Example: Append
+
 Given a simple Prolog file `append.pl`:
 
 ```prolog
@@ -104,6 +116,75 @@ Produces a markdown document with:
 3. **Execution timeline** - Step-by-step breakdown with subgoal tracking
 4. **Call tree diagram** - Mermaid visualisation showing execution structure
 5. **Final answer** - The result bindings with original query variables
+
+### Advanced Example: Recursive Arithmetic
+
+The tool excels at visualising complex recursive predicates. Consider this arithmetic transformation example:
+
+```prolog
+t(0+1, 1+0).
+t(X+0+1, X+1+0).
+t(X+1+1, Z) :- t(X+1, X1), t(X1+1, Z).
+```
+
+Running:
+
+```
+prolog-trace-viz operators.pl "t(1+0+1+1+1, B)"
+```
+
+Produces a beautifully nested timeline showing how the recursion unfolds:
+
+```
+┌─ Step 1: t(1+0+1+1+1,Z)
+│  Clause: t(X+1+1, Z) [line 28]
+│  Unifications:
+│    X = 1+0+1
+│  Subgoals:
+│    [1.1] t(X+1, X1) → t(1+0+1+1, X1)
+│    [1.2] t(X1+1, Z)
+│  
+│  ┌─ Step 2 [Goal 1.1]: t(1+0+1+1,Z)
+│  │  Clause: t(X+1+1, Z) [line 28]
+│  │  Unifications:
+│  │    X = 1+0
+│  │  Subgoals:
+│  │    [2.1] t(X+1, X1) → t(1+0+1, X1)
+│  │    [2.2] t(X1+1, Z)
+│  │  
+│  │  ┌─ Step 3 [Goal 2.1]: t(1+0+1,X+1+0)
+│  │  │  Fact: t(X+0+1, X+1+0) [line 27]
+│  │  │  Unifications:
+│  │  │    X = 1
+│  │  │  => X+1+0 = 1+1+0
+│  │  └─
+│  │  ┌─ Step 4 [Goal 2.2]: t(X1+1, Z) → t(1+1+0+1,X+1+0)
+│  │  │  where X1 = 1+1+0 (from Step 3)
+│  │  │  Fact: t(X+0+1, X+1+0) [line 27]
+│  │  │  Unifications:
+│  │  │    X = 1+1
+│  │  │  => X+1+0 = 1+1+1+0
+│  │  └─
+│  │  => Z = 1+1+1+0
+│  └─
+│  ┌─ Step 5 [Goal 1.2]: t(X1+1, Z) → t(1+1+1+0+1,X+1+0)
+│  │  where X1 = 1+1+1+0 (from Step 2)
+│  │  Fact: t(X+0+1, X+1+0) [line 27]
+│  │  Unifications:
+│  │    X = 1+1+1
+│  │  => X+1+0 = 1+1+1+1+0
+│  └─
+│  => Z = 1+1+1+1+0
+│  Query Variable: B = 1+1+1+1+0
+└─
+```
+
+Key features shown:
+- **Nested structure**: Child calls are visually nested inside their parents
+- **Subgoal tracking**: `[1.1]`, `[2.1]` etc. show which subgoal is being solved
+- **Binding context**: `where X1 = 1+1+0 (from Step 3)` shows how variables flow between sibling subgoals
+- **Clean variable names**: Uses clause variable names (X, Z, X1) instead of Prolog's internal names (_2008)
+- **Results after children**: The `=> Z = value` appears after all child steps complete
 
 ### Timeline Format
 

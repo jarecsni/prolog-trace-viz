@@ -82,20 +82,40 @@ describe('CLI Argument Parser - Property Tests', () => {
     );
   });
 
-  it('parses --show-internal-vars flag correctly', () => {
-    // Default should be false
+  it('parses debug flags correctly', () => {
+    // Default should have empty debugFlags
     const resultDefault = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query']);
     expect(resultDefault.type).toBe('options');
-    expect(resultDefault.options!.showInternalVars).toBe(false);
+    expect(resultDefault.options!.debugFlags.size).toBe(0);
 
-    // With flag should be true
-    const resultWithFlag = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--show-internal-vars']);
-    expect(resultWithFlag.type).toBe('options');
-    expect(resultWithFlag.options!.showInternalVars).toBe(true);
+    // --debug should enable all flags
+    const resultDebug = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--debug']);
+    expect(resultDebug.type).toBe('options');
+    expect(resultDebug.options!.debugFlags.has('internal-vars')).toBe(true);
+
+    // --debug:internal-vars should enable specific flag
+    const resultSpecific = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--debug:internal-vars']);
+    expect(resultSpecific.type).toBe('options');
+    expect(resultSpecific.options!.debugFlags.has('internal-vars')).toBe(true);
+
+    // --debug:* should enable all flags
+    const resultAll = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--debug:*']);
+    expect(resultAll.type).toBe('options');
+    expect(resultAll.options!.debugFlags.has('internal-vars')).toBe(true);
+
+    // --show-internal-vars (backwards compat) should enable internal-vars flag
+    const resultBackwardsCompat = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--show-internal-vars']);
+    expect(resultBackwardsCompat.type).toBe('options');
+    expect(resultBackwardsCompat.options!.debugFlags.has('internal-vars')).toBe(true);
 
     // Flag position shouldn't matter
-    const resultFlagFirst = parseArgs(['node', 'prolog-trace-viz', '--show-internal-vars', 'test.pl', 'query']);
+    const resultFlagFirst = parseArgs(['node', 'prolog-trace-viz', '--debug', 'test.pl', 'query']);
     expect(resultFlagFirst.type).toBe('options');
-    expect(resultFlagFirst.options!.showInternalVars).toBe(true);
+    expect(resultFlagFirst.options!.debugFlags.has('internal-vars')).toBe(true);
+
+    // Invalid debug flag should error
+    const resultInvalid = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--debug:invalid-flag']);
+    expect(resultInvalid.type).toBe('error');
+    expect(resultInvalid.error!.details).toContain('Unknown debug flag');
   });
 });

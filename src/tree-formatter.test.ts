@@ -25,7 +25,7 @@ describe('Tree Formatter', () => {
         finalBinding: '_1234=1+1+0',
       });
 
-      const output = formatTreeAsMermaid(node, { showInternalVars: false });
+      const output = formatTreeAsMermaid(node, { debugFlags: new Set() });
       
       // Should show full pattern X+1+0, not X+... ellipsis
       expect(output).toContain('X+1+0=1+1+0');
@@ -41,23 +41,23 @@ describe('Tree Formatter', () => {
         finalBinding: '_2008=1+1+1+1+0',
       });
 
-      const output = formatTreeAsMermaid(node, { showInternalVars: false });
+      const output = formatTreeAsMermaid(node, { debugFlags: new Set() });
       
       // Should use Z instead of internal variable
       expect(output).toContain('Z=1+1+1+1+0');
     });
 
-    it('shows internal variable when showInternalVars is true', () => {
+    it('shows internal variable additively when debug:internal-vars is enabled', () => {
       const node = createNode({
         goal: 't(1+0+1,_1234)',
         clauseHead: 't(X+0+1, X+1+0)',
         finalBinding: '_1234=1+1+0',
       });
 
-      const output = formatTreeAsMermaid(node, { showInternalVars: true });
+      const output = formatTreeAsMermaid(node, { debugFlags: new Set(['internal-vars']) });
       
-      // Should show internal variable name
-      expect(output).toContain('_1234=1+1+0');
+      // Should show BOTH clause pattern and internal variable (additive)
+      expect(output).toContain('X+1+0 (_1234)=1+1+0');
     });
   });
 

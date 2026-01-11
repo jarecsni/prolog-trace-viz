@@ -201,7 +201,7 @@ async function run(options: CLIOptions): Promise<void> {
       clauses: clauseDefinitions,
       finalAnswer,
       formatterOptions: {
-        showInternalVars: options.showInternalVars,
+        debugFlags: options.debugFlags,
       },
     });
     

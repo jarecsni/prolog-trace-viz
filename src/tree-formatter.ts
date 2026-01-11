@@ -2,12 +2,21 @@
  * Tree Formatter - Generates Mermaid diagram from tree structure
  * 
  * By default, uses clause variable names instead of internal Prolog names.
+ * With --debug:internal-vars, shows both: "Z (_2008) = value"
  */
 
 import { TreeNode } from './tree.js';
+import { DebugFlag } from './cli.js';
 
 export interface TreeFormatterOptions {
-  showInternalVars?: boolean;
+  debugFlags?: Set<DebugFlag>;
+}
+
+/**
+ * Check if a debug flag is enabled
+ */
+function hasDebugFlag(options: TreeFormatterOptions, flag: DebugFlag): boolean {
+  return options.debugFlags?.has(flag) ?? false;
 }
 
 /**
@@ -89,7 +98,7 @@ function collectNodesAndEdges(
  */
 function formatNodeLabel(node: TreeNode, options: TreeFormatterOptions = {}): string {
   const parts: string[] = [];
-  const showInternal = options.showInternalVars ?? false;
+  const showInternalVars = hasDebugFlag(options, 'internal-vars');
   
   // Use source clause head if available, otherwise use goal
   const displayGoal = node.clauseHead || node.goal;
@@ -104,10 +113,8 @@ function formatNodeLabel(node: TreeNode, options: TreeFormatterOptions = {}): st
   
   // Add final binding if available
   if (node.finalBinding) {
-    // Format the binding - use clause variable name if not showing internal
-    const bindingDisplay = showInternal 
-      ? node.finalBinding 
-      : formatBindingWithClauseVar(node.finalBinding, node.clauseHead);
+    // Format the binding - use clause variable name, optionally with internal var
+    const bindingDisplay = formatBindingWithClauseVar(node.finalBinding, node.clauseHead, showInternalVars);
     parts.push(`Result: ${bindingDisplay}`);
   }
   
@@ -116,9 +123,10 @@ function formatNodeLabel(node: TreeNode, options: TreeFormatterOptions = {}): st
 
 /**
  * Format a binding using clause variable name instead of internal name
- * e.g., "_2008=1+1+1+1+0" with clauseHead "t(X+1+1, Z)" -> "Z=1+1+1+1+0"
+ * When showInternalVars is true, shows both: "Z (_2008)=value"
+ * e.g., "_2008=1+1+1+1+0" with clauseHead "t(X+1+1, Z)" -> "Z=1+1+1+1+0" or "Z (_2008)=1+1+1+1+0"
  */
-function formatBindingWithClauseVar(binding: string, clauseHead?: string): string {
+function formatBindingWithClauseVar(binding: string, clauseHead?: string, showInternalVars: boolean = false): string {
   if (!clauseHead) return binding;
   
   // Parse binding: "_2008=1+1+1+1+0" -> ["_2008", "1+1+1+1+0"]
@@ -136,12 +144,13 @@ function formatBindingWithClauseVar(binding: string, clauseHead?: string): strin
       const args = splitArgsSimple(headMatch[1]);
       if (args.length > 0) {
         const lastArg = args[args.length - 1].trim();
-        // Check if it's a simple variable
-        if (/^[A-Z][A-Za-z0-9_]*$/.test(lastArg)) {
-          return `${lastArg}=${valuePart}`;
-        }
-        // For patterns like X+1+0, show the full pattern
-        if (lastArg.includes('+') || lastArg.includes('[')) {
+        // Check if it's a simple variable or pattern
+        if (/^[A-Z][A-Za-z0-9_]*$/.test(lastArg) || lastArg.includes('+') || lastArg.includes('[')) {
+          if (showInternalVars) {
+            // Additive: show both clause var and internal var
+            return `${lastArg} (${varPart})=${valuePart}`;
+          }
+          // Clean: just clause var
           return `${lastArg}=${valuePart}`;
         }
       }

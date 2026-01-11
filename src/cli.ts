@@ -1,6 +1,16 @@
 import { createError, ErrorCode, ToolError } from './errors.js';
 import { BUILD_INFO, COPYRIGHT_NOTICE } from './build-info.js';
 
+/**
+ * Available debug flags
+ */
+export type DebugFlag = 'internal-vars';
+
+/**
+ * All supported debug flags
+ */
+export const ALL_DEBUG_FLAGS: DebugFlag[] = ['internal-vars'];
+
 export interface CLIOptions {
   prologFile: string;
   query: string;
@@ -8,7 +18,7 @@ export interface CLIOptions {
   depth: number;
   verbose: boolean;
   quiet: boolean;
-  showInternalVars: boolean;
+  debugFlags: Set<DebugFlag>;
 }
 
 export interface CLIResult {
@@ -30,18 +40,25 @@ ARGUMENTS:
 OPTIONS:
   -o, --output <file>     Write output to file instead of stdout
   --depth <n>             Maximum trace depth (default: 100)
-  --show-internal-vars    Show Prolog's internal variable names (e.g., _2008)
+  --debug                 Enable all debug features
+  --debug:<flag>          Enable specific debug flag (e.g., --debug:internal-vars)
+  --debug:<f1>,<f2>       Enable multiple debug flags (comma-separated)
   --verbose               Display detailed processing information
   --quiet                 Suppress all non-error output except final result
   -h, --help              Show this help message
   -v, --version           Show version number
   --copyright             Show copyright and build information
 
+DEBUG FLAGS:
+  internal-vars           Show Prolog's internal variable names alongside
+                          clause variable names (e.g., "Z (_2008) = value")
+
 EXAMPLES:
   prolog-trace-viz program.pl "append([1,2], [3,4], X)"
   prolog-trace-viz program.pl "member(X, [a,b,c])" -o trace.md
   prolog-trace-viz program.pl "factorial(5, X)" --depth 10 --verbose
-  prolog-trace-viz program.pl "t(1+0+1, X)" --show-internal-vars
+  prolog-trace-viz program.pl "t(1+0+1, X)" --debug
+  prolog-trace-viz program.pl "t(1+0+1, X)" --debug:internal-vars
 `.trim();
 
 export function parseArgs(argv: string[]): CLIResult {
@@ -66,7 +83,7 @@ export function parseArgs(argv: string[]): CLIResult {
     depth: 100,
     verbose: false,
     quiet: false,
-    showInternalVars: false,
+    debugFlags: new Set<DebugFlag>(),
   };
   
   const positionalArgs: string[] = [];
@@ -99,8 +116,37 @@ export function parseArgs(argv: string[]): CLIResult {
         };
       }
       options.depth = depth;
+    } else if (arg === '--debug') {
+      // Enable all debug flags
+      for (const flag of ALL_DEBUG_FLAGS) {
+        options.debugFlags!.add(flag);
+      }
+    } else if (arg.startsWith('--debug:')) {
+      // Parse specific debug flags
+      const flagsPart = arg.slice('--debug:'.length);
+      const flagNames = flagsPart.split(',').map(f => f.trim());
+      
+      for (const flagName of flagNames) {
+        if (flagName === '*' || flagName === 'all') {
+          // --debug:* or --debug:all enables all flags
+          for (const flag of ALL_DEBUG_FLAGS) {
+            options.debugFlags!.add(flag);
+          }
+        } else if (ALL_DEBUG_FLAGS.includes(flagName as DebugFlag)) {
+          options.debugFlags!.add(flagName as DebugFlag);
+        } else {
+          return {
+            type: 'error',
+            error: createError(
+              ErrorCode.INVALID_ARGS,
+              `Unknown debug flag: ${flagName}. Available flags: ${ALL_DEBUG_FLAGS.join(', ')}`
+            ),
+          };
+        }
+      }
     } else if (arg === '--show-internal-vars') {
-      options.showInternalVars = true;
+      // Backwards compatibility - map to new debug flag
+      options.debugFlags!.add('internal-vars');
     } else if (arg === '--verbose') {
       options.verbose = true;
     } else if (arg === '--quiet') {
@@ -159,7 +205,7 @@ export function parseArgs(argv: string[]): CLIResult {
       depth: options.depth!,
       verbose: options.verbose!,
       quiet: options.quiet!,
-      showInternalVars: options.showInternalVars!,
+      debugFlags: options.debugFlags!,
     },
   };
 }
