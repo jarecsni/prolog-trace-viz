@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-01-11
+
 ### Added
 - **Subgoal Binding Context**: When a subgoal uses a variable bound by a previous sibling step, the timeline now shows the template → instantiated form with a "where X = value (from Step N)" annotation, making the data flow between sibling subgoals explicit
 
