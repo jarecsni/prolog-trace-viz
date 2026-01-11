@@ -3,12 +3,21 @@
  * 
  * Renders a hierarchical view where child calls are visually nested inside their parents.
  * By default, uses clause variable names (X, Z, X1) instead of internal Prolog names (_2008).
+ * With --debug:internal-vars, shows both: "Z (_2008) = value"
  */
 
 import { TimelineStep } from './timeline.js';
+import { DebugFlag } from './cli.js';
 
 export interface TimelineFormatterOptions {
-  showInternalVars?: boolean;
+  debugFlags?: Set<DebugFlag>;
+}
+
+/**
+ * Check if a debug flag is enabled
+ */
+function hasDebugFlag(options: TimelineFormatterOptions, flag: DebugFlag): boolean {
+  return options.debugFlags?.has(flag) ?? false;
 }
 
 /**
@@ -34,7 +43,7 @@ export function formatTimeline(steps: TimelineStep[], options: TimelineFormatter
 function formatStepNested(step: TimelineStep, depth: number, options: TimelineFormatterOptions): string[] {
   const lines: string[] = [];
   const indent = '│  '.repeat(depth);
-  const showInternal = options.showInternalVars ?? false;
+  const showInternalVars = hasDebugFlag(options, 'internal-vars');
   
   // Step header with box drawing
   const portLabel = step.port === 'merged' ? '' : step.port.toUpperCase() + ' ';
@@ -42,7 +51,7 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
   const subgoalMarker = step.subgoalLabel ? ` [Goal ${step.subgoalLabel.slice(1, -1)}]` : '';
   
   // Format goal display - use clause variable name for output arg if available
-  const goalDisplay = formatGoalDisplay(step, showInternal);
+  const goalDisplay = formatGoalDisplay(step, showInternalVars);
   
   // Build goal display: show template → instantiated if we have binding context
   let fullGoalDisplay = `${portLabel}${goalDisplay}`;
@@ -63,7 +72,7 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
   switch (step.port) {
     case 'call':
     case 'merged':
-      lines.push(...formatMergedContent(step, indent, showInternal));
+      lines.push(...formatMergedContent(step, indent, showInternalVars));
       break;
     case 'redo':
       lines.push(`${indent}│  Backtracking...`);
@@ -84,8 +93,8 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
   // Show result AFTER children (this is the key insight!)
   if (step.port === 'merged' && step.result) {
     // Get the output variable name from clause if available, otherwise extract from goal
-    const outputVar = getOutputVariableName(step, showInternal);
-    lines.push(`${indent}│  => ${outputVar} = ${step.result}`);
+    const resultDisplay = formatResultDisplay(step, showInternalVars);
+    lines.push(`${indent}│  => ${resultDisplay}`);
     
     // Show query variable state only on root-level steps (depth 0)
     // This prevents showing "A = ?" on intermediate steps
@@ -101,12 +110,9 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
 
 /**
  * Format the goal display, replacing internal variable names with clause variable names
+ * When showInternalVars is true, shows both: "t(1+0+1, Z (_2008))"
  */
-function formatGoalDisplay(step: TimelineStep, showInternal: boolean): string {
-  if (showInternal) {
-    return step.goal;
-  }
-  
+function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): string {
   // If we have clause info, try to use clause variable name for the output argument
   if (step.clause) {
     const goalMatch = step.goal.match(/^([^(]+)\((.+)\)$/);
@@ -121,8 +127,13 @@ function formatGoalDisplay(step: TimelineStep, showInternal: boolean): string {
       const displayArgs = goalArgs.map((arg, i) => {
         // If this is an internal variable (starts with _) and we have a clause arg
         if (isInternalVariable(arg) && i < headArgs.length) {
-          // Use the full clause pattern (e.g., "Z" or "X+1+0")
-          return headArgs[i];
+          const clauseVar = headArgs[i];
+          if (showInternalVars) {
+            // Additive: show both clause var and internal var
+            return `${clauseVar} (${arg})`;
+          }
+          // Clean: just show clause var
+          return clauseVar;
         }
         return arg;
       });
@@ -135,33 +146,39 @@ function formatGoalDisplay(step: TimelineStep, showInternal: boolean): string {
 }
 
 /**
- * Get the output variable name for result display
+ * Format the result display line
+ * When showInternalVars is true, shows both: "Z (_2008) = value"
  */
-function getOutputVariableName(step: TimelineStep, showInternal: boolean): string {
-  // Extract the last argument from the goal (typically the output)
+function formatResultDisplay(step: TimelineStep, showInternalVars: boolean): string {
+  if (!step.result) return '?';
+  
+  // Extract the last argument from the goal (typically the output - internal var)
   const goalMatch = step.goal.match(/^[^(]+\((.+)\)$/);
-  if (!goalMatch) return '?';
+  const internalVar = goalMatch ? splitArgs(goalMatch[1]).pop() : null;
   
-  const args = splitArgs(goalMatch[1]);
-  const lastArg = args[args.length - 1] || '?';
-  
-  if (showInternal) {
-    return lastArg;
-  }
-  
-  // If we have clause info, use the clause pattern
+  // Get the clause variable name
+  let clauseVar: string | null = null;
   if (step.clause) {
     const headMatch = step.clause.head.match(/^[^(]+\((.+)\)$/);
     if (headMatch) {
       const headArgs = splitArgs(headMatch[1]);
       if (headArgs.length > 0) {
-        // Use the full clause pattern (e.g., "Z" or "X+1+0")
-        return headArgs[headArgs.length - 1];
+        clauseVar = headArgs[headArgs.length - 1];
       }
     }
   }
   
-  return lastArg;
+  if (clauseVar) {
+    if (showInternalVars && internalVar && isInternalVariable(internalVar)) {
+      // Additive: show both
+      return `${clauseVar} (${internalVar}) = ${step.result}`;
+    }
+    // Clean: just clause var
+    return `${clauseVar} = ${step.result}`;
+  }
+  
+  // Fallback to internal var or ?
+  return `${internalVar || '?'} = ${step.result}`;
 }
 
 /**

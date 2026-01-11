@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Debug flag system**: New `--debug` and `--debug:<flag>` CLI options for extensible debugging features
+- **Additive internal variable display**: With `--debug:internal-vars`, shows both clause variable names AND internal Prolog names (e.g., `Z (_2008) = value`) instead of replacing one with the other
+- **CLI integration tests**: Comprehensive test suite covering flag parsing, output format, and error handling (19 new tests)
+- Support for `--debug:*` and `--debug:all` to enable all debug flags
+- Backwards compatibility: `--show-internal-vars` still works (maps to `--debug:internal-vars`)
+
+### Changed
+- Renamed `--show-internal-vars` to `--debug:internal-vars` (old flag still works)
+- Debug mode now shows internal vars additively rather than replacing clean names
+- Updated help screen with debug flag documentation
+- Updated README with operators example showing recursive tracing
+
 ## [2.4.1] - 2026-01-11
 
 ### Fixed

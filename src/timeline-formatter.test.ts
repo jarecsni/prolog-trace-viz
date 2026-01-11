@@ -23,7 +23,7 @@ describe('Timeline Formatter', () => {
     };
   }
 
-  describe('showInternalVars option', () => {
+  describe('debugFlags option', () => {
     it('uses clause variable Z for output when clause has simple variable', () => {
       // This tests the case where clause head has a simple variable (Z) as output
       const step = createStep({
@@ -36,7 +36,7 @@ describe('Timeline Formatter', () => {
         result: '1+1+1+1+0',
       });
 
-      const output = formatTimeline([step], { showInternalVars: false });
+      const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Should use Z instead of _2008 in header
       expect(output).toContain('t(1+0+1+1+1,Z)');
@@ -44,7 +44,7 @@ describe('Timeline Formatter', () => {
       expect(output).toContain('=> Z = 1+1+1+1+0');
     });
 
-    it('shows internal variable names when showInternalVars is true', () => {
+    it('shows internal variable names additively when debug:internal-vars is enabled', () => {
       const step = createStep({
         goal: 't(1+0+1+1+1,_2008)',
         clause: {
@@ -55,12 +55,12 @@ describe('Timeline Formatter', () => {
         result: '1+1+1+1+0',
       });
 
-      const output = formatTimeline([step], { showInternalVars: true });
+      const output = formatTimeline([step], { debugFlags: new Set(['internal-vars']) });
       
-      // Should show internal variable name
-      expect(output).toContain('t(1+0+1+1+1,_2008)');
-      // Result should use internal variable name
-      expect(output).toContain('=> _2008 = 1+1+1+1+0');
+      // Should show BOTH clause var and internal var (additive)
+      expect(output).toContain('Z (_2008)');
+      // Result should show both
+      expect(output).toContain('=> Z (_2008) = 1+1+1+1+0');
     });
 
     it('keeps internal var when clause output is a pattern not a variable', () => {
@@ -76,7 +76,7 @@ describe('Timeline Formatter', () => {
         result: '1+1+0',
       });
 
-      const output = formatTimeline([step], { showInternalVars: false });
+      const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Since X+1+0 is not a simple variable, we keep the internal name
       // but the result line should still work
@@ -147,7 +147,7 @@ describe('Timeline Formatter', () => {
         result: '1+1+0',
       });
 
-      const output = formatTimeline([step], { showInternalVars: false });
+      const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Should show full pattern X+1+0, not X+... ellipsis
       expect(output).toContain('=> X+1+0 = 1+1+0');
@@ -167,7 +167,7 @@ describe('Timeline Formatter', () => {
         result: '1+1+1+0',
       });
 
-      const output = formatTimeline([step], { showInternalVars: false });
+      const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Should show full pattern
       expect(output).toContain('=> X+1+0 = 1+1+1+0');
