@@ -70,17 +70,20 @@ factorial(3, X)
 │  │  │  │  Fact: factorial(0, 1) [line 4]
 │  │  │  │  => _1280 = 1
 │  │  │  └─
-│  │  │  ┌─ Step 11 [Goal 7.4]: _1166 is 1*1
+│  │  │  ┌─ Step 11 [Goal 7.4]: R is N * R1 → _1166 is 1*1
+│  │  │  │  where R1 = 1 (from Step 10)
 │  │  │  │  => ? = 1 is 1*1
 │  │  │  └─
 │  │  │  => _1522 = 1
 │  │  └─
-│  │  ┌─ Step 12 [Goal 4.4]: _936 is 2*1
+│  │  ┌─ Step 12 [Goal 4.4]: R is N * R1 → _936 is 2*1
+│  │  │  where R1 = 1 (from Step 7)
 │  │  │  => ? = 2 is 2*1
 │  │  └─
 │  │  => _1764 = 2
 │  └─
-│  ┌─ Step 13 [Goal 1.4]: _706 is 3*2
+│  ┌─ Step 13 [Goal 1.4]: R is N * R1 → _706 is 3*2
+│  │  where R1 = 2 (from Step 4)
 │  │  => ? = 6 is 3*2
 │  └─
 │  => _2006 = 6

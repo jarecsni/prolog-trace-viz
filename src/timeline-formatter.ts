@@ -33,7 +33,21 @@ function formatStepNested(step: TimelineStep, depth: number): string[] {
   const portLabel = step.port === 'merged' ? '' : step.port.toUpperCase() + ' ';
   // subgoalLabel is like "[1.1]", strip brackets for cleaner display
   const subgoalMarker = step.subgoalLabel ? ` [Goal ${step.subgoalLabel.slice(1, -1)}]` : '';
-  lines.push(`${indent}┌─ Step ${step.stepNumber}${subgoalMarker}: ${portLabel}${step.goal}`);
+  
+  // Build goal display: show template → instantiated if we have binding context
+  let goalDisplay = `${portLabel}${step.goal}`;
+  if (step.subgoalTemplate && step.subgoalBindings && step.subgoalBindings.length > 0) {
+    goalDisplay = `${portLabel}${step.subgoalTemplate} → ${step.goal}`;
+  }
+  
+  lines.push(`${indent}┌─ Step ${step.stepNumber}${subgoalMarker}: ${goalDisplay}`);
+  
+  // Show binding context if we have bindings from sibling steps
+  if (step.subgoalBindings && step.subgoalBindings.length > 0) {
+    for (const binding of step.subgoalBindings) {
+      lines.push(`${indent}│  where ${binding.variable} = ${binding.value} (from Step ${binding.fromStep})`);
+    }
+  }
   
   // Format based on port type
   switch (step.port) {
