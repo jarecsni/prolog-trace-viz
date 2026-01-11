@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-01-11
+
 ### Added
 - **Debug flag system**: New `--debug` and `--debug:<flag>` CLI options for extensible debugging features
 - **Additive internal variable display**: With `--debug:internal-vars`, shows both clause variable names AND internal Prolog names (e.g., `Z (_2008) = value`) instead of replacing one with the other
