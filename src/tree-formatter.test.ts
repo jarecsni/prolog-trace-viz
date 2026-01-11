@@ -12,7 +12,7 @@ describe('Tree Formatter', () => {
       status: 'success',
       children: [],
       clauseHead: 't(X+0+1, X+1+0)',
-      clauseNumber: 27,
+      clauseNumber: '27',
       ...overrides,
     };
   }
@@ -37,7 +37,7 @@ describe('Tree Formatter', () => {
       const node = createNode({
         goal: 't(1+0+1+1+1,_2008)',
         clauseHead: 't(X+1+1, Z)',
-        clauseNumber: 28,
+        clauseNumber: '28',
         finalBinding: '_2008=1+1+1+1+0',
       });
 

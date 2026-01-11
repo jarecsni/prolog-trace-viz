@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-01-11
+
 ### Fixed
 - Complete internal variable cleanup: removed remaining internal Prolog variable names (_2008) from unifications section, subgoals display, and call tree results
 - Result lines for facts with pattern outputs now show full pattern (e.g., `X+1+0 = 1+1+0`) instead of ellipsis (`X+... = 1+1+0`)
