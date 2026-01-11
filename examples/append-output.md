@@ -15,7 +15,7 @@ append([1,2], [3,4], X)
 
 ## Execution Timeline
 
-┌─ Step 1: append([1,2],[3,4],_1396)
+┌─ Step 1: append([1,2],[3,4],[H|R])
 │  Clause: append([H|T], L, [H|R]) [line 5]
 │  Unifications:
 │    H = 1
@@ -24,7 +24,7 @@ append([1,2], [3,4], X)
 │  Subgoals:
 │    [1.1] append(T, L, R) → append([2], [3,4], R)
 │  
-│  ┌─ Step 2 [Goal 1.1]: append([2],[3,4],_1304)
+│  ┌─ Step 2 [Goal 1.1]: append([2],[3,4],[H|R])
 │  │  Clause: append([H|T], L, [H|R]) [line 5]
 │  │  Unifications:
 │  │    H = 2
@@ -37,12 +37,11 @@ append([1,2], [3,4], X)
 │  │  │  Fact: append([], L, L) [line 4]
 │  │  │  Unifications:
 │  │  │    L = [3,4]
-│  │  │    L = _1224
 │  │  │  => L = [3,4]
 │  │  └─
-│  │  => _1304 = [2,3,4]
+│  │  => [H|R] = [2,3,4]
 │  └─
-│  => _1396 = [1,2,3,4]
+│  => [H|R] = [1,2,3,4]
 │  Query Variable: X = [1,2,3,4]
 └─
 
@@ -53,8 +52,8 @@ append([1,2], [3,4], X)
 graph TD
 
 %% Nodes
-A["① append([H|T], L, [H|R])<br/>clause 5<br/>Result: _1396=[1,2,3,4]"]
-B["② append([H|T], L, [H|R])<br/>clause 5<br/>Result: _1304=[2,3,4]"]
+A["① append([H|T], L, [H|R])<br/>clause 5<br/>Result: [H|R]=[1,2,3,4]"]
+B["② append([H|T], L, [H|R])<br/>clause 5<br/>Result: [H|R]=[2,3,4]"]
 C["③ append([], L, L)<br/>clause 4<br/>Result: L=[3,4]"]
 
 %% Edges
