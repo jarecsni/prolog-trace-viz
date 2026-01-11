@@ -27,6 +27,8 @@ export interface TimelineStep {
     goal: string;
   }>;
   subgoalLabel?: string;    // e.g., "[1.1]" - which subgoal this step is solving
+  subgoalTemplate?: string; // Original subgoal template from parent (e.g., "t(X1+1, Z)")
+  subgoalBindings?: Array<{ variable: string; value: string; fromStep: number }>; // Bindings applied to reach this goal
   result?: string;          // For merged steps: the result value
   queryVarState?: string;   // State of the query variable at this step
   children: TimelineStep[]; // Nested child steps
@@ -337,12 +339,16 @@ export class TimelineBuilder {
 
   /**
    * Renumber steps in depth-first order for consistent display
-   * Also assigns subgoalLabel to children now that clause info is backfilled
+   * Also assigns subgoalLabel and subgoalTemplate to children now that clause info is backfilled
+   * Computes subgoalBindings by comparing template to actual goal
    */
   private renumberStepsDepthFirst(): void {
     let counter = 0;
     
     const renumber = (steps: TimelineStep[], parent?: TimelineStep): void => {
+      // Track results from previous siblings for binding context
+      const siblingResults: Map<string, { value: string; stepNumber: number }> = new Map();
+      
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
         counter++;
@@ -356,9 +362,36 @@ export class TimelineBuilder {
           }));
         }
         
-        // Assign subgoalLabel based on parent's subgoals (now that clause info is backfilled)
+        // Assign subgoalLabel and template based on parent's subgoals (now that clause info is backfilled)
         if (parent && parent.subgoals.length > 0 && i < parent.subgoals.length) {
           step.subgoalLabel = parent.subgoals[i].label;
+          
+          // Extract template from parent's subgoal (format: "template → instantiated" or just "template")
+          const subgoalGoal = parent.subgoals[i].goal;
+          const arrowIndex = subgoalGoal.indexOf(' → ');
+          if (arrowIndex !== -1) {
+            step.subgoalTemplate = subgoalGoal.slice(0, arrowIndex);
+          } else {
+            step.subgoalTemplate = subgoalGoal;
+          }
+          
+          // Compute bindings applied to reach this goal from template
+          step.subgoalBindings = this.computeSubgoalBindings(
+            step.subgoalTemplate,
+            step.goal,
+            siblingResults
+          );
+        }
+        
+        // Track this step's result for subsequent siblings
+        if (step.result && step.subgoalTemplate) {
+          // Extract variable names from template that might be used by later subgoals
+          const templateVars = this.extractVariablesFromTerm(step.subgoalTemplate);
+          // The output variable is typically the last argument
+          const outputVar = this.extractOutputVariable(step.subgoalTemplate);
+          if (outputVar) {
+            siblingResults.set(outputVar, { value: step.result, stepNumber: step.stepNumber });
+          }
         }
         
         // Recursively renumber children
@@ -367,6 +400,71 @@ export class TimelineBuilder {
     };
     
     renumber(this.steps);
+  }
+
+  /**
+   * Compute bindings that were applied to transform template into actual goal
+   */
+  private computeSubgoalBindings(
+    template: string,
+    actualGoal: string,
+    siblingResults: Map<string, { value: string; stepNumber: number }>
+  ): Array<{ variable: string; value: string; fromStep: number }> {
+    const bindings: Array<{ variable: string; value: string; fromStep: number }> = [];
+    
+    // Extract variables from template
+    const templateVars = this.extractVariablesFromTerm(template);
+    
+    // For each variable, check if it was bound by a sibling result
+    for (const varName of templateVars) {
+      const siblingResult = siblingResults.get(varName);
+      if (siblingResult) {
+        bindings.push({
+          variable: varName,
+          value: siblingResult.value,
+          fromStep: siblingResult.stepNumber,
+        });
+      }
+    }
+    
+    return bindings;
+  }
+
+  /**
+   * Extract variable names from a term (variables start with uppercase or _)
+   */
+  private extractVariablesFromTerm(term: string): string[] {
+    const vars: string[] = [];
+    // Match variable names: start with uppercase letter or underscore, followed by alphanumeric/underscore
+    const regex = /\b([A-Z_][A-Za-z0-9_]*)\b/g;
+    let match;
+    while ((match = regex.exec(term)) !== null) {
+      const varName = match[1];
+      // Skip anonymous variables and already-seen variables
+      if (varName !== '_' && !vars.includes(varName)) {
+        vars.push(varName);
+      }
+    }
+    return vars;
+  }
+
+  /**
+   * Extract the output variable from a goal template (typically the last argument)
+   */
+  private extractOutputVariable(template: string): string | null {
+    const match = template.match(/^[^(]+\((.+)\)$/);
+    if (!match) return null;
+    
+    const args = this.splitArguments(match[1]);
+    if (args.length === 0) return null;
+    
+    // The output is typically the last argument - check if it's a variable
+    const lastArg = args[args.length - 1].trim();
+    if (/^[A-Z_][A-Za-z0-9_]*$/.test(lastArg)) {
+      return lastArg;
+    }
+    
+    return null;
   }
 
   /**
