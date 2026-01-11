@@ -264,6 +264,16 @@ Example: `✨ add query variable tracking for recursive execution`
 - Integration tests for end-to-end execution
 - All tests must pass before release
 
+### CRITICAL: Test Coverage for Changes
+
+**Every new feature or bug fix MUST include new test cases that cover the change.**
+
+- New features: Add tests that verify the feature works correctly
+- Bug fixes: Add regression tests that would have caught the bug
+- Refactoring: Ensure existing tests still pass, add tests if coverage gaps exist
+
+Do NOT rely solely on existing tests passing. The change itself needs dedicated test coverage to prevent regressions.
+
 ## Key Features
 
 ### Timeline Redesign (v2.1.0)

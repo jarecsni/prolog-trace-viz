@@ -1,13 +1,19 @@
 /**
  * Tree Formatter - Generates Mermaid diagram from tree structure
+ * 
+ * By default, uses clause variable names instead of internal Prolog names.
  */
 
 import { TreeNode } from './tree.js';
 
+export interface TreeFormatterOptions {
+  showInternalVars?: boolean;
+}
+
 /**
  * Format tree as Mermaid diagram
  */
-export function formatTreeAsMermaid(root: TreeNode | null): string {
+export function formatTreeAsMermaid(root: TreeNode | null, options: TreeFormatterOptions = {}): string {
   if (!root) {
     return 'graph TD\n  A["No execution tree"]';
   }
@@ -21,7 +27,7 @@ export function formatTreeAsMermaid(root: TreeNode | null): string {
   const edges: string[] = [];
   const styles: string[] = [];
   
-  collectNodesAndEdges(root, nodes, edges, styles);
+  collectNodesAndEdges(root, nodes, edges, styles, true, options);
   
   // Add nodes section
   lines.push('%% Nodes');
@@ -48,10 +54,11 @@ function collectNodesAndEdges(
   nodes: string[],
   edges: string[],
   styles: string[],
-  isRoot: boolean = true
+  isRoot: boolean = true,
+  options: TreeFormatterOptions = {}
 ): void {
   // Generate node definition
-  const nodeLabel = formatNodeLabel(node);
+  const nodeLabel = formatNodeLabel(node, options);
   nodes.push(`${node.id}[${nodeLabel}]`);
   
   // Generate style
@@ -73,15 +80,16 @@ function collectNodesAndEdges(
     edges.push(`${node.id} -->|"${edgeLabel}"| ${child.id}`);
     
     // Recursively process child
-    collectNodesAndEdges(child, nodes, edges, styles, false);
+    collectNodesAndEdges(child, nodes, edges, styles, false, options);
   }
 }
 
 /**
  * Format node label with circled numbers and clause info
  */
-function formatNodeLabel(node: TreeNode): string {
+function formatNodeLabel(node: TreeNode, options: TreeFormatterOptions = {}): string {
   const parts: string[] = [];
+  const showInternal = options.showInternalVars ?? false;
   
   // Use source clause head if available, otherwise use goal
   const displayGoal = node.clauseHead || node.goal;
@@ -94,12 +102,79 @@ function formatNodeLabel(node: TreeNode): string {
     parts.push(`clause ${node.clauseNumber}`);
   }
   
-  // Add final binding if available (without EXIT step number since steps are now merged)
+  // Add final binding if available
   if (node.finalBinding) {
-    parts.push(`EXIT: ${node.finalBinding}`);
+    // Format the binding - use clause variable name if not showing internal
+    const bindingDisplay = showInternal 
+      ? node.finalBinding 
+      : formatBindingWithClauseVar(node.finalBinding, node.clauseHead);
+    parts.push(`Result: ${bindingDisplay}`);
   }
   
   return `"${parts.join('<br/>')}"`;
+}
+
+/**
+ * Format a binding using clause variable name instead of internal name
+ * e.g., "_2008=1+1+1+1+0" with clauseHead "t(X+1+1, Z)" -> "Z=1+1+1+1+0"
+ */
+function formatBindingWithClauseVar(binding: string, clauseHead?: string): string {
+  if (!clauseHead) return binding;
+  
+  // Parse binding: "_2008=1+1+1+1+0" -> ["_2008", "1+1+1+1+0"]
+  const eqIndex = binding.indexOf('=');
+  if (eqIndex === -1) return binding;
+  
+  const varPart = binding.slice(0, eqIndex);
+  const valuePart = binding.slice(eqIndex + 1);
+  
+  // If it's an internal variable, try to find the clause variable name
+  if (/^_\d+$/.test(varPart)) {
+    // Extract the last argument from clause head (typically the output)
+    const headMatch = clauseHead.match(/^[^(]+\((.+)\)$/);
+    if (headMatch) {
+      const args = splitArgsSimple(headMatch[1]);
+      if (args.length > 0) {
+        const lastArg = args[args.length - 1].trim();
+        // Check if it's a simple variable
+        if (/^[A-Z][A-Za-z0-9_]*$/.test(lastArg)) {
+          return `${lastArg}=${valuePart}`;
+        }
+      }
+    }
+  }
+  
+  return binding;
+}
+
+/**
+ * Simple argument splitter for clause heads
+ */
+function splitArgsSimple(argsStr: string): string[] {
+  const args: string[] = [];
+  let current = '';
+  let depth = 0;
+  
+  for (const char of argsStr) {
+    if (char === '(' || char === '[') {
+      depth++;
+      current += char;
+    } else if (char === ')' || char === ']') {
+      depth--;
+      current += char;
+    } else if (char === ',' && depth === 0) {
+      args.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+  
+  return args;
 }
 
 /**

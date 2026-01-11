@@ -8,6 +8,7 @@ export interface CLIOptions {
   depth: number;
   verbose: boolean;
   quiet: boolean;
+  showInternalVars: boolean;
 }
 
 export interface CLIResult {
@@ -27,18 +28,20 @@ ARGUMENTS:
   <query>          Prolog query to trace (e.g., "t(1+0+1, X)")
 
 OPTIONS:
-  -o, --output <file>   Write output to file instead of stdout
-  --depth <n>           Maximum trace depth (default: 100)
-  --verbose             Display detailed processing information
-  --quiet               Suppress all non-error output except final result
-  -h, --help            Show this help message
-  -v, --version         Show version number
-  --copyright           Show copyright and build information
+  -o, --output <file>     Write output to file instead of stdout
+  --depth <n>             Maximum trace depth (default: 100)
+  --show-internal-vars    Show Prolog's internal variable names (e.g., _2008)
+  --verbose               Display detailed processing information
+  --quiet                 Suppress all non-error output except final result
+  -h, --help              Show this help message
+  -v, --version           Show version number
+  --copyright             Show copyright and build information
 
 EXAMPLES:
   prolog-trace-viz program.pl "append([1,2], [3,4], X)"
   prolog-trace-viz program.pl "member(X, [a,b,c])" -o trace.md
   prolog-trace-viz program.pl "factorial(5, X)" --depth 10 --verbose
+  prolog-trace-viz program.pl "t(1+0+1, X)" --show-internal-vars
 `.trim();
 
 export function parseArgs(argv: string[]): CLIResult {
@@ -63,6 +66,7 @@ export function parseArgs(argv: string[]): CLIResult {
     depth: 100,
     verbose: false,
     quiet: false,
+    showInternalVars: false,
   };
   
   const positionalArgs: string[] = [];
@@ -95,6 +99,8 @@ export function parseArgs(argv: string[]): CLIResult {
         };
       }
       options.depth = depth;
+    } else if (arg === '--show-internal-vars') {
+      options.showInternalVars = true;
     } else if (arg === '--verbose') {
       options.verbose = true;
     } else if (arg === '--quiet') {
@@ -153,6 +159,7 @@ export function parseArgs(argv: string[]): CLIResult {
       depth: options.depth!,
       verbose: options.verbose!,
       quiet: options.quiet!,
+      showInternalVars: options.showInternalVars!,
     },
   };
 }

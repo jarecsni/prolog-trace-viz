@@ -31,7 +31,7 @@ t(1+0+1, C)
 graph TD
 
 %% Nodes
-A["① t(X+0+1, X+1+0)<br/>clause 2<br/>EXIT: _722=1+1+0"]
+A["① t(X+0+1, X+1+0)<br/>clause 2<br/>Result: _722=1+1+0"]
 
 %% Edges
 
