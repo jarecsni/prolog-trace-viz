@@ -50,7 +50,11 @@ describe('CLI Argument Parser - Property Tests', () => {
           .map(s => `--${s}`),
         (prologFile, query, unknownFlag) => {
           // Skip known flags
-          if (['--help', '--version', '--output', '--depth', '--verbose', '--quiet', '--show-internal-vars'].includes(unknownFlag)) {
+          if (['--help', '--version', '--output', '--depth', '--verbose', '--quiet', '--tree', '--debug', '--copyright'].includes(unknownFlag)) {
+            return true;
+          }
+          // Skip debug flags
+          if (unknownFlag.startsWith('--debug:')) {
             return true;
           }
           const argv = ['node', 'prolog-trace-viz', prologFile, query, unknownFlag];
@@ -103,11 +107,6 @@ describe('CLI Argument Parser - Property Tests', () => {
     expect(resultAll.type).toBe('options');
     expect(resultAll.options!.debugFlags.has('internal-vars')).toBe(true);
 
-    // --show-internal-vars (backwards compat) should enable internal-vars flag
-    const resultBackwardsCompat = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--show-internal-vars']);
-    expect(resultBackwardsCompat.type).toBe('options');
-    expect(resultBackwardsCompat.options!.debugFlags.has('internal-vars')).toBe(true);
-
     // Flag position shouldn't matter
     const resultFlagFirst = parseArgs(['node', 'prolog-trace-viz', '--debug', 'test.pl', 'query']);
     expect(resultFlagFirst.type).toBe('options');
@@ -117,5 +116,22 @@ describe('CLI Argument Parser - Property Tests', () => {
     const resultInvalid = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--debug:invalid-flag']);
     expect(resultInvalid.type).toBe('error');
     expect(resultInvalid.error!.details).toContain('Unknown debug flag');
+  });
+
+  it('parses --tree flag correctly', () => {
+    // Default should have showCallTree false
+    const resultDefault = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query']);
+    expect(resultDefault.type).toBe('options');
+    expect(resultDefault.options!.showCallTree).toBe(false);
+
+    // --tree should enable call tree
+    const resultTree = parseArgs(['node', 'prolog-trace-viz', 'test.pl', 'query', '--tree']);
+    expect(resultTree.type).toBe('options');
+    expect(resultTree.options!.showCallTree).toBe(true);
+
+    // Flag position shouldn't matter
+    const resultFlagFirst = parseArgs(['node', 'prolog-trace-viz', '--tree', 'test.pl', 'query']);
+    expect(resultFlagFirst.type).toBe('options');
+    expect(resultFlagFirst.options!.showCallTree).toBe(true);
   });
 });

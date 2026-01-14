@@ -31,7 +31,7 @@ factorial(3, X)
 │  ┌─ Step 3 [Goal 1.2]: _1866 is 3+ -1
 │  │  => ? = 2 is 3+ -1
 │  └─
-│  ┌─ Step 4 [Goal 1.3]: factorial(2,R)
+│  ┌─ Step 4 [Goal 1.3]: factorial(2,R1)
 │  │  Clause: factorial(N, R) [line 5]
 │  │  Unifications:
 │  │    N = 2
@@ -47,7 +47,7 @@ factorial(3, X)
 │  │  ┌─ Step 6 [Goal 4.2]: _1624 is 2+ -1
 │  │  │  => ? = 1 is 2+ -1
 │  │  └─
-│  │  ┌─ Step 7 [Goal 4.3]: factorial(1,R)
+│  │  ┌─ Step 7 [Goal 4.3]: factorial(1,R1)
 │  │  │  Clause: factorial(N, R) [line 5]
 │  │  │  Unifications:
 │  │  │    N = 1
@@ -63,21 +63,21 @@ factorial(3, X)
 │  │  │  ┌─ Step 9 [Goal 7.2]: _1382 is 1+ -1
 │  │  │  │  => ? = 0 is 1+ -1
 │  │  │  └─
-│  │  │  ┌─ Step 10 [Goal 7.3]: factorial(0,1)
+│  │  │  ┌─ Step 10 [Goal 7.3]: factorial(0,R1)
 │  │  │  │  Fact: factorial(0, 1) [line 4]
-│  │  │  │  => 1 = 1
+│  │  │  │  => R1 = 1
 │  │  │  └─
 │  │  │  ┌─ Step 11 [Goal 7.4]: R is N * R1 → _1166 is 1*1
 │  │  │  │  where R1 = 1 (from Step 10)
 │  │  │  │  => ? = 1 is 1*1
 │  │  │  └─
-│  │  │  => R = 1
+│  │  │  => R1 = 1
 │  │  └─
 │  │  ┌─ Step 12 [Goal 4.4]: R is N * R1 → _936 is 2*1
 │  │  │  where R1 = 1 (from Step 7)
 │  │  │  => ? = 2 is 2*1
 │  │  └─
-│  │  => R = 2
+│  │  => R1 = 2
 │  └─
 │  ┌─ Step 13 [Goal 1.4]: R is N * R1 → _706 is 3*2
 │  │  where R1 = 2 (from Step 4)

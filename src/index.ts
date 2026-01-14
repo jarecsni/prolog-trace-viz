@@ -202,6 +202,7 @@ async function run(options: CLIOptions): Promise<void> {
       finalAnswer,
       formatterOptions: {
         debugFlags: options.debugFlags,
+        showCallTree: options.showCallTree,
       },
     });
     

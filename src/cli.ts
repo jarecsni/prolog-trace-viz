@@ -19,6 +19,7 @@ export interface CLIOptions {
   verbose: boolean;
   quiet: boolean;
   debugFlags: Set<DebugFlag>;
+  showCallTree: boolean;
 }
 
 export interface CLIResult {
@@ -40,6 +41,7 @@ ARGUMENTS:
 OPTIONS:
   -o, --output <file>     Write output to file instead of stdout
   --depth <n>             Maximum trace depth (default: 100)
+  --tree                  Include call tree diagram (Mermaid) in output
   --debug                 Enable all debug features
   --debug:<flag>          Enable specific debug flag (e.g., --debug:internal-vars)
   --debug:<f1>,<f2>       Enable multiple debug flags (comma-separated)
@@ -57,7 +59,7 @@ EXAMPLES:
   prolog-trace-viz program.pl "append([1,2], [3,4], X)"
   prolog-trace-viz program.pl "member(X, [a,b,c])" -o trace.md
   prolog-trace-viz program.pl "factorial(5, X)" --depth 10 --verbose
-  prolog-trace-viz program.pl "t(1+0+1, X)" --debug
+  prolog-trace-viz program.pl "t(1+0+1, X)" --tree
   prolog-trace-viz program.pl "t(1+0+1, X)" --debug:internal-vars
 `.trim();
 
@@ -84,6 +86,7 @@ export function parseArgs(argv: string[]): CLIResult {
     verbose: false,
     quiet: false,
     debugFlags: new Set<DebugFlag>(),
+    showCallTree: false,
   };
   
   const positionalArgs: string[] = [];
@@ -144,9 +147,8 @@ export function parseArgs(argv: string[]): CLIResult {
           };
         }
       }
-    } else if (arg === '--show-internal-vars') {
-      // Backwards compatibility - map to new debug flag
-      options.debugFlags!.add('internal-vars');
+    } else if (arg === '--tree') {
+      options.showCallTree = true;
     } else if (arg === '--verbose') {
       options.verbose = true;
     } else if (arg === '--quiet') {
@@ -206,6 +208,7 @@ export function parseArgs(argv: string[]): CLIResult {
       verbose: options.verbose!,
       quiet: options.quiet!,
       debugFlags: options.debugFlags!,
+      showCallTree: options.showCallTree!,
     },
   };
 }

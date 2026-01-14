@@ -129,12 +129,10 @@ describe('CLI Integration Tests', () => {
       expect(content).toMatch(/_\d+/); // Should contain internal var
     });
 
-    it('--show-internal-vars works for backwards compatibility', () => {
+    it('--show-internal-vars is no longer supported', () => {
       const result = runCLI(`examples/factorial.pl "factorial(3, X)" --show-internal-vars -o ${tempOutput}`);
-      expect(result.exitCode).toBe(0);
-      
-      const content = fs.readFileSync(tempOutput, 'utf-8');
-      expect(content).toMatch(/_\d+/); // Should contain internal var
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Unknown option');
     });
 
     it('default output uses clean variable names', () => {
@@ -192,7 +190,7 @@ describe('CLI Integration Tests', () => {
       }
     });
 
-    it('generates markdown with all required sections', () => {
+    it('generates markdown with required sections (no call tree by default)', () => {
       const result = runCLI(`examples/factorial.pl "factorial(3, X)" -o ${tempOutput}`);
       expect(result.exitCode).toBe(0);
       
@@ -201,15 +199,16 @@ describe('CLI Integration Tests', () => {
       expect(content).toContain('## Query');
       expect(content).toContain('## Clause Definitions');
       expect(content).toContain('## Execution Timeline');
-      expect(content).toContain('## Call Tree');
+      expect(content).not.toContain('## Call Tree');
       expect(content).toContain('## Final Answer');
     });
 
-    it('generates valid mermaid diagram', () => {
-      const result = runCLI(`examples/factorial.pl "factorial(3, X)" -o ${tempOutput}`);
+    it('--tree includes call tree section with mermaid diagram', () => {
+      const result = runCLI(`examples/factorial.pl "factorial(3, X)" --tree -o ${tempOutput}`);
       expect(result.exitCode).toBe(0);
       
       const content = fs.readFileSync(tempOutput, 'utf-8');
+      expect(content).toContain('## Call Tree');
       expect(content).toContain('```mermaid');
       expect(content).toContain('graph TD');
     });
