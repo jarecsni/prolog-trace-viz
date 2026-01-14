@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-01-14
+
 ### Added
 - **`--tree` flag**: Call tree diagram (Mermaid) is now opt-in via `--tree` flag, reducing default output size
 - Regression tests for subgoalTemplate variable priority fix
