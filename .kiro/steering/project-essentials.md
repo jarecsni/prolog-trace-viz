@@ -51,8 +51,22 @@ npm run build              # Compile TypeScript to dist/
 
 ```
 node dist/index.js examples/append.pl 'append([1,2], [3,4], X)'
+node dist/index.js examples/append.pl 'append([1,2], [3,4], X)' --tree  # Include call tree diagram
 ./regenerate_examples.sh   # Regenerate all example outputs
 ```
+
+## CLI Options
+
+### Output Options
+- `-o, --output <file>` - Write output to file instead of stdout
+- `--depth <n>` - Maximum trace depth (default: 100)
+- `--tree` - Include call tree diagram (Mermaid) in output
+- `--verbose` - Display detailed processing information
+- `--quiet` - Suppress all non-error output except final result
+
+### Debug Options
+- `--debug` - Enable all debug features
+- `--debug:internal-vars` - Show Prolog's internal variable names alongside clause variable names
 
 ## Release Process
 

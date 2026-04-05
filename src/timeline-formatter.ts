@@ -111,12 +111,20 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
 /**
  * Format the goal display, replacing internal variable names with clause variable names
  * When showInternalVars is true, shows both: "t(1+0+1, Z (_2008))"
+ * 
+ * Priority for variable names:
+ * 1. subgoalTemplate (caller's variable name) - preferred for child steps
+ * 2. clause head (matched clause's variable name) - fallback
  */
 function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): string {
   // If we have clause info, try to use clause variable name for the output argument
   if (step.clause) {
     const goalMatch = step.goal.match(/^([^(]+)\((.+)\)$/);
     const headMatch = step.clause.head.match(/^([^(]+)\((.+)\)$/);
+    
+    // Also parse subgoalTemplate if available (caller's variable names)
+    const templateMatch = step.subgoalTemplate?.match(/^([^(]+)\((.+)\)$/);
+    const templateArgs = templateMatch ? splitArgs(templateMatch[2]) : null;
     
     if (goalMatch && headMatch) {
       const predicate = goalMatch[1];
@@ -127,13 +135,17 @@ function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): strin
       const displayArgs = goalArgs.map((arg, i) => {
         // If this is an internal variable (starts with _) and we have a clause arg
         if (isInternalVariable(arg) && i < headArgs.length) {
-          const clauseVar = headArgs[i];
+          // Prefer subgoalTemplate variable (caller's name) over clause head variable
+          const displayVar = (templateArgs && i < templateArgs.length) 
+            ? templateArgs[i] 
+            : headArgs[i];
+          
           if (showInternalVars) {
-            // Additive: show both clause var and internal var
-            return `${clauseVar} (${arg})`;
+            // Additive: show both display var and internal var
+            return `${displayVar} (${arg})`;
           }
-          // Clean: just show clause var
-          return clauseVar;
+          // Clean: just show display var
+          return displayVar;
         }
         return arg;
       });
@@ -148,6 +160,10 @@ function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): strin
 /**
  * Format the result display line
  * When showInternalVars is true, shows both: "Z (_2008) = value"
+ * 
+ * Priority for variable names:
+ * 1. subgoalTemplate (caller's variable name) - preferred for child steps
+ * 2. clause head (matched clause's variable name) - fallback
  */
 function formatResultDisplay(step: TimelineStep, showInternalVars: boolean): string {
   if (!step.result) return '?';
@@ -156,25 +172,38 @@ function formatResultDisplay(step: TimelineStep, showInternalVars: boolean): str
   const goalMatch = step.goal.match(/^[^(]+\((.+)\)$/);
   const internalVar = goalMatch ? splitArgs(goalMatch[1]).pop() : null;
   
-  // Get the clause variable name
-  let clauseVar: string | null = null;
-  if (step.clause) {
-    const headMatch = step.clause.head.match(/^[^(]+\((.+)\)$/);
-    if (headMatch) {
-      const headArgs = splitArgs(headMatch[1]);
-      if (headArgs.length > 0) {
-        clauseVar = headArgs[headArgs.length - 1];
+  // Get the display variable name - prefer subgoalTemplate over clause head
+  let displayVar: string | null = null;
+  
+  // First try subgoalTemplate (caller's variable name)
+  if (step.subgoalTemplate) {
+    const templateMatch = step.subgoalTemplate.match(/^[^(]+\((.+)\)$/);
+    if (templateMatch) {
+      const templateArgs = splitArgs(templateMatch[1]);
+      if (templateArgs.length > 0) {
+        displayVar = templateArgs[templateArgs.length - 1];
       }
     }
   }
   
-  if (clauseVar) {
+  // Fallback to clause head variable name
+  if (!displayVar && step.clause) {
+    const headMatch = step.clause.head.match(/^[^(]+\((.+)\)$/);
+    if (headMatch) {
+      const headArgs = splitArgs(headMatch[1]);
+      if (headArgs.length > 0) {
+        displayVar = headArgs[headArgs.length - 1];
+      }
+    }
+  }
+  
+  if (displayVar) {
     if (showInternalVars && internalVar && isInternalVariable(internalVar)) {
       // Additive: show both
-      return `${clauseVar} (${internalVar}) = ${step.result}`;
+      return `${displayVar} (${internalVar}) = ${step.result}`;
     }
-    // Clean: just clause var
-    return `${clauseVar} = ${step.result}`;
+    // Clean: just display var
+    return `${displayVar} = ${step.result}`;
   }
   
   // Fallback to internal var or ?

@@ -16,6 +16,7 @@ export interface ClauseDefinition {
 
 export interface FormatterOptions {
   debugFlags?: Set<DebugFlag>;
+  showCallTree?: boolean;
 }
 
 export interface MarkdownContext {
@@ -52,9 +53,11 @@ export function generateMarkdown(context: MarkdownContext): string {
   sections.push(generateTimelineSection(context));
   sections.push('');
   
-  // Tree
-  sections.push(generateTreeSection(context));
-  sections.push('');
+  // Tree (only if showCallTree is enabled)
+  if (context.formatterOptions?.showCallTree) {
+    sections.push(generateTreeSection(context));
+    sections.push('');
+  }
   
   // Final answer
   sections.push(generateFinalAnswerSection(context));

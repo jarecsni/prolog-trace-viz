@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Wrapper line offset bug**: Source files with leading blank lines caused clause line numbers to be mapped incorrectly, resulting in wrong clause matching in the timeline (e.g., recursive clauses displayed as base case facts with wrong variable names and no unifications)
+
+## [2.6.0] - 2026-01-14
+
+### Added
+- **`--tree` flag**: Call tree diagram (Mermaid) is now opt-in via `--tree` flag, reducing default output size
+- Regression tests for subgoalTemplate variable priority fix
+
+### Fixed
+- **Timeline variable display bug**: Child steps now correctly use the caller's variable name (from subgoalTemplate) instead of the matched clause's pattern. For example, when parent's subgoal is `t(X+1, X1)` and it matches fact `t(X+0+1, X+1+0)`, the step now shows `t(1+0+1, X1)` instead of incorrectly showing `t(1+0+1, X+1+0)`
+
+### Changed
+- Call tree diagram is no longer included by default - use `--tree` to include it
+- Updated `regenerate_examples.sh` to use `--tree` flag
+
+### Removed
+- **BREAKING**: Removed `--show-internal-vars` backwards compatibility flag (use `--debug:internal-vars` instead)
+
 ## [2.5.0] - 2026-01-11
 
 ### Added

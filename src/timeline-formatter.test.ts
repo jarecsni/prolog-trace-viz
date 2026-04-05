@@ -108,6 +108,92 @@ describe('Timeline Formatter', () => {
       // Should show template → instantiated form
       expect(output).toContain('t(X1+1, Z) →');
     });
+
+    /**
+     * Regression test for subgoalTemplate variable priority bug.
+     * 
+     * When a child step matches a fact like t(X+0+1, X+1+0), the output variable
+     * in the clause head is a pattern (X+1+0), not a simple variable.
+     * 
+     * Previously, formatGoalDisplay would use this pattern as the display name,
+     * resulting in confusing output like "t(1+0+1, X+1+0 (_1856))" when the
+     * caller's subgoal template used a simple variable like X1.
+     * 
+     * The fix ensures subgoalTemplate variable names take priority over clause
+     * head patterns, so the output shows "t(1+0+1, X1)" instead.
+     */
+    it('prefers subgoalTemplate variable over clause head pattern for goal display', () => {
+      // This simulates Step 3 from the operators example:
+      // - Parent's subgoal was: t(X+1, X1) → t(1+0+1, X1)
+      // - Child matches fact: t(X+0+1, X+1+0) [line 27]
+      // - The output arg in clause head is X+1+0 (a pattern)
+      // - But the caller used X1 (a simple variable)
+      // - We should display X1, not X+1+0
+      const step = createStep({
+        stepNumber: 3,
+        goal: 't(1+0+1,_1856)',
+        subgoalLabel: '[2.1]',
+        subgoalTemplate: 't(X+1, X1)',  // Caller's template uses X1
+        clause: {
+          head: 't(X+0+1, X+1+0)',      // Clause head uses pattern X+1+0
+          body: 'true',
+          line: 27,
+        },
+        result: '1+1+0',
+      });
+
+      const output = formatTimeline([step], { debugFlags: new Set() });
+      
+      // Goal display should use X1 from subgoalTemplate, NOT X+1+0 from clause head
+      expect(output).toContain('t(1+0+1,X1)');
+      expect(output).not.toContain('t(1+0+1,X+1+0');
+      
+      // Result line should also use X1
+      expect(output).toContain('=> X1 = 1+1+0');
+      expect(output).not.toContain('=> X+1+0 = 1+1+0');
+    });
+
+    it('prefers subgoalTemplate variable in debug mode too', () => {
+      const step = createStep({
+        stepNumber: 3,
+        goal: 't(1+0+1,_1856)',
+        subgoalLabel: '[2.1]',
+        subgoalTemplate: 't(X+1, X1)',
+        clause: {
+          head: 't(X+0+1, X+1+0)',
+          body: 'true',
+          line: 27,
+        },
+        result: '1+1+0',
+      });
+
+      const output = formatTimeline([step], { debugFlags: new Set(['internal-vars']) });
+      
+      // Should show X1 with internal var in parentheses
+      expect(output).toContain('t(1+0+1,X1 (_1856))');
+      expect(output).toContain('=> X1 (_1856) = 1+1+0');
+    });
+
+    it('falls back to clause head variable when no subgoalTemplate', () => {
+      // Root-level steps don't have subgoalTemplate, so should use clause head
+      const step = createStep({
+        stepNumber: 1,
+        goal: 't(0+1+1,_2008)',
+        // No subgoalTemplate - this is a root step
+        clause: {
+          head: 't(X+1+1, Z)',
+          body: 't(X+1, X1), t(X1+1, Z)',
+          line: 28,
+        },
+        result: '1+1+0',
+      });
+
+      const output = formatTimeline([step], { debugFlags: new Set() });
+      
+      // Should use Z from clause head since no subgoalTemplate
+      expect(output).toContain('t(0+1+1,Z)');
+      expect(output).toContain('=> Z = 1+1+0');
+    });
   });
 
   describe('nested steps', () => {

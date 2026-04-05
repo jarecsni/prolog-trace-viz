@@ -63,14 +63,19 @@ export function generateWrapper(config: WrapperConfig): string {
  * but we need to map them back to the original source file line numbers.
  */
 export function calculateLineOffset(prologContent: string): number {
-  // The wrapper structure is:
+  // The wrapper adds 4 lines before the user content:
   // Line 1: % Load custom tracer
   // Line 2: :- ['tracerPath'].
   // Line 3: (empty)
   // Line 4: % User's Prolog code (no instrumentation)
   // Line 5+: User content starts here
-  
-  return 4; // User content starts at line 5 in wrapper, so offset is 4
+
+  // generateWrapper() calls prologContent.trim(), which strips leading blank lines.
+  // We must account for those stripped lines so wrapper line numbers map back correctly.
+  const leadingWhitespace = prologContent.slice(0, prologContent.length - prologContent.trimStart().length);
+  const strippedLeadingLines = (leadingWhitespace.match(/\n/g) || []).length;
+
+  return 4 - strippedLeadingLines;
 }
 
 /**
