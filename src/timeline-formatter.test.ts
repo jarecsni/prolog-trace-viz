@@ -39,7 +39,7 @@ describe('Timeline Formatter', () => {
       const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Should use Z instead of _2008 in header
-      expect(output).toContain('t(1+0+1+1+1,Z)');
+      expect(output).toContain('t(1+0+1+1+1, Z)');
       // Result should use Z
       expect(output).toContain('=> Z = 1+1+1+1+0');
     });
@@ -58,9 +58,9 @@ describe('Timeline Formatter', () => {
       const output = formatTimeline([step], { debugFlags: new Set(['internal-vars']) });
       
       // Should show BOTH clause var and internal var (additive)
-      expect(output).toContain('Z (_2008)');
+      expect(output).toContain('Z(_2008)');
       // Result should show both
-      expect(output).toContain('=> Z (_2008) = 1+1+1+1+0');
+      expect(output).toContain('=> Z(_2008) = 1+1+1+1+0');
     });
 
     it('keeps internal var when clause output is a pattern not a variable', () => {
@@ -145,8 +145,8 @@ describe('Timeline Formatter', () => {
       const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Goal display should use X1 from subgoalTemplate, NOT X+1+0 from clause head
-      expect(output).toContain('t(1+0+1,X1)');
-      expect(output).not.toContain('t(1+0+1,X+1+0');
+      expect(output).toContain('t(1+0+1, X1)');
+      expect(output).not.toContain('t(1+0+1, X+1+0');
       
       // Result line should also use X1
       expect(output).toContain('=> X1 = 1+1+0');
@@ -170,8 +170,8 @@ describe('Timeline Formatter', () => {
       const output = formatTimeline([step], { debugFlags: new Set(['internal-vars']) });
       
       // Should show X1 with internal var in parentheses
-      expect(output).toContain('t(1+0+1,X1 (_1856))');
-      expect(output).toContain('=> X1 (_1856) = 1+1+0');
+      expect(output).toContain('t(1+0+1, X1(_1856))');
+      expect(output).toContain('=> X1(_1856) = 1+1+0');
     });
 
     it('falls back to clause head variable when no subgoalTemplate', () => {
@@ -191,7 +191,7 @@ describe('Timeline Formatter', () => {
       const output = formatTimeline([step], { debugFlags: new Set() });
       
       // Should use Z from clause head since no subgoalTemplate
-      expect(output).toContain('t(0+1+1,Z)');
+      expect(output).toContain('t(0+1+1, Z)');
       expect(output).toContain('=> Z = 1+1+0');
     });
   });

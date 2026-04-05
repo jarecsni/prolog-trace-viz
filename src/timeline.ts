@@ -28,6 +28,7 @@ export interface TimelineStep {
   }>;
   subgoalLabel?: string;    // e.g., "[1.1]" - which subgoal this step is solving
   subgoalTemplate?: string; // Original subgoal template from parent (e.g., "t(X1+1, Z)")
+  subgoalInstantiated?: string; // Instantiated form from parent (e.g., "t(1+0+1, _2008)") - preserves parent's internal vars
   subgoalBindings?: Array<{ variable: string; value: string; fromStep: number }>; // Bindings applied to reach this goal
   result?: string;          // For merged steps: the result value
   queryVarState?: string;   // State of the query variable at this step
@@ -371,6 +372,7 @@ export class TimelineBuilder {
           const arrowIndex = subgoalGoal.indexOf(' → ');
           if (arrowIndex !== -1) {
             step.subgoalTemplate = subgoalGoal.slice(0, arrowIndex);
+            step.subgoalInstantiated = subgoalGoal.slice(arrowIndex + 3);
           } else {
             step.subgoalTemplate = subgoalGoal;
           }

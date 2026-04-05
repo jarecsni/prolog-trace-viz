@@ -15,7 +15,7 @@ append([1,2], [3,4], X)
 
 ## Execution Timeline
 
-┌─ Step 1: append([1,2],[3,4],[H|R])
+┌─ Step 1: append([1,2], [3,4], [H|R])
 │  Clause: append([H|T], L, [H|R]) [line 5]
 │  Unifications:
 │    H = 1
@@ -24,7 +24,7 @@ append([1,2], [3,4], X)
 │  Subgoals:
 │    [1.1] append(T, L, R) → append([2], [3,4], R)
 │  
-│  ┌─ Step 2 [Goal 1.1]: append([2],[3,4],R)
+│  ┌─ Step 2 [Goal 1.1]: append(T, L, R) → append([2], [3,4], R)
 │  │  Clause: append([H|T], L, [H|R]) [line 5]
 │  │  Unifications:
 │  │    H = 2
@@ -33,7 +33,7 @@ append([1,2], [3,4], X)
 │  │  Subgoals:
 │  │    [2.1] append(T, L, R) → append([], [3,4], R)
 │  │  
-│  │  ┌─ Step 3 [Goal 2.1]: append([],[3,4],R)
+│  │  ┌─ Step 3 [Goal 2.1]: append(T, L, R) → append([], [3,4], R)
 │  │  │  Fact: append([], L, L) [line 4]
 │  │  │  Unifications:
 │  │  │    L = [3,4]

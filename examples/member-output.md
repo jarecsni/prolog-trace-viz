@@ -15,7 +15,7 @@ member(X, [a,b,c])
 
 ## Execution Timeline
 
-┌─ Step 1: member(X,[a,b,c])
+┌─ Step 1: member(X, [a,b,c])
 │  Fact: member(X, [X|_]) [line 4]
 │  Unifications:
 │    X = a

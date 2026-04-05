@@ -53,10 +53,23 @@ function formatStepNested(step: TimelineStep, depth: number, options: TimelineFo
   // Format goal display - use clause variable name for output arg if available
   const goalDisplay = formatGoalDisplay(step, showInternalVars);
   
-  // Build goal display: show template → instantiated if we have binding context
+  // Build goal display from subgoal template when available (avoids using raw
+  // tracer goal which may have different internal variable names from a different frame)
   let fullGoalDisplay = `${portLabel}${goalDisplay}`;
-  if (step.subgoalTemplate && step.subgoalBindings && step.subgoalBindings.length > 0) {
-    fullGoalDisplay = `${portLabel}${step.subgoalTemplate} → ${goalDisplay}`;
+  if (step.subgoalTemplate && (step.subgoalInstantiated || (step.subgoalBindings && step.subgoalBindings.length > 0))) {
+    // Start from subgoalInstantiated (parent's internal vars) if available,
+    // otherwise fall back to template. Then apply sibling bindings on top.
+    let instantiated = step.subgoalInstantiated || step.subgoalTemplate;
+    if (step.subgoalBindings) {
+      for (const binding of step.subgoalBindings) {
+        instantiated = instantiated.replace(new RegExp(`\\b${binding.variable}\\b`, 'g'), binding.value);
+      }
+    }
+    // Clean internal vars: non-debug replaces with template names,
+    // debug uses additive V(_NNN) notation for consistency
+    instantiated = replaceInternalVarsFromTemplate(step.subgoalTemplate, instantiated, showInternalVars);
+    const displayWithArrow = step.subgoalTemplate === instantiated ? step.subgoalTemplate : `${step.subgoalTemplate} → ${instantiated}`;
+    fullGoalDisplay = `${portLabel}${displayWithArrow}`;
   }
   
   lines.push(`${indent}┌─ Step ${step.stepNumber}${subgoalMarker}: ${fullGoalDisplay}`);
@@ -142,7 +155,7 @@ function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): strin
           
           if (showInternalVars) {
             // Additive: show both display var and internal var
-            return `${displayVar} (${arg})`;
+            return `${displayVar}(${arg})`;
           }
           // Clean: just show display var
           return displayVar;
@@ -150,7 +163,7 @@ function formatGoalDisplay(step: TimelineStep, showInternalVars: boolean): strin
         return arg;
       });
       
-      return `${predicate}(${displayArgs.join(',')})`;
+      return `${predicate}(${displayArgs.join(', ')})`;
     }
   }
   
@@ -200,7 +213,7 @@ function formatResultDisplay(step: TimelineStep, showInternalVars: boolean): str
   if (displayVar) {
     if (showInternalVars && internalVar && isInternalVariable(internalVar)) {
       // Additive: show both
-      return `${displayVar} (${internalVar}) = ${step.result}`;
+      return `${displayVar}(${internalVar}) = ${step.result}`;
     }
     // Clean: just display var
     return `${displayVar} = ${step.result}`;
@@ -215,18 +228,6 @@ function formatResultDisplay(step: TimelineStep, showInternalVars: boolean): str
  */
 function isInternalVariable(term: string): boolean {
   return /^_\d+$/.test(term.trim());
-}
-
-/**
- * Extract variable name from a term (handles patterns like X, [H|T], X+1, etc.)
- */
-function extractVariableName(term: string): string | null {
-  const trimmed = term.trim();
-  // Simple variable
-  if (/^[A-Z][A-Za-z0-9_]*$/.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
 }
 
 /**
@@ -298,47 +299,70 @@ function formatMergedContent(step: TimelineStep, indent: string, showInternal: b
 }
 
 /**
+ * Replace internal variable names (_NNN) in a string with corresponding names
+ * from a template string, by building a positional mapping between the two.
+ * Works for both predicate(args) and operator expressions (e.g., X is Y+1).
+ */
+function replaceInternalVarsFromTemplate(template: string, instantiated: string, additive: boolean = false): string {
+  // Tokenise both strings: extract variable-shaped tokens in order
+  const templateTokens = [...template.matchAll(/\b([A-Z_][A-Za-z0-9_]*)\b/g)];
+  const instantiatedTokens = [...instantiated.matchAll(/\b(_\d+)\b/g)];
+
+  if (instantiatedTokens.length === 0) return instantiated;
+
+  // Build mapping: for each internal var in instantiated, find the template
+  // variable at the same positional slot
+  const replacements = new Map<string, string>();
+  const templateVarPositions: Array<{ name: string }> = [];
+
+  for (const m of templateTokens) {
+    if (m[1] !== '_') {
+      templateVarPositions.push({ name: m[1] });
+    }
+  }
+
+  // Walk through instantiated tokens and match positionally
+  let instVarIndex = 0;
+  const allInstTokens = [...instantiated.matchAll(/\b([A-Z_][A-Za-z0-9_]*)\b/g)];
+  for (const m of allInstTokens) {
+    if (isInternalVariable(m[1]) && instVarIndex < templateVarPositions.length) {
+      const displayVar = templateVarPositions[instVarIndex].name;
+      replacements.set(m[1], additive ? `${displayVar}(${m[1]})` : displayVar);
+    }
+    if (m[1] !== '_') {
+      instVarIndex++;
+    }
+  }
+
+  // Apply replacements
+  let result = instantiated;
+  for (const [internalVar, replacement] of replacements) {
+    result = result.replace(new RegExp(`\\b${internalVar}\\b`, 'g'), replacement);
+  }
+
+  return result;
+}
+
+/**
  * Clean internal variable names from subgoal display
- * e.g., "t(X1+1, Z) → t(X1+1, _2008)" becomes "t(X1+1, Z) → t(X1+1, Z)"
+ * e.g., "t(X1+1, Z) → t(X1+1, _2008)" becomes "t(X1+1, Z)"
+ * e.g., "N is N1 + 1 → _1604 is N1 + 1" becomes "N is N1 + 1"
  */
 function cleanInternalVarsFromSubgoal(subgoalDisplay: string): string {
-  // If there's no arrow, nothing to clean
   const arrowIndex = subgoalDisplay.indexOf(' → ');
   if (arrowIndex === -1) {
     return subgoalDisplay;
   }
-  
+
   const template = subgoalDisplay.slice(0, arrowIndex);
   const instantiated = subgoalDisplay.slice(arrowIndex + 3);
-  
-  // Extract the output variable from the template
-  const templateMatch = template.match(/^([^(]+)\((.+)\)$/);
-  const instantiatedMatch = instantiated.match(/^([^(]+)\((.+)\)$/);
-  
-  if (!templateMatch || !instantiatedMatch) {
-    return subgoalDisplay;
-  }
-  
-  const templateArgs = splitArgs(templateMatch[2]);
-  const instantiatedArgs = splitArgs(instantiatedMatch[2]);
-  
-  // Replace internal variables in instantiated with template variable names
-  const cleanedArgs = instantiatedArgs.map((arg, i) => {
-    if (isInternalVariable(arg) && i < templateArgs.length) {
-      const templateVar = extractVariableName(templateArgs[i]);
-      if (templateVar) {
-        return templateVar;
-      }
-    }
-    return arg;
-  });
-  
-  const cleanedInstantiated = `${instantiatedMatch[1]}(${cleanedArgs.join(', ')})`;
-  
-  // If template and cleaned instantiated are the same, just show template
-  if (template === cleanedInstantiated) {
+
+  const cleaned = replaceInternalVarsFromTemplate(template, instantiated);
+
+  // If template and cleaned are the same, just show template
+  if (template === cleaned) {
     return template;
   }
-  
-  return `${template} → ${cleanedInstantiated}`;
+
+  return `${template} → ${cleaned}`;
 }
