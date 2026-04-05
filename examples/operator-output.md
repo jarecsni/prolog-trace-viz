@@ -16,7 +16,7 @@ t(1+0+1, C)
 
 ## Execution Timeline
 
-┌─ Step 1: t(1+0+1,X+1+0)
+┌─ Step 1: t(1+0+1, X+1+0)
 │  Fact: t(X+0+1, X+1+0) [line 2]
 │  Unifications:
 │    X = 1

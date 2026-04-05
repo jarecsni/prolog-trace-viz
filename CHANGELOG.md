@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Internal variable leakage**: Operator expressions (`is/2`, `>/2`) in step headers and subgoal listings leaked raw Prolog internal variable names (e.g., `_778 is 2+1`) instead of using clause variable names. Now uses parent's subgoal template for consistent display.
+- **Debug mode variable consistency**: In `--debug` mode, step headers now use the same internal variable names as their parent's subgoal listing, with additive `V(_NNN)` notation (e.g., `R(_2482) is 4 * 6`). Previously showed mismatched internal vars from different frames.
+- **Goal display comma spacing**: Added space after comma in goal arguments (e.g., `factorial(4, R)` instead of `factorial(4,R)`)
+
 ## [2.6.1] - 2026-04-05
 
 ### Fixed
