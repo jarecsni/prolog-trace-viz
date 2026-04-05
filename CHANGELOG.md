@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Wrapper line offset bug**: Source files with leading blank lines caused clause line numbers to be mapped incorrectly, resulting in wrong clause matching in the timeline (e.g., recursive clauses displayed as base case facts with wrong variable names and no unifications)
+
 ## [2.6.0] - 2026-01-14
 
 ### Added

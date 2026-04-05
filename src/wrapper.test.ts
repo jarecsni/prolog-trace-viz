@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { generateWrapper, parseWrapper, WrapperConfig } from './wrapper.js';
+import { generateWrapper, parseWrapper, calculateLineOffset, mapWrapperLineToSource, WrapperConfig } from './wrapper.js';
+import { buildSourceClauseMap } from './clauses.js';
 
 describe('Wrapper Generator - Unit Tests', () => {
   describe('generateWrapper', () => {
@@ -174,6 +175,68 @@ run_trace :-
       const parsed = parseWrapper(invalidWrapper);
 
       expect(parsed).toBeNull();
+    });
+  });
+
+  describe('calculateLineOffset', () => {
+    it('should return 4 when content has no leading blank lines', () => {
+      const content = 'factorial(0, 1).\nfactorial(N, F) :- N > 0.';
+      expect(calculateLineOffset(content)).toBe(4);
+    });
+
+    it('should account for leading blank lines stripped by trim()', () => {
+      // Content with one leading blank line (like 3_4_arithmetic.pl)
+      const content = '\nfactorial(0, 1).\nfactorial(N, F) :- N > 0.';
+      expect(calculateLineOffset(content)).toBe(3);
+    });
+
+    it('should account for multiple leading blank lines', () => {
+      const content = '\n\n\nfactorial(0, 1).';
+      expect(calculateLineOffset(content)).toBe(1);
+    });
+
+    it('should handle content with only whitespace on leading lines', () => {
+      // Lines with spaces/tabs before content are still stripped by trim()
+      const content = '  \n\nfactorial(0, 1).';
+      expect(calculateLineOffset(content)).toBe(2);
+    });
+  });
+
+  describe('mapWrapperLineToSource', () => {
+    it('should map correctly when content has no leading blank lines', () => {
+      const content = 'factorial(0, 1).\nfactorial(N, F) :- N > 0.';
+      // Source line 1 → wrapper line 5, so wrapper 5 → source 1
+      expect(mapWrapperLineToSource(5, content)).toBe(1);
+    });
+
+    it('should map correctly when content has leading blank lines', () => {
+      // With one leading blank line: source line 2 → wrapper line 5
+      // So wrapper 5 → source 2 (offset = 3)
+      const content = '\nfactorial(0, 1).';
+      expect(mapWrapperLineToSource(5, content)).toBe(2);
+    });
+  });
+
+  describe('line mapping with source clause map (regression)', () => {
+    it('should map wrapper lines to correct source clauses when file has leading blank lines', () => {
+      // Reproduces the 3_4_arithmetic.pl bug: leading blank line caused
+      // recursive clause (line 23) to be looked up as base case (line 22)
+      const content = '\nllength([], 0).\nllength([_|T], N) :-\n    llength(T, N1),\n    N is N1 + 1.\n';
+      const clauseMap = buildSourceClauseMap(content);
+
+      // Source clause map should have line 2 (fact) and line 3 (rule)
+      expect(clauseMap[2]?.head).toBe('llength([], 0)');
+      expect(clauseMap[3]?.head).toBe('llength([_|T], N)');
+
+      // Wrapper embeds trimmed content starting at wrapper line 5.
+      // With 1 leading blank line stripped, source line 2 → wrapper line 5.
+      // So tracer reporting wrapper line 5 should map to source line 2 (fact),
+      // and wrapper line 6 should map to source line 3 (recursive clause).
+      const factSourceLine = mapWrapperLineToSource(5, content);
+      const ruleSourceLine = mapWrapperLineToSource(6, content);
+
+      expect(clauseMap[factSourceLine]?.head).toBe('llength([], 0)');
+      expect(clauseMap[ruleSourceLine]?.head).toBe('llength([_|T], N)');
     });
   });
 
